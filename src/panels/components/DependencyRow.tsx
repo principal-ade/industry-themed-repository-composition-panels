@@ -1,5 +1,5 @@
-import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { ExternalLink, Copy, Check } from 'lucide-react';
 import { useTheme } from '@principal-ade/industry-theme';
 import type { DependencyItem } from '../../types/dependencies';
 
@@ -9,6 +9,8 @@ interface DependencyRowProps {
 
 export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
   const { theme } = useTheme();
+  const [isHovered, setIsHovered] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const getDependencyTypeBadgeStyle = (type: string) => {
     const baseStyle = {
@@ -48,6 +50,33 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
     }
   };
 
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const copyText = `${dependency.name}@${dependency.version}`;
+      await navigator.clipboard.writeText(copyText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const actionButtonStyle: React.CSSProperties = {
+    padding: `${theme.space[1]}px`,
+    borderRadius: `${theme.radii[1]}px`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: 'none',
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+    opacity: isHovered ? 1 : 0,
+    pointerEvents: isHovered ? 'auto' : 'none',
+  };
+
   return (
     <div
       style={{
@@ -61,6 +90,8 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
         border: `1px solid ${theme.colors.border}`,
         transition: 'all 0.2s',
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Type badge and package name */}
       <div
@@ -90,36 +121,47 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
         >
           {dependency.name}
         </span>
-      </div>
-
-      {/* Version and npm link */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-      >
-        <span style={{ color: theme.colors.textSecondary }}>
-          {dependency.version}
-        </span>
-
-        {/* NPM link */}
+        {/* NPM link - next to package name */}
         <a
           href={`https://www.npmjs.com/package/${dependency.name}`}
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            padding: `${theme.space[1]}px`,
-            borderRadius: `${theme.radii[1]}px`,
-            display: 'flex',
-            alignItems: 'center',
-            transition: 'background-color 0.2s',
+            ...actionButtonStyle,
+            color: theme.colors.textSecondary,
+            textDecoration: 'none',
+            flexShrink: 0,
           }}
           title="View on npm"
         >
-          <ExternalLink size={12} color={theme.colors.textSecondary} />
+          <ExternalLink size={12} />
         </a>
+      </div>
+
+      {/* Copy button and version */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+        }}
+      >
+        {/* Copy button - left of version */}
+        <button
+          type="button"
+          onClick={handleCopy}
+          style={{
+            ...actionButtonStyle,
+            color: copied ? theme.colors.success || '#10b981' : theme.colors.textSecondary,
+          }}
+          title={copied ? 'Copied!' : `Copy ${dependency.name}@${dependency.version}`}
+        >
+          {copied ? <Check size={12} /> : <Copy size={12} />}
+        </button>
+
+        <span style={{ color: theme.colors.textSecondary }}>
+          {dependency.version}
+        </span>
       </div>
     </div>
   );
