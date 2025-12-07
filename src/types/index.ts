@@ -4,6 +4,25 @@
  * Re-exports core types from @principal-ade/panel-framework-core
  */
 
+// Re-export composition types
+export type {
+  PackageLayer,
+  PackageCommand,
+  ConfigFile,
+  QualityMetrics,
+  LensOperation,
+  BaseLayer,
+  FilePattern,
+  FileSet,
+} from './composition';
+
+// Re-export dependencies panel types
+export type {
+  DependencyItem,
+  PackageSummary,
+  PackagesSliceData,
+} from './dependencies';
+
 // Re-export all core types from panel-framework-core
 export type {
   // Core data types

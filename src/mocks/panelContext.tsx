@@ -104,6 +104,9 @@ export const createMockContext = (
     ],
   ]);
 
+  // Use overridden slices if provided
+  const effectiveSlices = overrides?.slices ?? mockSlices;
+
   const defaultContext: PanelContextValue = {
     currentScope: {
       type: 'repository',
@@ -116,24 +119,24 @@ export const createMockContext = (
         path: '/Users/developer/my-project',
       },
     },
-    slices: mockSlices,
+    slices: effectiveSlices,
     getSlice: <T,>(name: string): DataSlice<T> | undefined => {
-      return mockSlices.get(name) as DataSlice<T> | undefined;
+      return effectiveSlices.get(name) as DataSlice<T> | undefined;
     },
     getWorkspaceSlice: <T,>(name: string): DataSlice<T> | undefined => {
-      const slice = mockSlices.get(name);
+      const slice = effectiveSlices.get(name);
       return slice?.scope === 'workspace'
         ? (slice as DataSlice<T>)
         : undefined;
     },
     getRepositorySlice: <T,>(name: string): DataSlice<T> | undefined => {
-      const slice = mockSlices.get(name);
+      const slice = effectiveSlices.get(name);
       return slice?.scope === 'repository'
         ? (slice as DataSlice<T>)
         : undefined;
     },
     hasSlice: (name: string, scope?: 'workspace' | 'repository'): boolean => {
-      const slice = mockSlices.get(name);
+      const slice = effectiveSlices.get(name);
       if (!slice) return false;
       if (!scope) return true;
       return slice.scope === scope;
@@ -142,7 +145,7 @@ export const createMockContext = (
       name: string,
       scope?: 'workspace' | 'repository'
     ): boolean => {
-      const slice = mockSlices.get(name);
+      const slice = effectiveSlices.get(name);
       if (!slice) return false;
       if (scope && slice.scope !== scope) return false;
       return slice.loading;

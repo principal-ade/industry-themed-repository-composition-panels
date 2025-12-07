@@ -1,4 +1,6 @@
 import { GitChangesPanel } from './panels/GitChangesPanel';
+import { PackageCompositionPanel } from './panels/PackageCompositionPanel';
+import { DependenciesPanel } from './panels/DependenciesPanel';
 import type { PanelDefinition, PanelContextValue } from './types';
 
 /**
@@ -36,6 +38,66 @@ export const panels: PanelDefinition[] = [
       console.log('Git Changes Panel unmounting');
     },
   },
+  {
+    metadata: {
+      id: 'industry-theme.package-composition',
+      name: 'Package Composition',
+      icon: 'Package',
+      version: '0.1.0',
+      author: 'Industry Theme',
+      description: 'View detected packages, dependencies, configs, and available commands',
+      slices: ['packages'],
+    },
+    component: PackageCompositionPanel,
+
+    onMount: async (context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Package Composition Panel mounted');
+
+      // Refresh packages if available
+      if (
+        context.hasSlice('packages') &&
+        !context.isSliceLoading('packages')
+      ) {
+        await context.refresh('repository', 'packages');
+      }
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Package Composition Panel unmounting');
+    },
+  },
+  {
+    metadata: {
+      id: 'industry-theme.dependencies',
+      name: 'Dependencies',
+      icon: 'Package',
+      version: '0.1.0',
+      author: 'Industry Theme',
+      description: 'View and explore package dependencies',
+      slices: ['packages'],
+    },
+    component: DependenciesPanel,
+
+    onMount: async (context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Dependencies Panel mounted');
+
+      // Refresh packages if available
+      if (
+        context.hasSlice('packages') &&
+        !context.isSliceLoading('packages')
+      ) {
+        await context.refresh('repository', 'packages');
+      }
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Dependencies Panel unmounting');
+    },
+  },
 ];
 
 /**
@@ -57,6 +119,9 @@ export const onPackageUnload = async () => {
 // Re-export components for direct usage (e.g., in Storybook)
 export { GitChangesPanel, GitChangesPanelContent, GitChangesPanelPreview } from './panels/GitChangesPanel';
 export type { GitChangesPanelProps } from './panels/GitChangesPanel';
+export { PackageCompositionPanel, PackageCompositionPanelContent, PackageCompositionPanelPreview } from './panels/PackageCompositionPanel';
+export type { PackageCompositionPanelProps } from './panels/PackageCompositionPanel';
+export { DependenciesPanel } from './panels/DependenciesPanel';
 
 // Re-export types
 export type {
@@ -67,4 +132,11 @@ export type {
   PanelComponentProps,
   PanelDefinition,
   PanelContextValue,
+  PackageLayer,
+  PackageCommand,
+  ConfigFile,
+  QualityMetrics,
+  DependencyItem,
+  PackageSummary,
+  PackagesSliceData,
 } from './types';
