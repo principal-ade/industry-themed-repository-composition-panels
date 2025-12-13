@@ -65,7 +65,7 @@ const createMockPackage = (config: {
   configFiles: config.configFiles,
 });
 
-// Sample packages
+// Sample packages with internal dependencies
 const samplePackages: PackageLayer[] = [
   createMockPackage({
     packageData: {
@@ -80,6 +80,9 @@ const samplePackages: PackageLayer[] = [
         react: '^19.0.0',
         'react-dom': '^19.0.0',
         '@tanstack/react-query': '^5.0.0',
+        // Internal dependencies
+        '@my-app/ui': 'workspace:*',
+        '@my-app/utils': 'workspace:*',
       },
       devDependencies: {
         typescript: '^5.0.0',
@@ -116,6 +119,8 @@ const samplePackages: PackageLayer[] = [
       dependencies: {
         react: '^19.0.0',
         clsx: '^2.0.0',
+        // Internal dependency
+        '@my-app/utils': 'workspace:*',
       },
       devDependencies: {
         typescript: '^5.0.0',
@@ -154,6 +159,34 @@ const samplePackages: PackageLayer[] = [
     configFiles: {
       typescript: { path: 'packages/utils/tsconfig.json', exists: true, type: 'json' },
       vitest: { path: 'packages/utils/vitest.config.ts', exists: true, type: 'ts' },
+    },
+  }),
+  createMockPackage({
+    packageData: {
+      name: '@my-app/api',
+      version: '0.1.0',
+      path: 'packages/api',
+      manifestPath: 'packages/api/package.json',
+      packageManager: 'npm',
+      isMonorepoRoot: false,
+      isWorkspace: true,
+      dependencies: {
+        express: '^4.18.0',
+        // Internal dependency
+        '@my-app/utils': 'workspace:*',
+      },
+      devDependencies: {
+        typescript: '^5.0.0',
+        '@types/express': '^4.17.0',
+      },
+      peerDependencies: {},
+      availableCommands: [
+        { name: 'dev', command: 'tsx watch src/index.ts', type: 'script' },
+        { name: 'build', command: 'tsup', type: 'script' },
+      ],
+    },
+    configFiles: {
+      typescript: { path: 'packages/api/tsconfig.json', exists: true, type: 'json' },
     },
   }),
 ];
