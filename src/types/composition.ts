@@ -87,7 +87,7 @@ export interface PackageLayer extends BaseLayer {
     version?: string;
     path: string;
     manifestPath: string;
-    packageManager: 'npm' | 'yarn' | 'pnpm' | 'pip' | 'poetry' | 'pipenv' | 'cargo' | 'unknown';
+    packageManager: 'npm' | 'yarn' | 'pnpm' | 'bun' | 'pip' | 'poetry' | 'pipenv' | 'cargo' | 'unknown';
     dependencies: Record<string, string>;
     devDependencies: Record<string, string>;
     peerDependencies: Record<string, string>;

@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import {
-  Package,
   ChevronDown,
   ChevronRight,
   FileCode,
@@ -10,6 +9,7 @@ import {
   Folder,
   ExternalLink,
 } from 'lucide-react';
+import { PackageManagerIcon } from './components/PackageManagerIcon';
 import type { PanelComponentProps } from '../types';
 import type { PackageLayer, ConfigFile, PackageCommand } from '../types/composition';
 
@@ -35,6 +35,8 @@ interface PackageCardProps {
   onCommandClick?: (command: PackageCommand, packagePath: string) => void;
   onConfigClick?: (configFile: ConfigFile) => void;
   onPackageClick?: (packagePath: string) => void;
+  /** When true, renders without the card wrapper and dropdown - for single package view */
+  standalone?: boolean;
 }
 
 const PackageCard: React.FC<PackageCardProps> = ({
@@ -44,6 +46,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
   onCommandClick,
   onConfigClick,
   onPackageClick,
+  standalone = false,
 }) => {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'commands' | 'configs'>('commands');
@@ -56,6 +59,236 @@ const PackageCard: React.FC<PackageCardProps> = ({
   }, [pkg.configFiles]);
 
   const commands = pkg.packageData.availableCommands || [];
+
+  // Standalone mode: render content directly without card wrapper
+  if (standalone) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Package Info Header */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 16px',
+            borderBottom: `1px solid ${theme.colors.border}`,
+          }}
+        >
+          <PackageManagerIcon packageManager={pkg.packageData.packageManager} size={18} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: theme.fontSizes[2],
+                fontWeight: 600,
+                color: theme.colors.text,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {pkg.packageData.name}
+            </div>
+            {pkg.packageData.version && (
+              <div
+                style={{
+                  fontSize: theme.fontSizes[0],
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                v{pkg.packageData.version}
+              </div>
+            )}
+          </div>
+          {pkg.packageData.path && (
+            <button
+              onClick={() => onPackageClick?.(pkg.packageData.path)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                backgroundColor: theme.colors.backgroundTertiary,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: '4px',
+                color: theme.colors.textSecondary,
+                fontSize: theme.fontSizes[0],
+                cursor: 'pointer',
+              }}
+              title="Open package folder"
+            >
+              <Folder size={12} />
+              {pkg.packageData.path || '/'}
+            </button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div
+          style={{
+            display: 'flex',
+            backgroundColor: theme.colors.backgroundTertiary,
+            borderBottom: `1px solid ${theme.colors.border}`,
+          }}
+        >
+          {[
+            { id: 'commands' as const, label: 'Commands', count: commands.length },
+            { id: 'configs' as const, label: 'Configs', count: configFiles.length },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                backgroundColor: activeTab === tab.id ? theme.colors.backgroundSecondary : 'transparent',
+                border: 'none',
+                borderBottom:
+                  activeTab === tab.id ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
+                color: activeTab === tab.id ? theme.colors.text : theme.colors.textSecondary,
+                fontSize: theme.fontSizes[1],
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              {tab.label}
+              <span
+                style={{
+                  backgroundColor: theme.colors.backgroundTertiary,
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  fontSize: theme.fontSizes[0],
+                }}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div style={{ flex: 1, padding: '12px', overflow: 'auto' }}>
+          {activeTab === 'commands' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {commands.length === 0 ? (
+                <div style={{ color: theme.colors.textSecondary, fontSize: theme.fontSizes[1] }}>
+                  No commands available
+                </div>
+              ) : (
+                commands.map((cmd, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => onCommandClick?.(cmd, pkg.packageData.path)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      backgroundColor: theme.colors.backgroundTertiary,
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: '6px',
+                      color: theme.colors.text,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <Terminal size={14} color={theme.colors.accent} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 500, fontSize: theme.fontSizes[1] }}>{cmd.name}</div>
+                      <div
+                        style={{
+                          fontSize: theme.fontSizes[0],
+                          color: theme.colors.textSecondary,
+                          fontFamily: 'monospace',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {cmd.command}
+                      </div>
+                    </div>
+                    {cmd.isLensCommand && (
+                      <span
+                        style={{
+                          padding: '2px 6px',
+                          backgroundColor: theme.colors.accent + '20',
+                          color: theme.colors.accent,
+                          borderRadius: '4px',
+                          fontSize: theme.fontSizes[0],
+                        }}
+                      >
+                        {cmd.lensId}
+                      </span>
+                    )}
+                    <ExternalLink size={12} color={theme.colors.textSecondary} />
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+
+          {activeTab === 'configs' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {configFiles.length === 0 ? (
+                <div style={{ color: theme.colors.textSecondary, fontSize: theme.fontSizes[1] }}>
+                  No config files detected
+                </div>
+              ) : (
+                configFiles.map((config, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => onConfigClick?.(config)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      backgroundColor: theme.colors.backgroundTertiary,
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: '6px',
+                      color: theme.colors.text,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <Settings size={14} color={theme.colors.textSecondary} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 500, fontSize: theme.fontSizes[1] }}>{config.name}</div>
+                      <div
+                        style={{
+                          fontSize: theme.fontSizes[0],
+                          color: theme.colors.textSecondary,
+                          fontFamily: 'monospace',
+                        }}
+                      >
+                        {config.path}
+                      </div>
+                    </div>
+                    {config.isInline && (
+                      <span
+                        style={{
+                          padding: '2px 6px',
+                          backgroundColor: theme.colors.textSecondary + '20',
+                          color: theme.colors.textSecondary,
+                          borderRadius: '4px',
+                          fontSize: theme.fontSizes[0],
+                        }}
+                      >
+                        inline
+                      </span>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -87,7 +320,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
         ) : (
           <ChevronRight size={16} color={theme.colors.textSecondary} />
         )}
-        <Package size={18} color={theme.colors.accent} />
+        <PackageManagerIcon packageManager={pkg.packageData.packageManager} size={18} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
@@ -378,6 +611,21 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
     return a.packageData.path.localeCompare(b.packageData.path);
   });
 
+  // Single package: render standalone without card wrapper
+  if (packages.length === 1) {
+    return (
+      <PackageCard
+        pkg={packages[0]}
+        isExpanded={true}
+        onToggle={() => {}}
+        onCommandClick={onCommandClick}
+        onConfigClick={onConfigClick}
+        onPackageClick={onPackageClick}
+        standalone
+      />
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
@@ -429,7 +677,7 @@ export const PackageCompositionPanelPreview: React.FC = () => {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <Package size={14} color={theme.colors.accent} />
+        <PackageManagerIcon packageManager="npm" size={14} />
         <span>my-app</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '8px' }}>
