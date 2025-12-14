@@ -1,6 +1,5 @@
 import { GitChangesPanel } from './panels/GitChangesPanel';
 import { PackageCompositionPanel } from './panels/PackageCompositionPanel';
-import { DependenciesPanel } from './panels/DependenciesPanel';
 import { SearchPanel } from './panels/SearchPanel';
 import type { PanelDefinition, PanelContextValue } from './types';
 
@@ -71,36 +70,6 @@ export const panels: PanelDefinition[] = [
   },
   {
     metadata: {
-      id: 'industry-theme.dependencies',
-      name: 'Dependencies',
-      icon: 'Package',
-      version: '0.1.0',
-      author: 'Industry Theme',
-      description: 'View and explore package dependencies',
-      slices: ['packages'],
-    },
-    component: DependenciesPanel,
-
-    onMount: async (context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log('Dependencies Panel mounted');
-
-      // Refresh packages if available
-      if (
-        context.hasSlice('packages') &&
-        !context.isSliceLoading('packages')
-      ) {
-        await context.refresh('repository', 'packages');
-      }
-    },
-
-    onUnmount: async (_context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log('Dependencies Panel unmounting');
-    },
-  },
-  {
-    metadata: {
       id: 'industry-theme.search',
       name: 'Search',
       icon: 'Search',
@@ -152,7 +121,6 @@ export { GitChangesPanel, GitChangesPanelContent, GitChangesPanelPreview } from 
 export type { GitChangesPanelProps } from './panels/GitChangesPanel';
 export { PackageCompositionPanel, PackageCompositionPanelContent, PackageCompositionPanelPreview } from './panels/PackageCompositionPanel';
 export type { PackageCompositionPanelProps } from './panels/PackageCompositionPanel';
-export { DependenciesPanel } from './panels/DependenciesPanel';
 export { SearchPanel, SearchPanelContent, SearchPanelPreview } from './panels/SearchPanel';
 export type { SearchPanelProps } from './panels/SearchPanel';
 

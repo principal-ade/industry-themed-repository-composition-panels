@@ -265,7 +265,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
 
     return (
       <GitStatusFileTree
-        key={`${showFullTree}-${gitChangesData.statusData.length}`}
+        key={showFullTree ? 'full' : 'changes'}
         fileTree={gitChangesData.tree}
         theme={theme}
         gitStatusData={gitChangesData.statusData}
