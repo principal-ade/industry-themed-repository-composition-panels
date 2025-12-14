@@ -178,6 +178,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
         alignItems: 'stretch',
         backgroundColor: theme.colors.backgroundTertiary,
         width: '100%',
+        height: '100%',
       }}
     >
       <button
@@ -280,7 +281,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
+      <div style={{ height: 40, borderBottom: `1px solid ${theme.colors.border}` }}>
         <ToggleButtons />
       </div>
       <div style={{ flex: 1, overflow: 'auto' }}>
