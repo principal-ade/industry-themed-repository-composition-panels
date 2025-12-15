@@ -103,9 +103,10 @@ interface PackageSummaryCardProps {
   pkg: PackageLayer;
   allPackages: PackageLayer[];
   onClick: () => void;
+  onHover?: (pkg: PackageLayer | null) => void;
 }
 
-const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackages, onClick }) => {
+const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackages, onClick, onHover }) => {
   const { theme } = useTheme();
 
   const deps = pkg.packageData.dependencies || {};
@@ -150,19 +151,21 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
         padding: '12px',
         backgroundColor: theme.colors.backgroundSecondary,
         border: `1px solid ${theme.colors.border}`,
-        borderRadius: '8px',
+        borderRadius: '0',
         cursor: 'pointer',
         textAlign: 'left',
         transition: 'all 0.15s ease',
         width: '100%',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = theme.colors.accent;
+        e.currentTarget.style.borderColor = theme.colors.primary;
         e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+        onHover?.(pkg);
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = theme.colors.border;
         e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+        onHover?.(null);
       }}
     >
       {/* Package Header */}
@@ -234,8 +237,8 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
                   key={dep.id}
                   style={{
                     padding: '2px 6px',
-                    backgroundColor: theme.colors.accent + '15',
-                    color: theme.colors.accent,
+                    backgroundColor: theme.colors.primary + '15',
+                    color: theme.colors.primary,
                     borderRadius: '4px',
                     fontWeight: 500,
                   }}
@@ -277,16 +280,16 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Terminal size={12} />
-          <span>{commands}</span>
+          <Package size={12} />
+          <span>{totalDeps} deps</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Settings size={12} />
-          <span>{configFiles}</span>
+          <span>{configFiles} configs</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Package size={12} />
-          <span>{totalDeps}</span>
+          <Terminal size={12} />
+          <span>{commands} commands</span>
         </div>
       </div>
     </button>
@@ -306,6 +309,10 @@ export interface PackageCompositionPanelProps {
   onConfigClick?: (configFile: ConfigFile) => void;
   /** Callback when a package folder is clicked */
   onPackageClick?: (packagePath: string) => void;
+  /** Callback when hovering over a package (null when hover ends) */
+  onPackageHover?: (pkg: PackageLayer | null) => void;
+  /** Callback when a package is selected (null when deselected) */
+  onPackageSelect?: (pkg: PackageLayer | null) => void;
 }
 
 interface PackageCardProps {
@@ -329,7 +336,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
   standalone = false,
 }) => {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'commands' | 'configs' | 'dependencies'>('commands');
+  const [activeTab, setActiveTab] = useState<'commands' | 'configs' | 'dependencies'>('dependencies');
   const [activeFilters, setActiveFilters] = useState<Set<'production' | 'development' | 'peer'>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -455,9 +462,9 @@ const PackageCard: React.FC<PackageCardProps> = ({
           }}
         >
           {[
-            { id: 'commands' as const, label: 'Commands', count: commands.length },
-            { id: 'configs' as const, label: 'Configs', count: configFiles.length },
             { id: 'dependencies' as const, label: 'Dependencies', count: dependencyItems.length },
+            { id: 'configs' as const, label: 'Configs', count: configFiles.length },
+            { id: 'commands' as const, label: 'Commands', count: commands.length },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -781,9 +788,9 @@ const PackageCard: React.FC<PackageCardProps> = ({
             }}
           >
             {[
-              { id: 'commands' as const, label: 'Commands', count: commands.length },
-              { id: 'configs' as const, label: 'Configs', count: configFiles.length },
               { id: 'dependencies' as const, label: 'Deps', count: dependencyItems.length },
+              { id: 'configs' as const, label: 'Configs', count: configFiles.length },
+              { id: 'commands' as const, label: 'Commands', count: commands.length },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1027,6 +1034,8 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
   onCommandClick,
   onConfigClick,
   onPackageClick,
+  onPackageHover,
+  onPackageSelect,
 }) => {
   const { theme } = useTheme();
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
@@ -1122,7 +1131,8 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
           {/* Header */}
           <div
             style={{
-              padding: '12px 16px',
+              height: '40px',
+              padding: '0 16px',
               borderBottom: `1px solid ${theme.colors.border}`,
               display: 'flex',
               alignItems: 'center',
@@ -1130,7 +1140,7 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
               flexShrink: 0,
             }}
           >
-            <FileCode size={16} color={theme.colors.accent} />
+            <FileCode size={16} color={theme.colors.primary} />
             <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
               {packages.length} packages
             </span>
@@ -1141,10 +1151,8 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
             style={{
               flex: 1,
               overflow: 'auto',
-              padding: '12px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '8px',
             }}
           >
             {sortedPackages.map((pkg) => (
@@ -1152,7 +1160,11 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
                 key={pkg.id}
                 pkg={pkg}
                 allPackages={packages}
-                onClick={() => setSelectedPackageId(pkg.id)}
+                onClick={() => {
+                  setSelectedPackageId(pkg.id);
+                  onPackageSelect?.(pkg);
+                }}
+                onHover={onPackageHover}
               />
             ))}
           </div>
@@ -1180,7 +1192,10 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
             }}
           >
             <button
-              onClick={() => setSelectedPackageId(null)}
+              onClick={() => {
+                setSelectedPackageId(null);
+                onPackageSelect?.(null);
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1264,17 +1279,45 @@ export const PackageCompositionPanelPreview: React.FC = () => {
  * PackageCompositionPanel - Panel Framework compatible component
  * Uses context.getSlice('packages') to get package layer data
  */
-export const PackageCompositionPanel: React.FC<PanelComponentProps> = ({ context }) => {
+export const PackageCompositionPanel: React.FC<PanelComponentProps> = ({ context, events }) => {
   // Get packages slice from context - data shape is { packages: PackageLayer[], summary: PackageSummary }
   const packagesSlice = context.getSlice<PackagesSliceData>('packages');
 
   const packages = packagesSlice?.data?.packages ?? [];
   const isLoading = packagesSlice?.loading || false;
 
+  // Emit package:hover events when hovering over packages
+  const handlePackageHover = (pkg: PackageLayer | null) => {
+    events?.emit({
+      type: 'package:hover',
+      source: 'PackageCompositionPanel',
+      timestamp: Date.now(),
+      payload: pkg ? {
+        packagePath: pkg.packageData.path,
+        packageName: pkg.packageData.name,
+      } : null,
+    });
+  };
+
+  // Emit package:select events when selecting/deselecting packages
+  const handlePackageSelect = (pkg: PackageLayer | null) => {
+    events?.emit({
+      type: 'package:select',
+      source: 'PackageCompositionPanel',
+      timestamp: Date.now(),
+      payload: pkg ? {
+        packagePath: pkg.packageData.path,
+        packageName: pkg.packageData.name,
+      } : null,
+    });
+  };
+
   return (
     <PackageCompositionPanelContent
       packages={packages}
       isLoading={isLoading}
+      onPackageHover={handlePackageHover}
+      onPackageSelect={handlePackageSelect}
     />
   );
 };
