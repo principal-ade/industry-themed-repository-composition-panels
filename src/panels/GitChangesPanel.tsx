@@ -194,9 +194,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
             ? theme.colors.backgroundSecondary
             : 'transparent',
           color: showFullTree ? theme.colors.text : theme.colors.textSecondary,
-          border: showFullTree
-            ? `1px solid ${theme.colors.border}`
-            : '1px solid transparent',
+          border: 'none',
           cursor: 'pointer',
           fontWeight: showFullTree ? 600 : 400,
           transition: 'all 0.2s',
@@ -217,15 +215,13 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
             ? theme.colors.backgroundSecondary
             : 'transparent',
           color: !showFullTree ? theme.colors.text : theme.colors.textSecondary,
-          border: !showFullTree
-            ? `1px solid ${theme.colors.border}`
-            : '1px solid transparent',
+          border: 'none',
           cursor: 'pointer',
           fontWeight: !showFullTree ? 600 : 400,
           transition: 'all 0.2s',
         }}
       >
-        Changes Only
+        Changes
       </button>
     </div>
   );
