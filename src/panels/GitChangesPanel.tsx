@@ -342,7 +342,7 @@ export const GitChangesPanelPreview: React.FC = () => {
  * GitChangesPanel - Panel Framework compatible component
  * Uses context.getSlice('git') and context.getSlice('fileTree') to get data
  */
-export const GitChangesPanel: React.FC<PanelComponentProps> = ({ context }) => {
+export const GitChangesPanel: React.FC<PanelComponentProps> = ({ context, events }) => {
   // Get data slices from context
   const gitSlice = context.getSlice<GitStatus>('git');
   const fileTreeSlice = context.getSlice<FileTree>('fileTree');
@@ -362,12 +362,26 @@ export const GitChangesPanel: React.FC<PanelComponentProps> = ({ context }) => {
     ? context.currentScope.repository?.path
     : undefined;
 
+  // Handle file click - emit file:open event
+  const handleFileClick = useCallback(
+    (filePath: string, status?: GitChangeSelectionStatus) => {
+      events?.emit({
+        type: 'file:open',
+        source: 'git-changes-panel',
+        timestamp: Date.now(),
+        payload: { path: filePath, gitStatus: status },
+      });
+    },
+    [events]
+  );
+
   return (
     <GitChangesPanelContent
       gitStatus={gitStatus}
       fileTree={fileTree}
       rootPath={rootPath}
       isLoading={isLoading}
+      onFileClick={handleFileClick}
     />
   );
 };
