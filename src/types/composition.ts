@@ -91,6 +91,16 @@ export interface PackageLayer extends BaseLayer {
     dependencies: Record<string, string>;
     devDependencies: Record<string, string>;
     peerDependencies: Record<string, string>;
+
+    // Package metadata from manifest
+    description?: string;
+    license?: string;
+    author?: string;
+    authors?: string[];
+    repository?: string;
+    homepage?: string;
+    keywords?: string[];
+
     isMonorepoRoot: boolean;
     isWorkspace: boolean;
     parentPackage?: string;

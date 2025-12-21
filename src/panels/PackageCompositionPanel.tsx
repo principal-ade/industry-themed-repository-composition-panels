@@ -216,6 +216,55 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
         <ChevronRight size={16} color={theme.colors.textSecondary} />
       </div>
 
+      {/* Package Metadata (description, license) */}
+      {(pkg.packageData.description || pkg.packageData.license) && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+          }}
+        >
+          {pkg.packageData.description && (
+            <div
+              style={{
+                fontSize: theme.fontSizes[0],
+                color: theme.colors.textSecondary,
+                lineHeight: 1.4,
+                overflow: 'hidden',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+              }}
+            >
+              {pkg.packageData.description}
+            </div>
+          )}
+          {pkg.packageData.license && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: theme.fontSizes[0],
+              }}
+            >
+              <span
+                style={{
+                  padding: '1px 6px',
+                  backgroundColor: theme.colors.textSecondary + '15',
+                  color: theme.colors.textSecondary,
+                  borderRadius: '3px',
+                  fontWeight: 500,
+                }}
+              >
+                {pkg.packageData.license}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Internal Dependencies */}
       {hasInternalDeps && (
         <div
@@ -452,6 +501,57 @@ const PackageCard: React.FC<PackageCardProps> = ({
             </button>
           )}
         </div>
+
+        {/* Package Metadata */}
+        {(pkg.packageData.description || pkg.packageData.license || pkg.packageData.author) && (
+          <div
+            style={{
+              padding: '8px 16px 12px',
+              borderBottom: `1px solid ${theme.colors.border}`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            {pkg.packageData.description && (
+              <div
+                style={{
+                  fontSize: theme.fontSizes[1],
+                  color: theme.colors.textSecondary,
+                  lineHeight: 1.5,
+                }}
+              >
+                {pkg.packageData.description}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {pkg.packageData.license && (
+                <span
+                  style={{
+                    padding: '2px 8px',
+                    backgroundColor: theme.colors.textSecondary + '15',
+                    color: theme.colors.textSecondary,
+                    borderRadius: '4px',
+                    fontSize: theme.fontSizes[0],
+                    fontWeight: 500,
+                  }}
+                >
+                  {pkg.packageData.license}
+                </span>
+              )}
+              {(pkg.packageData.author || pkg.packageData.authors?.[0]) && (
+                <span
+                  style={{
+                    fontSize: theme.fontSizes[0],
+                    color: theme.colors.textSecondary,
+                  }}
+                >
+                  by {pkg.packageData.author || pkg.packageData.authors?.[0]}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div
