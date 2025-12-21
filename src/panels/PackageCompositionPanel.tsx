@@ -16,7 +16,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { PackageManagerIcon } from './components/PackageManagerIcon';
-import { DependencyRow, FilterBar, DependencyInfoModal } from './components';
+import { DependencyRow, FilterBar, DependencyInfoModal, LensReadinessSection, OtherScriptsSection } from './components';
 import type { PanelComponentProps } from '../types';
 import type { PackageLayer, ConfigFile, PackageCommand } from '../types/composition';
 import type { PackagesSliceData, DependencyItem } from '../types/dependencies';
@@ -385,7 +385,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
   standalone = false,
 }) => {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'commands' | 'configs' | 'dependencies'>('dependencies');
+  const [activeTab, setActiveTab] = useState<'dependencies' | 'lenses'>('dependencies');
   const [activeFilters, setActiveFilters] = useState<Set<'production' | 'development' | 'peer'>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -563,8 +563,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
         >
           {[
             { id: 'dependencies' as const, label: 'Dependencies', count: dependencyItems.length },
-            { id: 'configs' as const, label: 'Configs', count: configFiles.length },
-            { id: 'commands' as const, label: 'Commands', count: commands.length },
+            { id: 'lenses' as const, label: 'Lenses', count: pkg.qualityMetrics?.lensReadiness ? Object.values(pkg.qualityMetrics.lensReadiness).filter(l => l.ready).length : 0, total: pkg.qualityMetrics?.lensReadiness ? Object.keys(pkg.qualityMetrics.lensReadiness).length : 0 },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -594,127 +593,21 @@ const PackageCard: React.FC<PackageCardProps> = ({
                   fontSize: theme.fontSizes[0],
                 }}
               >
-                {tab.count}
+                {'total' in tab ? `${tab.count}/${tab.total}` : tab.count}
               </span>
             </button>
           ))}
         </div>
 
         {/* Tab Content */}
-        <div style={{ flex: 1, padding: activeTab === 'dependencies' ? '0' : '12px', overflow: 'auto' }}>
-          {activeTab === 'commands' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {commands.length === 0 ? (
-                <div style={{ color: theme.colors.textSecondary, fontSize: theme.fontSizes[1] }}>
-                  No commands available
-                </div>
-              ) : (
-                commands.map((cmd, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => onCommandClick?.(cmd, pkg.packageData.path)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 12px',
-                      backgroundColor: theme.colors.backgroundTertiary,
-                      border: `1px solid ${theme.colors.border}`,
-                      borderRadius: '6px',
-                      color: theme.colors.text,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <Terminal size={14} color={theme.colors.accent} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 500, fontSize: theme.fontSizes[1] }}>{cmd.name}</div>
-                      <div
-                        style={{
-                          fontSize: theme.fontSizes[0],
-                          color: theme.colors.textSecondary,
-                          fontFamily: 'monospace',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {cmd.command}
-                      </div>
-                    </div>
-                    {cmd.isLensCommand && (
-                      <span
-                        style={{
-                          padding: '2px 6px',
-                          backgroundColor: theme.colors.accent + '20',
-                          color: theme.colors.accent,
-                          borderRadius: '4px',
-                          fontSize: theme.fontSizes[0],
-                        }}
-                      >
-                        {cmd.lensId}
-                      </span>
-                    )}
-                    <ExternalLink size={12} color={theme.colors.textSecondary} />
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-
-          {activeTab === 'configs' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {configFiles.length === 0 ? (
-                <div style={{ color: theme.colors.textSecondary, fontSize: theme.fontSizes[1] }}>
-                  No config files detected
-                </div>
-              ) : (
-                configFiles.map((config, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => onConfigClick?.(config)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 12px',
-                      backgroundColor: theme.colors.backgroundTertiary,
-                      border: `1px solid ${theme.colors.border}`,
-                      borderRadius: '6px',
-                      color: theme.colors.text,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <Settings size={14} color={theme.colors.textSecondary} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 500, fontSize: theme.fontSizes[1] }}>{config.name}</div>
-                      <div
-                        style={{
-                          fontSize: theme.fontSizes[0],
-                          color: theme.colors.textSecondary,
-                          fontFamily: 'monospace',
-                        }}
-                      >
-                        {config.path}
-                      </div>
-                    </div>
-                    {config.isInline && (
-                      <span
-                        style={{
-                          padding: '2px 6px',
-                          backgroundColor: theme.colors.textSecondary + '20',
-                          color: theme.colors.textSecondary,
-                          borderRadius: '4px',
-                          fontSize: theme.fontSizes[0],
-                        }}
-                      >
-                        inline
-                      </span>
-                    )}
-                  </button>
-                ))
-              )}
+        <div style={{ flex: 1, padding: activeTab === 'dependencies' ? '0' : '0', overflow: 'auto' }}>
+          {activeTab === 'lenses' && (
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <LensReadinessSection lensReadiness={pkg.qualityMetrics?.lensReadiness} />
+              <OtherScriptsSection
+                commands={commands}
+                onCommandClick={(cmd) => onCommandClick?.(cmd, pkg.packageData.path)}
+              />
             </div>
           )}
 
@@ -889,8 +782,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
           >
             {[
               { id: 'dependencies' as const, label: 'Deps', count: dependencyItems.length },
-              { id: 'configs' as const, label: 'Configs', count: configFiles.length },
-              { id: 'commands' as const, label: 'Commands', count: commands.length },
+              { id: 'lenses' as const, label: 'Lenses', count: pkg.qualityMetrics?.lensReadiness ? Object.values(pkg.qualityMetrics.lensReadiness).filter(l => l.ready).length : 0, total: pkg.qualityMetrics?.lensReadiness ? Object.keys(pkg.qualityMetrics.lensReadiness).length : 0 },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -920,127 +812,21 @@ const PackageCard: React.FC<PackageCardProps> = ({
                     fontSize: theme.fontSizes[0],
                   }}
                 >
-                  {tab.count}
+                  {'total' in tab ? `${tab.count}/${tab.total}` : tab.count}
                 </span>
               </button>
             ))}
           </div>
 
           {/* Tab Content */}
-          <div style={{ padding: activeTab === 'dependencies' ? '0' : '12px', maxHeight: '300px', overflow: 'auto' }}>
-            {activeTab === 'commands' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {commands.length === 0 ? (
-                  <div style={{ color: theme.colors.textSecondary, fontSize: theme.fontSizes[1] }}>
-                    No commands available
-                  </div>
-                ) : (
-                  commands.map((cmd, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => onCommandClick?.(cmd, pkg.packageData.path)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '8px 12px',
-                        backgroundColor: theme.colors.backgroundTertiary,
-                        border: `1px solid ${theme.colors.border}`,
-                        borderRadius: '6px',
-                        color: theme.colors.text,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
-                    >
-                      <Terminal size={14} color={theme.colors.accent} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 500, fontSize: theme.fontSizes[1] }}>{cmd.name}</div>
-                        <div
-                          style={{
-                            fontSize: theme.fontSizes[0],
-                            color: theme.colors.textSecondary,
-                            fontFamily: 'monospace',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {cmd.command}
-                        </div>
-                      </div>
-                      {cmd.isLensCommand && (
-                        <span
-                          style={{
-                            padding: '2px 6px',
-                            backgroundColor: theme.colors.accent + '20',
-                            color: theme.colors.accent,
-                            borderRadius: '4px',
-                            fontSize: theme.fontSizes[0],
-                          }}
-                        >
-                          {cmd.lensId}
-                        </span>
-                      )}
-                      <ExternalLink size={12} color={theme.colors.textSecondary} />
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-
-            {activeTab === 'configs' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {configFiles.length === 0 ? (
-                  <div style={{ color: theme.colors.textSecondary, fontSize: theme.fontSizes[1] }}>
-                    No config files detected
-                  </div>
-                ) : (
-                  configFiles.map((config, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => onConfigClick?.(config)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '8px 12px',
-                        backgroundColor: theme.colors.backgroundTertiary,
-                        border: `1px solid ${theme.colors.border}`,
-                        borderRadius: '6px',
-                        color: theme.colors.text,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
-                    >
-                      <Settings size={14} color={theme.colors.textSecondary} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 500, fontSize: theme.fontSizes[1] }}>{config.name}</div>
-                        <div
-                          style={{
-                            fontSize: theme.fontSizes[0],
-                            color: theme.colors.textSecondary,
-                            fontFamily: 'monospace',
-                          }}
-                        >
-                          {config.path}
-                        </div>
-                      </div>
-                      {config.isInline && (
-                        <span
-                          style={{
-                            padding: '2px 6px',
-                            backgroundColor: theme.colors.textSecondary + '20',
-                            color: theme.colors.textSecondary,
-                            borderRadius: '4px',
-                            fontSize: theme.fontSizes[0],
-                          }}
-                        >
-                          inline
-                        </span>
-                      )}
-                    </button>
-                  ))
-                )}
+          <div style={{ padding: activeTab === 'dependencies' ? '0' : '0', maxHeight: '300px', overflow: 'auto' }}>
+            {activeTab === 'lenses' && (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <LensReadinessSection lensReadiness={pkg.qualityMetrics?.lensReadiness} />
+                <OtherScriptsSection
+                  commands={commands}
+                  onCommandClick={(cmd) => onCommandClick?.(cmd, pkg.packageData.path)}
+                />
               </div>
             )}
 
