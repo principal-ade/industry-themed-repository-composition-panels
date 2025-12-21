@@ -1,8 +1,25 @@
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GitStatusFileTree, type GitFileStatus } from '@principal-ade/dynamic-file-tree';
 import { PathsFileTreeBuilder, type FileTree } from '@principal-ai/repository-abstraction';
+import { Copy, FileSymlink, ExternalLink, FolderOpen } from 'lucide-react';
 import type { GitStatus, GitChangeSelectionStatus, PanelComponentProps } from '../types';
+import './GitChangesPanel.css';
+
+interface ContextMenuState {
+  visible: boolean;
+  x: number;
+  y: number;
+  nodePath: string;
+  isFolder: boolean;
+}
+
+export type ContextMenuAction =
+  | { type: 'copyFullPath'; path: string }
+  | { type: 'copyRelativePath'; path: string }
+  | { type: 'openFile'; path: string }
+  | { type: 'openFolder'; path: string };
 
 export interface GitChangesPanelProps {
   /** Git status data with categorized file paths */
@@ -15,6 +32,8 @@ export interface GitChangesPanelProps {
   isLoading?: boolean;
   /** Callback when a file is clicked */
   onFileClick?: (filePath: string, status?: GitChangeSelectionStatus) => void;
+  /** Callback when a context menu action is triggered */
+  onContextMenuAction?: (action: ContextMenuAction) => void;
   /** Message to display when there are no changes */
   emptyMessage?: string;
   /** Message to display while loading */
@@ -33,11 +52,36 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
   rootPath,
   isLoading = false,
   onFileClick,
+  onContextMenuAction,
   emptyMessage = 'No git changes to display',
   loadingMessage = 'Loading git changes...',
   selectedFile,
 }) => {
   const { theme } = useTheme();
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    nodePath: '',
+    isFolder: false,
+  });
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu((prev) => ({ ...prev, visible: false }));
+      }
+    };
+
+    if (contextMenu.visible) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [contextMenu.visible]);
 
   // Calculate if there are changes
   const hasChanges =
@@ -87,6 +131,60 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
     },
     [getFileStatus, onFileClick],
   );
+
+  // Context menu handlers
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent, nodePath: string, isFolder: boolean) => {
+      event.preventDefault();
+      setContextMenu({
+        visible: true,
+        x: event.clientX,
+        y: event.clientY,
+        nodePath,
+        isFolder,
+      });
+    },
+    [],
+  );
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu((prev) => ({ ...prev, visible: false }));
+  }, []);
+
+  const getFullPath = useCallback(
+    (nodePath: string) => {
+      if (rootPath && !nodePath.startsWith(rootPath)) {
+        return `${rootPath}/${nodePath}`;
+      }
+      return nodePath;
+    },
+    [rootPath],
+  );
+
+  const handleCopyFullPath = useCallback(() => {
+    const fullPath = getFullPath(contextMenu.nodePath);
+    navigator.clipboard.writeText(fullPath);
+    onContextMenuAction?.({ type: 'copyFullPath', path: fullPath });
+    closeContextMenu();
+  }, [contextMenu.nodePath, getFullPath, onContextMenuAction, closeContextMenu]);
+
+  const handleCopyRelativePath = useCallback(() => {
+    navigator.clipboard.writeText(contextMenu.nodePath);
+    onContextMenuAction?.({ type: 'copyRelativePath', path: contextMenu.nodePath });
+    closeContextMenu();
+  }, [contextMenu.nodePath, onContextMenuAction, closeContextMenu]);
+
+  const handleOpenFile = useCallback(() => {
+    const fullPath = getFullPath(contextMenu.nodePath);
+    onContextMenuAction?.({ type: 'openFile', path: fullPath });
+    closeContextMenu();
+  }, [contextMenu.nodePath, getFullPath, onContextMenuAction, closeContextMenu]);
+
+  const handleOpenFolder = useCallback(() => {
+    const fullPath = getFullPath(contextMenu.nodePath);
+    onContextMenuAction?.({ type: 'openFolder', path: fullPath });
+    closeContextMenu();
+  }, [contextMenu.nodePath, getFullPath, onContextMenuAction, closeContextMenu]);
 
   const gitChangesData = useMemo(() => {
     if (isLoading) {
@@ -267,12 +365,28 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
         theme={theme}
         gitStatusData={gitChangesData.statusData}
         onFileSelect={handleFileSelect}
+        onContextMenu={handleContextMenu}
         selectedFile={selectedFile}
         transparentBackground={true}
         horizontalNodePadding="16px"
         openByDefault={!showFullTree}
       />
     );
+  };
+
+  // Context menu button style
+  const contextMenuButtonStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    width: '100%',
+    padding: '8px 12px',
+    border: 'none',
+    background: 'none',
+    cursor: 'pointer',
+    fontSize: theme.fontSizes[1],
+    color: theme.colors.text,
+    textAlign: 'left',
   };
 
   return (
@@ -283,6 +397,67 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
       <div style={{ flex: 1, overflow: 'auto' }}>
         <Content />
       </div>
+
+      {/* Context menu - rendered as portal */}
+      {contextMenu.visible &&
+        createPortal(
+          <div
+            ref={contextMenuRef}
+            style={{
+              position: 'fixed',
+              top: contextMenu.y,
+              left: contextMenu.x,
+              backgroundColor: theme.colors.background,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '6px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              zIndex: 1000,
+              minWidth: '180px',
+              padding: '4px 0',
+              fontFamily: theme.fonts.body,
+              ['--theme-bg-tertiary' as string]: theme.colors.backgroundTertiary,
+            }}
+          >
+            {/* Open file/folder action */}
+            <button
+              onClick={contextMenu.isFolder ? handleOpenFolder : handleOpenFile}
+              className="context-menu-item"
+              style={contextMenuButtonStyle}
+            >
+              {contextMenu.isFolder ? <FolderOpen size={14} /> : <ExternalLink size={14} />}
+              {contextMenu.isFolder ? 'Open Folder' : 'Open File'}
+            </button>
+
+            <div
+              style={{
+                height: '1px',
+                backgroundColor: theme.colors.border,
+                margin: '4px 0',
+              }}
+            />
+
+            {/* Copy full path */}
+            <button
+              onClick={handleCopyFullPath}
+              className="context-menu-item"
+              style={contextMenuButtonStyle}
+            >
+              <Copy size={14} />
+              Copy Full Path
+            </button>
+
+            {/* Copy relative path */}
+            <button
+              onClick={handleCopyRelativePath}
+              className="context-menu-item"
+              style={contextMenuButtonStyle}
+            >
+              <FileSymlink size={14} />
+              Copy Relative Path
+            </button>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
@@ -375,6 +550,19 @@ export const GitChangesPanel: React.FC<PanelComponentProps> = ({ context, events
     [events]
   );
 
+  // Handle context menu actions - emit appropriate events
+  const handleContextMenuAction = useCallback(
+    (action: ContextMenuAction) => {
+      events?.emit({
+        type: `contextMenu:${action.type}`,
+        source: 'git-changes-panel',
+        timestamp: Date.now(),
+        payload: { path: action.path },
+      });
+    },
+    [events]
+  );
+
   return (
     <GitChangesPanelContent
       gitStatus={gitStatus}
@@ -382,6 +570,7 @@ export const GitChangesPanel: React.FC<PanelComponentProps> = ({ context, events
       rootPath={rootPath}
       isLoading={isLoading}
       onFileClick={handleFileClick}
+      onContextMenuAction={handleContextMenuAction}
     />
   );
 };

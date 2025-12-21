@@ -118,7 +118,7 @@ export const onPackageUnload = async () => {
 
 // Re-export components for direct usage (e.g., in Storybook)
 export { GitChangesPanel, GitChangesPanelContent, GitChangesPanelPreview } from './panels/GitChangesPanel';
-export type { GitChangesPanelProps } from './panels/GitChangesPanel';
+export type { GitChangesPanelProps, ContextMenuAction } from './panels/GitChangesPanel';
 export { PackageCompositionPanel, PackageCompositionPanelContent, PackageCompositionPanelPreview } from './panels/PackageCompositionPanel';
 export type { PackageCompositionPanelProps } from './panels/PackageCompositionPanel';
 export { SearchPanel, SearchPanelContent, SearchPanelPreview } from './panels/SearchPanel';
