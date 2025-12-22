@@ -7,6 +7,71 @@ import { Copy, FileSymlink, ExternalLink, FolderOpen } from 'lucide-react';
 import type { GitStatus, GitChangeSelectionStatus, PanelComponentProps } from '../types';
 import './GitChangesPanel.css';
 
+// Stable default object to prevent new references on each render
+const EMPTY_GIT_STATUS: GitStatus = {
+  staged: [],
+  unstaged: [],
+  untracked: [],
+  deleted: [],
+};
+
+// Memoized toggle buttons component to prevent re-renders
+interface ToggleButtonsProps {
+  showFullTree: boolean;
+  onShowFullTree: () => void;
+  onShowChanges: () => void;
+  theme: ReturnType<typeof useTheme>['theme'];
+}
+
+const ToggleButtons = React.memo<ToggleButtonsProps>(({ showFullTree, onShowFullTree, onShowChanges, theme }) => (
+  <div
+    style={{
+      display: 'flex',
+      alignItems: 'stretch',
+      backgroundColor: theme.colors.backgroundTertiary,
+      width: '100%',
+      height: '100%',
+    }}
+  >
+    <button
+      onClick={onShowFullTree}
+      style={{
+        flex: 1,
+        padding: '6px 12px',
+        fontSize: theme.fontSizes[1],
+        backgroundColor: showFullTree
+          ? theme.colors.backgroundSecondary
+          : 'transparent',
+        color: showFullTree ? theme.colors.text : theme.colors.textSecondary,
+        border: 'none',
+        cursor: 'pointer',
+        fontWeight: showFullTree ? 600 : 400,
+        transition: 'all 0.2s',
+      }}
+    >
+      Full Tree
+    </button>
+    <button
+      onClick={onShowChanges}
+      style={{
+        flex: 1,
+        padding: '6px 12px',
+        fontSize: theme.fontSizes[1],
+        backgroundColor: !showFullTree
+          ? theme.colors.backgroundSecondary
+          : 'transparent',
+        color: !showFullTree ? theme.colors.text : theme.colors.textSecondary,
+        border: 'none',
+        cursor: 'pointer',
+        fontWeight: !showFullTree ? 600 : 400,
+        transition: 'all 0.2s',
+      }}
+    >
+      Changes
+    </button>
+  </div>
+));
+
 interface ContextMenuState {
   visible: boolean;
   x: number;
@@ -83,26 +148,29 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
     }
   }, [contextMenu.visible]);
 
-  // Calculate if there are changes
-  const hasChanges =
-    gitStatus.staged.length > 0 ||
-    gitStatus.unstaged.length > 0 ||
-    gitStatus.untracked.length > 0 ||
-    gitStatus.deleted.length > 0;
+  // Calculate if there are changes - memoized to prevent downstream effect re-runs
+  const hasChanges = useMemo(
+    () =>
+      gitStatus.staged.length > 0 ||
+      gitStatus.unstaged.length > 0 ||
+      gitStatus.untracked.length > 0 ||
+      gitStatus.deleted.length > 0,
+    [gitStatus.staged.length, gitStatus.unstaged.length, gitStatus.untracked.length, gitStatus.deleted.length]
+  );
 
   // State for toggling between full tree and changes only
   const [showFullTree, setShowFullTree] = useState(false);
   const userHasToggledView = useRef(false);
+  const hasInitializedView = useRef(false);
 
-  // Update default view mode based on whether there are changes
+  // Set initial view mode ONCE when loading first completes
+  // This prevents re-renders when hasChanges toggles during normal usage
   useEffect(() => {
-    if (!isLoading && !userHasToggledView.current) {
-      const rafId = requestAnimationFrame(() => {
-        setShowFullTree(!hasChanges);
-      });
-      return () => cancelAnimationFrame(rafId);
+    if (!isLoading && !hasInitializedView.current && !userHasToggledView.current) {
+      hasInitializedView.current = true;
+      setShowFullTree(!hasChanges);
     }
-  }, [hasChanges, isLoading]);
+  }, [isLoading]); // Only depend on isLoading, not hasChanges
 
   // Determine file status based on git status data
   const getFileStatus = useCallback(
@@ -268,61 +336,16 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
     return { tree, statusData };
   }, [isLoading, hasChanges, fileTree, gitStatus, rootPath, showFullTree]);
 
-  // Toggle button component
-  const ToggleButtons = () => (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'stretch',
-        backgroundColor: theme.colors.backgroundTertiary,
-        width: '100%',
-        height: '100%',
-      }}
-    >
-      <button
-        onClick={() => {
-          userHasToggledView.current = true;
-          setShowFullTree(true);
-        }}
-        style={{
-          flex: 1,
-          padding: '6px 12px',
-          fontSize: theme.fontSizes[1],
-          backgroundColor: showFullTree
-            ? theme.colors.backgroundSecondary
-            : 'transparent',
-          color: showFullTree ? theme.colors.text : theme.colors.textSecondary,
-          border: 'none',
-          cursor: 'pointer',
-          fontWeight: showFullTree ? 600 : 400,
-          transition: 'all 0.2s',
-        }}
-      >
-        Full Tree
-      </button>
-      <button
-        onClick={() => {
-          userHasToggledView.current = true;
-          setShowFullTree(false);
-        }}
-        style={{
-          flex: 1,
-          padding: '6px 12px',
-          fontSize: theme.fontSizes[1],
-          backgroundColor: !showFullTree
-            ? theme.colors.backgroundSecondary
-            : 'transparent',
-          color: !showFullTree ? theme.colors.text : theme.colors.textSecondary,
-          border: 'none',
-          cursor: 'pointer',
-          fontWeight: !showFullTree ? 600 : 400,
-          transition: 'all 0.2s',
-        }}
-      >
-        Changes
-      </button>
-    </div>
-  );
+  // Memoized toggle handlers to prevent re-renders
+  const handleShowFullTree = useCallback(() => {
+    userHasToggledView.current = true;
+    setShowFullTree(true);
+  }, []);
+
+  const handleShowChanges = useCallback(() => {
+    userHasToggledView.current = true;
+    setShowFullTree(false);
+  }, []);
 
   // Render content based on state
   const renderContent = () => {
@@ -360,7 +383,6 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
 
     return (
       <GitStatusFileTree
-        key={showFullTree ? 'full' : 'changes'}
         fileTree={gitChangesData.tree}
         theme={theme}
         gitStatusData={gitChangesData.statusData}
@@ -392,7 +414,12 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ height: 40, borderBottom: `1px solid ${theme.colors.border}` }}>
-        <ToggleButtons />
+        <ToggleButtons
+          showFullTree={showFullTree}
+          onShowFullTree={handleShowFullTree}
+          onShowChanges={handleShowChanges}
+          theme={theme}
+        />
       </div>
       <div style={{ flex: 1, overflow: 'auto' }}>
         {renderContent()}
@@ -522,13 +549,8 @@ export const GitChangesPanel: React.FC<PanelComponentProps> = ({ context, events
   const gitSlice = context.getSlice<GitStatus>('git');
   const fileTreeSlice = context.getSlice<FileTree>('fileTree');
 
-  // Extract data with defaults
-  const gitStatus = gitSlice?.data ?? {
-    staged: [],
-    unstaged: [],
-    untracked: [],
-    deleted: [],
-  };
+  // Extract data with stable defaults to prevent unnecessary re-renders
+  const gitStatus = gitSlice?.data ?? EMPTY_GIT_STATUS;
   const fileTree = fileTreeSlice?.data ?? null;
   const isLoading = gitSlice?.loading || fileTreeSlice?.loading || false;
 
