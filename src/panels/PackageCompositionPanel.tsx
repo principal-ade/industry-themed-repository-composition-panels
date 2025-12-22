@@ -16,7 +16,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { PackageManagerIcon } from './components/PackageManagerIcon';
-import { DependencyRow, FilterBar, DependencyInfoModal, LensReadinessSection, OtherScriptsSection } from './components';
+import { DependencyRow, FilterBar, DependencyInfoModal, LensReadinessSection, OtherScriptsSection, OrchestratorBadge } from './components';
 import type { PanelComponentProps } from '../types';
 import type { PackageLayer, ConfigFile, PackageCommand } from '../types/composition';
 import type { PackagesSliceData, DependencyItem } from '../types/dependencies';
@@ -194,6 +194,13 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
             {pkg.packageData.version && ` • v${pkg.packageData.version}`}
           </div>
         </div>
+        {/* Orchestrator badge for monorepo root packages */}
+        {pkg.packageData.isMonorepoRoot && pkg.packageData.monorepoMetadata?.orchestrator && (
+          <OrchestratorBadge
+            orchestrator={pkg.packageData.monorepoMetadata.orchestrator}
+            size="sm"
+          />
+        )}
         {packageRole && (
           <span
             style={{
