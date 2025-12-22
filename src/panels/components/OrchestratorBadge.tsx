@@ -19,8 +19,15 @@ const orchestratorLabels: Record<MonorepoOrchestrator, string> = {
   none: 'Unknown',
 };
 
+const rootRoleDescriptions: Record<MonorepoRootRole, string> = {
+  orchestrator: 'Config/scripts only',
+  application: 'Has source code',
+  hybrid: 'Has infrastructure code',
+};
+
 export const OrchestratorBadge: React.FC<OrchestratorBadgeProps> = ({
   orchestrator,
+  rootRole,
   size = 'sm',
   showLabel = true,
 }) => {
@@ -33,6 +40,7 @@ export const OrchestratorBadge: React.FC<OrchestratorBadgeProps> = ({
   const LogoComponent = orchestratorLogos[orchestrator];
   const color = orchestratorColors[orchestrator];
   const label = orchestratorLabels[orchestrator];
+  const roleDesc = rootRole ? rootRoleDescriptions[rootRole] : null;
 
   const isSmall = size === 'sm';
   const iconSize = isSmall ? 14 : 18;
@@ -55,7 +63,7 @@ export const OrchestratorBadge: React.FC<OrchestratorBadgeProps> = ({
         whiteSpace: 'nowrap',
         border: `1px solid ${color}30`,
       }}
-      title={`Monorepo managed by ${label}`}
+      title={`Monorepo managed by ${label}${roleDesc ? ` (${roleDesc})` : ''}`}
     >
       <LogoComponent size={iconSize} />
       {showLabel && <span>{label}</span>}

@@ -151,6 +151,8 @@ const samplePackages: PackageLayer[] = [
       prettier: { path: '.prettierrc', exists: true, type: 'json', isInherited: true, inheritedFrom: 'root' },
     },
     qualityMetrics: {
+      hexagon: { tests: 80, linting: 90, formatting: 95, types: 85, deadCode: 70, documentation: 60 },
+      availableLenses: ['eslint', 'prettier', 'typescript'],
       lensReadiness: {
         eslint: {
           lensId: 'eslint',

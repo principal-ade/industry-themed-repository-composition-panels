@@ -200,6 +200,7 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
         {pkg.packageData.isMonorepoRoot && pkg.packageData.monorepoMetadata?.orchestrator && (
           <OrchestratorBadge
             orchestrator={pkg.packageData.monorepoMetadata.orchestrator}
+            rootRole={pkg.packageData.monorepoMetadata.rootRole}
             size="sm"
           />
         )}
