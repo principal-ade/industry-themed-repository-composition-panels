@@ -1,10 +1,11 @@
 import React from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import type { MonorepoOrchestrator } from '../../types/composition';
+import type { MonorepoOrchestrator, MonorepoRootRole } from '../../types/composition';
 import { orchestratorLogos, orchestratorColors } from '../../assets/orchestrators';
 
 interface OrchestratorBadgeProps {
   orchestrator: MonorepoOrchestrator;
+  rootRole?: MonorepoRootRole;
   size?: 'sm' | 'md';
   showLabel?: boolean;
 }

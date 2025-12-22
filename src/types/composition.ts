@@ -28,4 +28,5 @@ export type {
   // Monorepo types
   MonorepoOrchestrator,
   MonorepoMetadata,
+  MonorepoRootRole,
 } from '@principal-ai/codebase-composition';

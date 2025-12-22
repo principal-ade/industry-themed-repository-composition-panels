@@ -1,6 +1,7 @@
 import { GitChangesPanel } from './panels/GitChangesPanel';
 import { PackageCompositionPanel } from './panels/PackageCompositionPanel';
 import { SearchPanel } from './panels/SearchPanel';
+import { DependencyGraphPanel } from './panels/dependency-graph';
 import type { PanelDefinition, PanelContextValue } from './types';
 
 /**
@@ -98,6 +99,36 @@ export const panels: PanelDefinition[] = [
       console.log('Search Panel unmounting');
     },
   },
+  {
+    metadata: {
+      id: 'industry-theme.dependency-graph',
+      name: 'Dependency Graph',
+      icon: 'GitBranch',
+      version: '0.1.0',
+      author: 'Industry Theme',
+      description: 'Visualize monorepo package dependencies as an interactive graph',
+      slices: ['packages'],
+    },
+    component: DependencyGraphPanel,
+
+    onMount: async (context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Dependency Graph Panel mounted');
+
+      // Refresh packages if available
+      if (
+        context.hasSlice('packages') &&
+        !context.isSliceLoading('packages')
+      ) {
+        await context.refresh('repository', 'packages');
+      }
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Dependency Graph Panel unmounting');
+    },
+  },
 ];
 
 /**
@@ -123,6 +154,20 @@ export { PackageCompositionPanel, PackageCompositionPanelContent, PackageComposi
 export type { PackageCompositionPanelProps } from './panels/PackageCompositionPanel';
 export { SearchPanel, SearchPanelContent, SearchPanelPreview } from './panels/SearchPanel';
 export type { SearchPanelProps } from './panels/SearchPanel';
+export {
+  DependencyGraphPanel,
+  DependencyGraphPanelContent,
+  DependencyGraphPanelPreview,
+  dependencyTreeToCanvas,
+  applyForceLayout,
+  applySugiyamaLayout,
+} from './panels/dependency-graph';
+export type {
+  DependencyGraphPanelProps,
+  DependencyCanvasOptions,
+  ForceLayoutOptions,
+  SugiyamaLayoutOptions,
+} from './panels/dependency-graph';
 
 // Re-export types
 export type {
