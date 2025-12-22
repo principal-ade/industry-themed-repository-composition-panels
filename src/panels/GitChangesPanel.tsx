@@ -161,14 +161,11 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
   // State for toggling between full tree and changes only
   const [showFullTree, setShowFullTree] = useState(false);
   const userHasToggledView = useRef(false);
-  const hasInitializedView = useRef(false);
 
-  // Set initial view mode ONCE when data first loads
-  // This prevents flicker when hasChanges toggles during normal usage
+  // Auto-switch view based on whether there are changes
+  // Once user manually toggles, respect their choice
   useEffect(() => {
-    if (!isLoading && !hasInitializedView.current && !userHasToggledView.current) {
-      hasInitializedView.current = true;
-      // Default to Changes view if there are changes, Full Tree if clean
+    if (!isLoading && !userHasToggledView.current) {
       setShowFullTree(!hasChanges);
     }
   }, [hasChanges, isLoading]);
