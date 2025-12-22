@@ -166,9 +166,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
   // Only auto-switch if user hasn't manually toggled
   useEffect(() => {
     if (!isLoading && !userHasToggledView.current) {
-      const shouldShowFullTree = !hasChanges;
-      // Only update if value is different to avoid unnecessary re-renders
-      setShowFullTree((prev) => (prev === shouldShowFullTree ? prev : shouldShowFullTree));
+      setShowFullTree(!hasChanges);
     }
   }, [hasChanges, isLoading]);
 
