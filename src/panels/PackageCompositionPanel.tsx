@@ -614,7 +614,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                   fontSize: theme.fontSizes[0],
                 }}
               >
-                {'total' in tab ? `${tab.count}/${tab.total}` : 'inherited' in tab && tab.inherited > 0 ? `${tab.count} (${tab.inherited}↑)` : tab.count}
+                {'total' in tab ? `${tab.count}/${tab.total}` : 'inherited' in tab && (tab.inherited ?? 0) > 0 ? `${tab.count} (${tab.inherited}↑)` : tab.count}
               </span>
             </button>
           ))}
@@ -843,7 +843,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                     fontSize: theme.fontSizes[0],
                   }}
                 >
-                  {'total' in tab ? `${tab.count}/${tab.total}` : 'inherited' in tab && tab.inherited > 0 ? `${tab.count} (${tab.inherited}↑)` : tab.count}
+                  {'total' in tab ? `${tab.count}/${tab.total}` : 'inherited' in tab && (tab.inherited ?? 0) > 0 ? `${tab.count} (${tab.inherited}↑)` : tab.count}
                 </span>
               </button>
             ))}
