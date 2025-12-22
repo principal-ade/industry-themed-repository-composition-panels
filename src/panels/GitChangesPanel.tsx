@@ -161,11 +161,14 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
   // State for toggling between full tree and changes only
   const [showFullTree, setShowFullTree] = useState(false);
   const userHasToggledView = useRef(false);
+  const hasInitializedView = useRef(false);
 
-  // Set view mode based on whether there are changes
-  // Only auto-switch if user hasn't manually toggled
+  // Set initial view mode ONCE when data first loads
+  // This prevents flicker when hasChanges toggles during normal usage
   useEffect(() => {
-    if (!isLoading && !userHasToggledView.current) {
+    if (!isLoading && !hasInitializedView.current && !userHasToggledView.current) {
+      hasInitializedView.current = true;
+      // Default to Changes view if there are changes, Full Tree if clean
       setShowFullTree(!hasChanges);
     }
   }, [hasChanges, isLoading]);
@@ -381,6 +384,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
 
     return (
       <GitStatusFileTree
+        key={showFullTree ? 'full-tree' : 'changes-only'}
         fileTree={gitChangesData.tree}
         theme={theme}
         gitStatusData={gitChangesData.statusData}
