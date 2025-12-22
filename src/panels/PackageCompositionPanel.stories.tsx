@@ -38,6 +38,7 @@ type Story = StoryObj<typeof meta>;
 const createMockPackage = (config: {
   packageData: Partial<PackageLayer['packageData']> & { name: string };
   configFiles?: PackageLayer['configFiles'];
+  qualityMetrics?: PackageLayer['qualityMetrics'];
   type?: PackageLayer['type'];
 }): PackageLayer => ({
   id: `package-${config.packageData.name}`,
@@ -61,8 +62,10 @@ const createMockPackage = (config: {
     isWorkspace: config.packageData.isWorkspace ?? false,
     version: config.packageData.version,
     availableCommands: config.packageData.availableCommands,
+    monorepoMetadata: config.packageData.monorepoMetadata,
   },
   configFiles: config.configFiles,
+  qualityMetrics: config.qualityMetrics,
 });
 
 // Sample packages with internal dependencies
@@ -76,6 +79,16 @@ const samplePackages: PackageLayer[] = [
       packageManager: 'npm',
       isMonorepoRoot: true,
       isWorkspace: false,
+      monorepoMetadata: {
+        orchestrator: 'turbo',
+        orchestratorConfigPath: 'turbo.json',
+        workspacePatterns: ['packages/*'],
+        definedTasks: [
+          { name: 'build', tool: 'turbo' },
+          { name: 'test', tool: 'turbo' },
+          { name: 'lint', tool: 'turbo' },
+        ],
+      },
       dependencies: {
         react: '^19.0.0',
         'react-dom': '^19.0.0',
@@ -134,6 +147,49 @@ const samplePackages: PackageLayer[] = [
     },
     configFiles: {
       typescript: { path: 'packages/ui/tsconfig.json', exists: true, type: 'json' },
+      eslint: { path: 'eslint.config.js', exists: true, type: 'js', isInherited: true, inheritedFrom: 'root' },
+      prettier: { path: '.prettierrc', exists: true, type: 'json', isInherited: true, inheritedFrom: 'root' },
+    },
+    qualityMetrics: {
+      lensReadiness: {
+        eslint: {
+          lensId: 'eslint',
+          displayName: 'ESLint',
+          ready: true,
+          partial: false,
+          readyViaInheritance: true,
+          inheritedChecks: 1,
+          checks: [
+            { requirement: { type: 'devDependency', name: 'eslint', description: 'ESLint package' }, satisfied: true, foundValue: '^9.0.0' },
+            { requirement: { type: 'config', name: 'eslint.config.js', description: 'ESLint config' }, satisfied: true, isInherited: true, inheritedFrom: 'root' },
+          ],
+          missing: [],
+        },
+        prettier: {
+          lensId: 'prettier',
+          displayName: 'Prettier',
+          ready: true,
+          partial: false,
+          readyViaInheritance: true,
+          inheritedChecks: 1,
+          checks: [
+            { requirement: { type: 'devDependency', name: 'prettier', description: 'Prettier package' }, satisfied: true, foundValue: '^3.0.0' },
+            { requirement: { type: 'config', name: '.prettierrc', description: 'Prettier config' }, satisfied: true, isInherited: true, inheritedFrom: 'root' },
+          ],
+          missing: [],
+        },
+        typescript: {
+          lensId: 'typescript',
+          displayName: 'TypeScript',
+          ready: true,
+          partial: false,
+          checks: [
+            { requirement: { type: 'devDependency', name: 'typescript', description: 'TypeScript compiler' }, satisfied: true, foundValue: '^5.0.0' },
+            { requirement: { type: 'config', name: 'tsconfig.json', description: 'TypeScript config' }, satisfied: true, foundValue: 'packages/ui/tsconfig.json' },
+          ],
+          missing: [],
+        },
+      },
     },
   }),
   createMockPackage({
@@ -159,6 +215,8 @@ const samplePackages: PackageLayer[] = [
     configFiles: {
       typescript: { path: 'packages/utils/tsconfig.json', exists: true, type: 'json' },
       vitest: { path: 'packages/utils/vitest.config.ts', exists: true, type: 'ts' },
+      eslint: { path: 'eslint.config.js', exists: true, type: 'js', isInherited: true, inheritedFrom: 'root' },
+      prettier: { path: '.prettierrc', exists: true, type: 'json', isInherited: true, inheritedFrom: 'root' },
     },
   }),
   createMockPackage({
@@ -187,6 +245,8 @@ const samplePackages: PackageLayer[] = [
     },
     configFiles: {
       typescript: { path: 'packages/api/tsconfig.json', exists: true, type: 'json' },
+      eslint: { path: 'eslint.config.js', exists: true, type: 'js', isInherited: true, inheritedFrom: 'root' },
+      prettier: { path: '.prettierrc', exists: true, type: 'json', isInherited: true, inheritedFrom: 'root' },
     },
   }),
 ];
@@ -377,6 +437,121 @@ export const PythonPackage: Story = {
           ruff: { path: 'ruff.toml', exists: true, type: 'toml' },
           mypy: { path: 'mypy.ini', exists: true, type: 'ini' },
         },
+      }),
+    ],
+  },
+};
+
+/**
+ * Different monorepo orchestrators
+ */
+export const MonorepoOrchestrators: Story = {
+  args: {
+    packages: [
+      createMockPackage({
+        packageData: {
+          name: 'turbo-monorepo',
+          version: '1.0.0',
+          path: '',
+          manifestPath: 'package.json',
+          packageManager: 'npm',
+          isMonorepoRoot: true,
+          isWorkspace: false,
+          monorepoMetadata: {
+            orchestrator: 'turbo',
+            orchestratorConfigPath: 'turbo.json',
+            workspacePatterns: ['packages/*'],
+          },
+          dependencies: {},
+          devDependencies: { turbo: '^2.0.0' },
+          peerDependencies: {},
+          availableCommands: [],
+        },
+        configFiles: {},
+      }),
+      createMockPackage({
+        packageData: {
+          name: 'nx-monorepo',
+          version: '1.0.0',
+          path: 'examples/nx',
+          manifestPath: 'examples/nx/package.json',
+          packageManager: 'npm',
+          isMonorepoRoot: true,
+          isWorkspace: false,
+          monorepoMetadata: {
+            orchestrator: 'nx',
+            orchestratorConfigPath: 'nx.json',
+            workspacePatterns: ['packages/*'],
+          },
+          dependencies: {},
+          devDependencies: { nx: '^19.0.0' },
+          peerDependencies: {},
+          availableCommands: [],
+        },
+        configFiles: {},
+      }),
+      createMockPackage({
+        packageData: {
+          name: 'pnpm-monorepo',
+          version: '1.0.0',
+          path: 'examples/pnpm',
+          manifestPath: 'examples/pnpm/package.json',
+          packageManager: 'pnpm',
+          isMonorepoRoot: true,
+          isWorkspace: false,
+          monorepoMetadata: {
+            orchestrator: 'pnpm',
+            orchestratorConfigPath: 'pnpm-workspace.yaml',
+            workspacePatterns: ['packages/*'],
+          },
+          dependencies: {},
+          devDependencies: {},
+          peerDependencies: {},
+          availableCommands: [],
+        },
+        configFiles: {},
+      }),
+      createMockPackage({
+        packageData: {
+          name: 'lerna-monorepo',
+          version: '1.0.0',
+          path: 'examples/lerna',
+          manifestPath: 'examples/lerna/package.json',
+          packageManager: 'npm',
+          isMonorepoRoot: true,
+          isWorkspace: false,
+          monorepoMetadata: {
+            orchestrator: 'lerna',
+            orchestratorConfigPath: 'lerna.json',
+            workspacePatterns: ['packages/*'],
+          },
+          dependencies: {},
+          devDependencies: { lerna: '^8.0.0' },
+          peerDependencies: {},
+          availableCommands: [],
+        },
+        configFiles: {},
+      }),
+      createMockPackage({
+        packageData: {
+          name: 'rush-monorepo',
+          version: '1.0.0',
+          path: 'examples/rush',
+          manifestPath: 'examples/rush/package.json',
+          packageManager: 'npm',
+          isMonorepoRoot: true,
+          isWorkspace: false,
+          monorepoMetadata: {
+            orchestrator: 'rush',
+            orchestratorConfigPath: 'rush.json',
+            workspacePatterns: ['packages/*'],
+          },
+          dependencies: {},
+          devDependencies: {},
+          peerDependencies: {},
+          availableCommands: [],
+        },
+        configFiles: {},
       }),
     ],
   },

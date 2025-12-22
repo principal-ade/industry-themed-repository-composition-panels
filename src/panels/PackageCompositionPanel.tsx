@@ -16,7 +16,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { PackageManagerIcon } from './components/PackageManagerIcon';
-import { DependencyRow, FilterBar, DependencyInfoModal, LensReadinessSection, OtherScriptsSection, OrchestratorBadge } from './components';
+import { DependencyRow, FilterBar, DependencyInfoModal, LensReadinessSection, OtherScriptsSection, OrchestratorBadge, ConfigList } from './components';
 import type { PanelComponentProps } from '../types';
 import type { PackageLayer, ConfigFile, PackageCommand } from '../types/composition';
 import type { PackagesSliceData, DependencyItem } from '../types/dependencies';
@@ -114,9 +114,11 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
   const peerDeps = pkg.packageData.peerDependencies || {};
   const totalDeps = Object.keys(deps).length + Object.keys(devDeps).length + Object.keys(peerDeps).length;
 
-  const configFiles = pkg.configFiles
-    ? Object.values(pkg.configFiles).filter((c) => c?.exists).length
-    : 0;
+  const configFilesArray = pkg.configFiles
+    ? Object.values(pkg.configFiles).filter((c) => c?.exists)
+    : [];
+  const localConfigs = configFilesArray.filter((c) => !c?.isInherited).length;
+  const inheritedConfigs = configFilesArray.filter((c) => c?.isInherited).length;
 
   const commands = pkg.packageData.availableCommands?.length || 0;
 
@@ -341,7 +343,12 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Settings size={12} />
-          <span>{configFiles} configs</span>
+          <span>
+            {configFilesArray.length} configs
+            {inheritedConfigs > 0 && (
+              <span style={{ color: theme.colors.primary }}> ({inheritedConfigs}↑)</span>
+            )}
+          </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Terminal size={12} />
@@ -392,7 +399,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
   standalone = false,
 }) => {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'dependencies' | 'lenses'>('dependencies');
+  const [activeTab, setActiveTab] = useState<'dependencies' | 'configs' | 'lenses'>('dependencies');
   const [activeFilters, setActiveFilters] = useState<Set<'production' | 'development' | 'peer'>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -403,6 +410,12 @@ const PackageCard: React.FC<PackageCardProps> = ({
       .filter(([, config]) => config?.exists)
       .map(([name, config]) => ({ name, ...config! }));
   }, [pkg.configFiles]);
+
+  const configCounts = useMemo(() => {
+    const local = configFiles.filter((c) => !c.isInherited).length;
+    const inherited = configFiles.filter((c) => c.isInherited).length;
+    return { local, inherited, total: configFiles.length };
+  }, [configFiles]);
 
   const commands = pkg.packageData.availableCommands || [];
 
@@ -570,6 +583,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
         >
           {[
             { id: 'dependencies' as const, label: 'Dependencies', count: dependencyItems.length },
+            { id: 'configs' as const, label: 'Configs', count: configCounts.total, inherited: configCounts.inherited },
             { id: 'lenses' as const, label: 'Lenses', count: pkg.qualityMetrics?.lensReadiness ? Object.values(pkg.qualityMetrics.lensReadiness).filter(l => l.ready).length : 0, total: pkg.qualityMetrics?.lensReadiness ? Object.keys(pkg.qualityMetrics.lensReadiness).length : 0 },
           ].map((tab) => (
             <button
@@ -600,7 +614,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                   fontSize: theme.fontSizes[0],
                 }}
               >
-                {'total' in tab ? `${tab.count}/${tab.total}` : tab.count}
+                {'total' in tab ? `${tab.count}/${tab.total}` : 'inherited' in tab && tab.inherited > 0 ? `${tab.count} (${tab.inherited}↑)` : tab.count}
               </span>
             </button>
           ))}
@@ -608,6 +622,15 @@ const PackageCard: React.FC<PackageCardProps> = ({
 
         {/* Tab Content */}
         <div style={{ flex: 1, padding: activeTab === 'dependencies' ? '0' : '0', overflow: 'auto' }}>
+          {activeTab === 'configs' && (
+            <div style={{ padding: '12px' }}>
+              <ConfigList
+                configs={configFiles}
+                onConfigClick={onConfigClick}
+              />
+            </div>
+          )}
+
           {activeTab === 'lenses' && (
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               <LensReadinessSection lensReadiness={pkg.qualityMetrics?.lensReadiness} />
@@ -789,6 +812,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
           >
             {[
               { id: 'dependencies' as const, label: 'Deps', count: dependencyItems.length },
+              { id: 'configs' as const, label: 'Configs', count: configCounts.total, inherited: configCounts.inherited },
               { id: 'lenses' as const, label: 'Lenses', count: pkg.qualityMetrics?.lensReadiness ? Object.values(pkg.qualityMetrics.lensReadiness).filter(l => l.ready).length : 0, total: pkg.qualityMetrics?.lensReadiness ? Object.keys(pkg.qualityMetrics.lensReadiness).length : 0 },
             ].map((tab) => (
               <button
@@ -819,7 +843,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                     fontSize: theme.fontSizes[0],
                   }}
                 >
-                  {'total' in tab ? `${tab.count}/${tab.total}` : tab.count}
+                  {'total' in tab ? `${tab.count}/${tab.total}` : 'inherited' in tab && tab.inherited > 0 ? `${tab.count} (${tab.inherited}↑)` : tab.count}
                 </span>
               </button>
             ))}
@@ -827,6 +851,15 @@ const PackageCard: React.FC<PackageCardProps> = ({
 
           {/* Tab Content */}
           <div style={{ padding: activeTab === 'dependencies' ? '0' : '0', maxHeight: '300px', overflow: 'auto' }}>
+            {activeTab === 'configs' && (
+              <div style={{ padding: '12px' }}>
+                <ConfigList
+                  configs={configFiles}
+                  onConfigClick={onConfigClick}
+                />
+              </div>
+            )}
+
             {activeTab === 'lenses' && (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <LensReadinessSection lensReadiness={pkg.qualityMetrics?.lensReadiness} />

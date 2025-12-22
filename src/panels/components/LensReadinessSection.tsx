@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { Check, X, AlertTriangle, ChevronDown, ChevronRight, Minus } from 'lucide-react';
+import { Check, X, AlertTriangle, ChevronDown, ChevronRight, Minus, ArrowUp } from 'lucide-react';
 import type { LensReadiness, LensRequirement, RequirementCheckResult } from '../../types/composition';
 
 interface LensReadinessSectionProps {
@@ -78,6 +78,25 @@ const LensRow: React.FC<LensRowProps> = ({ lens }) => {
           {lens.displayName}
         </span>
 
+        {/* Inheritance indicator */}
+        {lens.ready && lens.readyViaInheritance && (
+          <span
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              fontSize: theme.fontSizes[0],
+              color: theme.colors.primary,
+              padding: '2px 6px',
+              backgroundColor: theme.colors.primary + '15',
+              borderRadius: '4px',
+            }}
+          >
+            <ArrowUp size={10} />
+            inherited
+          </span>
+        )}
+
         {lens.missing.length > 0 && (
           <span
             style={{
@@ -117,12 +136,14 @@ interface RequirementRowProps {
     requirement: LensRequirement;
     satisfied: boolean;
     foundValue?: string;
+    isInherited?: boolean;
+    inheritedFrom?: string;
   };
 }
 
 const RequirementRow: React.FC<RequirementRowProps> = ({ check }) => {
   const { theme } = useTheme();
-  const { requirement, satisfied, foundValue } = check;
+  const { requirement, satisfied, foundValue, isInherited, inheritedFrom } = check;
 
   const typeLabels: Record<string, string> = {
     devDependency: 'dep',
@@ -141,7 +162,11 @@ const RequirementRow: React.FC<RequirementRowProps> = ({ check }) => {
       }}
     >
       {satisfied ? (
-        <Check size={12} color="#10b981" />
+        isInherited ? (
+          <ArrowUp size={12} color={theme.colors.primary} />
+        ) : (
+          <Check size={12} color="#10b981" />
+        )
       ) : (
         <X size={12} color="#ef4444" />
       )}
@@ -169,15 +194,27 @@ const RequirementRow: React.FC<RequirementRowProps> = ({ check }) => {
         {requirement.name}
       </span>
 
-      {satisfied && foundValue && (
+      {satisfied && (isInherited || foundValue) && (
         <span
           style={{
-            color: theme.colors.textSecondary,
+            color: isInherited ? theme.colors.primary : theme.colors.textSecondary,
             marginLeft: 'auto',
             fontFamily: 'monospace',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
           }}
         >
-          {foundValue.length > 30 ? foundValue.slice(0, 30) + '...' : foundValue}
+          {isInherited && (
+            <>
+              <span style={{ fontStyle: 'italic', fontFamily: 'inherit' }}>
+                from {inheritedFrom || 'root'}
+              </span>
+            </>
+          )}
+          {!isInherited && foundValue && (
+            foundValue.length > 30 ? foundValue.slice(0, 30) + '...' : foundValue
+          )}
         </span>
       )}
 
