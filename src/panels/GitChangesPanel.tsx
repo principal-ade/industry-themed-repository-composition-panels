@@ -324,8 +324,8 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
     </div>
   );
 
-  // Content area
-  const Content = () => {
+  // Render content based on state
+  const renderContent = () => {
     if (isLoading) {
       return (
         <div
@@ -395,7 +395,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
         <ToggleButtons />
       </div>
       <div style={{ flex: 1, overflow: 'auto' }}>
-        <Content />
+        {renderContent()}
       </div>
 
       {/* Context menu - rendered as portal */}
