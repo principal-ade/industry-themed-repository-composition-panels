@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/repository-composition-panels",
-  "version": "0.2.16",
+  "version": "0.2.17",
   "description": "Repository composition panels including Git Changes panel for the panel framework",
   "type": "module",
   "main": "dist/panels.bundle.js",
