@@ -2,6 +2,7 @@ import { GitChangesPanel } from './panels/GitChangesPanel';
 import { PackageCompositionPanel } from './panels/PackageCompositionPanel';
 import { SearchPanel } from './panels/SearchPanel';
 import { DependencyGraphPanel } from './panels/dependency-graph';
+import { TelemetryCoveragePanel } from './panels/TelemetryCoveragePanel';
 import type { PanelDefinition, PanelContextValue } from './types';
 
 /**
@@ -129,6 +130,42 @@ export const panels: PanelDefinition[] = [
       console.log('Dependency Graph Panel unmounting');
     },
   },
+  {
+    metadata: {
+      id: 'industry-theme.telemetry-coverage',
+      name: 'Telemetry Coverage',
+      icon: 'Activity',
+      version: '0.1.0',
+      author: 'Industry Theme',
+      description: 'View OpenTelemetry test coverage across packages',
+      slices: ['packages', 'fileTree'],
+    },
+    component: TelemetryCoveragePanel,
+
+    onMount: async (context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Telemetry Coverage Panel mounted');
+
+      // Refresh packages and fileTree if available
+      if (
+        context.hasSlice('packages') &&
+        !context.isSliceLoading('packages')
+      ) {
+        await context.refresh('repository', 'packages');
+      }
+      if (
+        context.hasSlice('fileTree') &&
+        !context.isSliceLoading('fileTree')
+      ) {
+        await context.refresh('repository', 'fileTree');
+      }
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Telemetry Coverage Panel unmounting');
+    },
+  },
 ];
 
 /**
@@ -168,6 +205,16 @@ export type {
   ForceLayoutOptions,
   SugiyamaLayoutOptions,
 } from './panels/dependency-graph';
+
+export {
+  TelemetryCoveragePanel,
+  TelemetryCoveragePanelContent,
+  TelemetryCoveragePanelPreview,
+} from './panels/TelemetryCoveragePanel';
+export type {
+  TelemetryCoveragePanelProps,
+  PackageTelemetryCoverage,
+} from './panels/TelemetryCoveragePanel';
 
 // Re-export types
 export type {
