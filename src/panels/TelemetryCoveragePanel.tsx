@@ -705,20 +705,53 @@ export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({ context,
   const fileTree = fileTreeSlice?.data ?? undefined;
   const isLoading = packagesSlice?.loading || fileTreeSlice?.loading || false;
 
-  // TODO: In a real implementation, this would scan __traces__ directories
-  // for each package and build coverage data from trace files
+  // Scan fileTree for trace files and build coverage data
   const coverageData: PackageTelemetryCoverage[] = useMemo(() => {
-    // For now, return empty coverage - this would be populated by:
-    // 1. Scanning packages/*/__traces__/*.json
-    // 2. Parsing trace data to extract test coverage info
-    // 3. Building FileTelemetryCoverage for each test file
-    return packages.map((pkg) => ({
-      packageId: pkg.id,
-      packageName: pkg.packageData.name,
-      packagePath: pkg.packageData.path,
-      files: [],
-    }));
-  }, [packages]);
+    // Get all files from fileTree
+    const allFiles = fileTree?.allFiles ?? [];
+
+    // Find all trace canvas files and map them to package paths
+    const traceFilesByPackage = new Map<string, string>();
+
+    for (const file of allFiles) {
+      const filePath = file.relativePath || file.path || '';
+
+      // Match trace file patterns:
+      // - packages/{pkg}/__traces__/*.canvas.json
+      // - packages/{pkg}/**/__traces__/*.canvas.json (nested)
+      // - __traces__/*.canvas.json (root)
+      const packageMatch = filePath.match(/^packages\/([^/]+)(?:\/.*)?__traces__\/[^/]+\.canvas\.json$/);
+      const rootMatch = filePath.match(/^__traces__\/[^/]+\.canvas\.json$/);
+
+      if (packageMatch) {
+        const pkgName = packageMatch[1];
+        const pkgPath = `packages/${pkgName}`;
+        // Store first trace file found for each package
+        if (!traceFilesByPackage.has(pkgPath)) {
+          traceFilesByPackage.set(pkgPath, filePath);
+        }
+      } else if (rootMatch) {
+        // Root-level trace file
+        if (!traceFilesByPackage.has('')) {
+          traceFilesByPackage.set('', filePath);
+        }
+      }
+    }
+
+    // Build coverage data for each package
+    return packages.map((pkg) => {
+      const pkgPath = pkg.packageData.path;
+      const traceFilePath = traceFilesByPackage.get(pkgPath);
+
+      return {
+        packageId: pkg.id,
+        packageName: pkg.packageData.name,
+        packagePath: pkgPath,
+        traceFilePath,
+        files: [], // TODO: Parse trace file to extract per-test-file coverage
+      };
+    });
+  }, [packages, fileTree]);
 
   const handleFileSelect = (filePath: string, packagePath: string) => {
     // Emit file:select for other panels
