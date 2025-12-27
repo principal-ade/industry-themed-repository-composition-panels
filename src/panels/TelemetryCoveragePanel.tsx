@@ -710,6 +710,24 @@ export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({ context,
     // Get all files from fileTree
     const allFiles = fileTree?.allFiles ?? [];
 
+    // Debug: Log sample file paths to understand structure
+    if (allFiles.length > 0) {
+      const traceFiles = allFiles.filter(f =>
+        (f.relativePath || f.path || '').includes('__traces__')
+      );
+      console.log('[TelemetryCoveragePanel] Total files:', allFiles.length);
+      console.log('[TelemetryCoveragePanel] Trace files found:', traceFiles.length);
+      if (traceFiles.length > 0) {
+        console.log('[TelemetryCoveragePanel] Sample trace file:', {
+          path: traceFiles[0].path,
+          relativePath: traceFiles[0].relativePath,
+          name: traceFiles[0].name,
+        });
+      }
+      // Log a sample of file paths to see the format
+      console.log('[TelemetryCoveragePanel] Sample paths:', allFiles.slice(0, 3).map(f => f.relativePath || f.path));
+    }
+
     // Find all trace canvas files and map them to package paths
     const traceFilesByPackage = new Map<string, string>();
 
@@ -738,15 +756,20 @@ export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({ context,
       }
     }
 
+    // Debug: Log what we found
+    console.log('[TelemetryCoveragePanel] Trace files by package:', Object.fromEntries(traceFilesByPackage));
+    console.log('[TelemetryCoveragePanel] Packages:', packages.map(p => ({ name: p.packageData.name, path: p.packageData.path })));
+
     // Build coverage data for each package
     return packages.map((pkg) => {
-      const pkgPath = pkg.packageData.path;
+      // Normalize package path - remove leading slash if present
+      const pkgPath = pkg.packageData.path.replace(/^\//, '');
       const traceFilePath = traceFilesByPackage.get(pkgPath);
 
       return {
         packageId: pkg.id,
         packageName: pkg.packageData.name,
-        packagePath: pkgPath,
+        packagePath: pkgPath, // Normalized (no leading slash)
         traceFilePath,
         files: [], // TODO: Parse trace file to extract per-test-file coverage
       };
