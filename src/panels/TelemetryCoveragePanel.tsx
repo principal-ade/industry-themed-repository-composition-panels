@@ -766,12 +766,34 @@ export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({ context,
       const pkgPath = pkg.packageData.path.replace(/^\//, '');
       const traceFilePath = traceFilesByPackage.get(pkgPath);
 
+      // Find test files in this package
+      const testFilePattern = /\.(test|spec)\.(ts|tsx|js|jsx)$/;
+      const packageTestFiles = allFiles.filter((file) => {
+        const filePath = file.relativePath || file.path || '';
+        // Check if file is in this package and is a test file
+        const isInPackage = pkgPath === ''
+          ? !filePath.startsWith('packages/') // Root package
+          : filePath.startsWith(pkgPath + '/') || filePath.startsWith(pkgPath.replace(/^\//, '') + '/');
+        return isInPackage && testFilePattern.test(filePath);
+      });
+
+      // Build file coverage - if trace exists, mark as covered; otherwise none
+      const files: FileTelemetryCoverage[] = packageTestFiles.map((file) => {
+        const filePath = file.relativePath || file.path || '';
+        return {
+          filePath,
+          status: traceFilePath ? 'covered' : 'none',
+          tracedTestCount: traceFilePath ? 1 : 0, // Approximate - we don't parse individual tests yet
+          totalTestCount: 1,
+        };
+      });
+
       return {
         packageId: pkg.id,
         packageName: pkg.packageData.name,
         packagePath: pkgPath, // Normalized (no leading slash)
         traceFilePath,
-        files: [], // TODO: Parse trace file to extract per-test-file coverage
+        files,
       };
     });
   }, [packages, fileTree]);
