@@ -390,6 +390,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
         selectedFile={selectedFile}
         transparentBackground={true}
         horizontalNodePadding="16px"
+        verticalNodePadding="16px"
         openByDefault={!showFullTree}
       />
     );
