@@ -412,14 +412,16 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ height: 40, borderBottom: `1px solid ${theme.colors.border}` }}>
-        <ToggleButtons
-          showFullTree={showFullTree}
-          onShowFullTree={handleShowFullTree}
-          onShowChanges={handleShowChanges}
-          theme={theme}
-        />
-      </div>
+      {hasChanges && (
+        <div style={{ height: 40, borderBottom: `1px solid ${theme.colors.border}` }}>
+          <ToggleButtons
+            showFullTree={showFullTree}
+            onShowFullTree={handleShowFullTree}
+            onShowChanges={handleShowChanges}
+            theme={theme}
+          />
+        </div>
+      )}
       <div style={{ flex: 1, overflow: 'auto' }}>
         {renderContent()}
       </div>
