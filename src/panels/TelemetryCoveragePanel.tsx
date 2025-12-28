@@ -411,7 +411,7 @@ export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps
             showUncoveredFiles={true}
             openByDefault={true}
             horizontalNodePadding="16px"
-            verticalNodePadding="16px"
+            verticalPadding="16px"
           />
         </div>
       </div>
@@ -648,7 +648,7 @@ export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps
                 showUncoveredFiles={true}
                 openByDefault={true}
                 horizontalNodePadding="16px"
-                verticalNodePadding="16px"
+                verticalPadding="16px"
               />
             )}
           </div>
