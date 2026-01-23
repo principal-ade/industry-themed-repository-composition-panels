@@ -27,8 +27,13 @@ export default defineConfig(({ mode }) => ({
       formats: ['es'],
     },
     rollupOptions: {
-      // Externalize peer dependencies - these come from the host application
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      // Externalize peer dependencies and shared packages - these come from the host application
+      external: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        '@principal-ade/dynamic-file-tree',
+      ],
       output: {
         globals: {
           react: 'React',

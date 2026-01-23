@@ -392,6 +392,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
         horizontalNodePadding="16px"
         verticalPadding="16px"
         openByDefault={!showFullTree}
+        enableDragAndDrop={false}
       />
     );
   };

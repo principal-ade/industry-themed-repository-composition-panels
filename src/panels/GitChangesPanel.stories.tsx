@@ -360,3 +360,171 @@ export const Interactive: StoryObj = {
     },
   },
 };
+
+/**
+ * Two panels side-by-side - tests the DnD backend conflict fix
+ */
+const TwoPanelsDemo = () => {
+  return (
+    <ThemeProvider>
+      <div style={{ height: '100vh', background: '#1a1a1a', display: 'flex', flexDirection: 'column' }}>
+        {/* Header with info */}
+        <div style={{
+          padding: '16px',
+          background: '#e8f5e9',
+          borderBottom: '2px solid #4caf50',
+          color: '#1b5e20',
+        }}>
+          <h3 style={{ margin: '0 0 8px 0', color: '#2e7d32' }}>
+            ✅ DnD Backend Conflict Test - Multiple Git Changes Panels
+          </h3>
+          <p style={{ margin: '0 0 8px 0', fontSize: '14px' }}>
+            <strong>Testing:</strong> Two GitChangesPanel instances rendered simultaneously
+          </p>
+          <p style={{ margin: '0', fontSize: '14px' }}>
+            <strong>Expected:</strong> No "Cannot have two HTML5 backends at the same time" error
+          </p>
+        </div>
+
+        {/* Two panels side-by-side */}
+        <div style={{
+          flex: 1,
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '1px',
+          background: '#444',
+          overflow: 'hidden'
+        }}>
+          {/* Left Panel */}
+          <div style={{ background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{
+              padding: '8px',
+              background: '#2a2a2a',
+              borderBottom: '1px solid #444',
+              fontSize: '12px',
+              color: '#888',
+              fontWeight: 'bold'
+            }}>
+              Panel 1 - Repository A
+            </div>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <GitChangesPanelContent
+                gitStatus={{
+                  staged: [
+                    'src/components/Button.tsx',
+                    'src/styles/theme.css',
+                    'src/utils/helpers.ts',
+                  ],
+                  unstaged: [
+                    'README.md',
+                    'package.json',
+                  ],
+                  untracked: [
+                    'src/new-feature.tsx',
+                    'src/components/NewComponent.tsx',
+                  ],
+                  deleted: [
+                    'src/deprecated/old-file.ts',
+                  ],
+                }}
+                rootPath="/Users/developer/repository-a"
+                onFileClick={(filePath, status) => console.log('Panel 1:', filePath, status)}
+              />
+            </div>
+          </div>
+
+          {/* Right Panel */}
+          <div style={{ background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{
+              padding: '8px',
+              background: '#2a2a2a',
+              borderBottom: '1px solid #444',
+              fontSize: '12px',
+              color: '#888',
+              fontWeight: 'bold'
+            }}>
+              Panel 2 - Repository B
+            </div>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <GitChangesPanelContent
+                gitStatus={{
+                  staged: [
+                    'docs/API.md',
+                    'src/index.ts',
+                  ],
+                  unstaged: [
+                    'tsconfig.json',
+                    'webpack.config.js',
+                    'src/App.tsx',
+                    'src/config.ts',
+                  ],
+                  untracked: [
+                    'src/experimental/feature.tsx',
+                  ],
+                  deleted: [],
+                }}
+                rootPath="/Users/developer/repository-b"
+                onFileClick={(filePath, status) => console.log('Panel 2:', filePath, status)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer with test instructions */}
+        <div style={{
+          padding: '12px',
+          background: '#2a2a2a',
+          borderTop: '1px solid #444',
+          fontSize: '12px',
+          color: '#888',
+        }}>
+          <strong>Test Actions:</strong>
+          <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+            <li>✅ Both panels should render without errors</li>
+            <li>✅ Hover over files in both panels - highlights should work</li>
+            <li>✅ Expand/collapse folders in both panels</li>
+            <li>✅ Check browser console - should see NO DnD backend errors</li>
+          </ul>
+        </div>
+      </div>
+    </ThemeProvider>
+  );
+};
+
+export const TwoPanelsSideBySide: StoryObj = {
+  name: 'Two Panels Side-by-Side (DnD Test)',
+  render: () => <TwoPanelsDemo />,
+  parameters: {
+    docs: {
+      description: {
+        story: `
+**Testing Multiple Git Changes Panels - DnD Backend Conflict Fix**
+
+This story renders **two GitChangesPanel instances simultaneously** to verify the fix for the React DnD backend conflict.
+
+**The Problem (Before @principal-ade/dynamic-file-tree@0.1.36):**
+- Each panel's file tree created its own \`DndProvider\` with \`HTML5Backend\`
+- React DnD error: "Cannot have two HTML5 backends at the same time"
+- Hover and click events didn't work correctly
+- Multiple panels couldn't coexist
+
+**The Solution (v0.1.36+):**
+- Drag-and-drop is disabled by default in dynamic-file-tree
+- Trees pass \`disableDrag\` and \`disableDrop\` to react-arborist
+- No DndProvider is created, preventing backend conflicts
+- Multiple tree instances work perfectly together
+
+**Expected Results:**
+1. ✅ Both panels render without errors
+2. ✅ File tree interactions work correctly in both panels
+3. ✅ No console errors about DnD backends
+4. ✅ Hover states and click events work properly
+
+**Background:**
+This issue occurred when opening both the Git Changes panel (from repository-composition-panels)
+and File City panel (from file-city-panels) simultaneously in Principal ADE.
+        `,
+      },
+    },
+  },
+};

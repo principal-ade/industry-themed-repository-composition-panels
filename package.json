@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/repository-composition-panels",
-  "version": "0.2.39",
+  "version": "0.2.43",
   "description": "Repository composition panels including Git Changes panel for the panel framework",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -44,7 +44,8 @@
   },
   "peerDependencies": {
     "react": ">=19.0.0",
-    "react-dom": ">=19.0.0"
+    "react-dom": ">=19.0.0",
+    "@principal-ade/dynamic-file-tree": "^0.1.36"
   },
   "peerDependenciesMeta": {
     "@principal-ade/panel-framework-core": {
