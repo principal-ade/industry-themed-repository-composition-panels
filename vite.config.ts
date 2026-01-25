@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => ({
         'react-dom',
         'react/jsx-runtime',
         '@principal-ade/dynamic-file-tree',
-        '@principal-ai/principal-view-core',
+        '@principal-ai/principal-view-core/browser',
       ],
       output: {
         globals: {
