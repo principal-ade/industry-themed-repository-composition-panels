@@ -10,7 +10,7 @@ import {
   Loader2,
   GitBranch,
 } from 'lucide-react';
-import type { ExtendedCanvas } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas } from '@principal-ai/principal-view-core/browser';
 import type { PanelComponentProps } from '../../types';
 import type { PackageLayer } from '../../types/composition';
 import type { PackagesSliceData } from '../../types/dependencies';

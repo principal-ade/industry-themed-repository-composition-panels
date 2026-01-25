@@ -1,4 +1,4 @@
-import type { ExtendedCanvas, PVNodeShape } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas, PVNodeShape } from '@principal-ai/principal-view-core/browser';
 import type { PackageLayer } from '../../types/composition';
 
 export interface DependencyCanvasOptions {

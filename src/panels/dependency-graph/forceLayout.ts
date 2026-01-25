@@ -8,7 +8,7 @@ import {
   type SimulationLinkDatum,
 } from 'd3-force';
 import { graphStratify, sugiyama, decrossOpt, coordCenter } from 'd3-dag';
-import type { ExtendedCanvas } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas } from '@principal-ai/principal-view-core/browser';
 
 interface SimNode extends SimulationNodeDatum {
   id: string;

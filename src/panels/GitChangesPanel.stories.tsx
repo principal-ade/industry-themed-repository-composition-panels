@@ -3,10 +3,10 @@ import { useState, useCallback } from 'react';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { GitChangesPanelContent, GitChangesPanelPreview } from './GitChangesPanel';
 import type { GitStatus, GitChangeSelectionStatus } from '../types';
+import type { FileTree } from '@principal-ai/repository-abstraction';
 
 /**
- * GitChangesPanelContent displays git status changes in a file tree format.
- * It supports two view modes: "Full Tree" (complete file structure) and "Changes Only" (modified files only).
+ * GitChangesPanelContent displays git status changes in a full file tree format with git status overlays.
  *
  * Note: This is the direct-props version. The GitChangesPanel component is the Panel Framework wrapper.
  */
@@ -64,12 +64,237 @@ const emptyGitStatus: GitStatus = {
   deleted: [],
 };
 
+// Sample file tree structure - matches @principal-ai/repository-abstraction FileTree interface
+const sampleFileTree: FileTree = {
+  sha: 'mock-sha-123',
+  root: {
+    name: 'my-project',
+    path: '/Users/developer/my-project',
+    relativePath: '',
+    fileCount: 8,
+    totalSize: 25600,
+    depth: 0,
+    children: [
+      {
+        name: 'src',
+        path: '/Users/developer/my-project/src',
+        relativePath: 'src',
+        fileCount: 6,
+        totalSize: 20480,
+        depth: 1,
+        children: [
+          {
+            name: 'components',
+            path: '/Users/developer/my-project/src/components',
+            relativePath: 'src/components',
+            fileCount: 2,
+            totalSize: 5120,
+            depth: 2,
+            children: [
+              {
+                name: 'Button.tsx',
+                path: '/Users/developer/my-project/src/components/Button.tsx',
+                relativePath: 'src/components/Button.tsx',
+                extension: '.tsx',
+                size: 2560,
+                lastModified: new Date('2024-01-15'),
+                isDirectory: false,
+              },
+              {
+                name: 'NewComponent.tsx',
+                path: '/Users/developer/my-project/src/components/NewComponent.tsx',
+                relativePath: 'src/components/NewComponent.tsx',
+                extension: '.tsx',
+                size: 2560,
+                lastModified: new Date('2024-01-16'),
+                isDirectory: false,
+              },
+            ],
+          },
+          {
+            name: 'styles',
+            path: '/Users/developer/my-project/src/styles',
+            relativePath: 'src/styles',
+            fileCount: 1,
+            totalSize: 1024,
+            depth: 2,
+            children: [
+              {
+                name: 'theme.css',
+                path: '/Users/developer/my-project/src/styles/theme.css',
+                relativePath: 'src/styles/theme.css',
+                extension: '.css',
+                size: 1024,
+                lastModified: new Date('2024-01-14'),
+                isDirectory: false,
+              },
+            ],
+          },
+          {
+            name: 'utils',
+            path: '/Users/developer/my-project/src/utils',
+            relativePath: 'src/utils',
+            fileCount: 1,
+            totalSize: 2048,
+            depth: 2,
+            children: [
+              {
+                name: 'helpers.ts',
+                path: '/Users/developer/my-project/src/utils/helpers.ts',
+                relativePath: 'src/utils/helpers.ts',
+                extension: '.ts',
+                size: 2048,
+                lastModified: new Date('2024-01-13'),
+                isDirectory: false,
+              },
+            ],
+          },
+          {
+            name: 'deprecated',
+            path: '/Users/developer/my-project/src/deprecated',
+            relativePath: 'src/deprecated',
+            fileCount: 1,
+            totalSize: 1024,
+            depth: 2,
+            children: [
+              {
+                name: 'old-file.ts',
+                path: '/Users/developer/my-project/src/deprecated/old-file.ts',
+                relativePath: 'src/deprecated/old-file.ts',
+                extension: '.ts',
+                size: 1024,
+                lastModified: new Date('2023-12-01'),
+                isDirectory: false,
+              },
+            ],
+          },
+          {
+            name: 'new-feature.tsx',
+            path: '/Users/developer/my-project/src/new-feature.tsx',
+            relativePath: 'src/new-feature.tsx',
+            extension: '.tsx',
+            size: 3072,
+            lastModified: new Date('2024-01-17'),
+            isDirectory: false,
+          },
+        ],
+      },
+      {
+        name: 'README.md',
+        path: '/Users/developer/my-project/README.md',
+        relativePath: 'README.md',
+        extension: '.md',
+        size: 2048,
+        lastModified: new Date('2024-01-10'),
+        isDirectory: false,
+      },
+      {
+        name: 'package.json',
+        path: '/Users/developer/my-project/package.json',
+        relativePath: 'package.json',
+        extension: '.json',
+        size: 3072,
+        lastModified: new Date('2024-01-12'),
+        isDirectory: false,
+      },
+    ],
+  },
+  allFiles: [
+    {
+      name: 'Button.tsx',
+      path: '/Users/developer/my-project/src/components/Button.tsx',
+      relativePath: 'src/components/Button.tsx',
+      extension: '.tsx',
+      size: 2560,
+      lastModified: new Date('2024-01-15'),
+      isDirectory: false,
+    },
+    {
+      name: 'NewComponent.tsx',
+      path: '/Users/developer/my-project/src/components/NewComponent.tsx',
+      relativePath: 'src/components/NewComponent.tsx',
+      extension: '.tsx',
+      size: 2560,
+      lastModified: new Date('2024-01-16'),
+      isDirectory: false,
+    },
+    {
+      name: 'theme.css',
+      path: '/Users/developer/my-project/src/styles/theme.css',
+      relativePath: 'src/styles/theme.css',
+      extension: '.css',
+      size: 1024,
+      lastModified: new Date('2024-01-14'),
+      isDirectory: false,
+    },
+    {
+      name: 'helpers.ts',
+      path: '/Users/developer/my-project/src/utils/helpers.ts',
+      relativePath: 'src/utils/helpers.ts',
+      extension: '.ts',
+      size: 2048,
+      lastModified: new Date('2024-01-13'),
+      isDirectory: false,
+    },
+    {
+      name: 'old-file.ts',
+      path: '/Users/developer/my-project/src/deprecated/old-file.ts',
+      relativePath: 'src/deprecated/old-file.ts',
+      extension: '.ts',
+      size: 1024,
+      lastModified: new Date('2023-12-01'),
+      isDirectory: false,
+    },
+    {
+      name: 'new-feature.tsx',
+      path: '/Users/developer/my-project/src/new-feature.tsx',
+      relativePath: 'src/new-feature.tsx',
+      extension: '.tsx',
+      size: 3072,
+      lastModified: new Date('2024-01-17'),
+      isDirectory: false,
+    },
+    {
+      name: 'README.md',
+      path: '/Users/developer/my-project/README.md',
+      relativePath: 'README.md',
+      extension: '.md',
+      size: 2048,
+      lastModified: new Date('2024-01-10'),
+      isDirectory: false,
+    },
+    {
+      name: 'package.json',
+      path: '/Users/developer/my-project/package.json',
+      relativePath: 'package.json',
+      extension: '.json',
+      size: 3072,
+      lastModified: new Date('2024-01-12'),
+      isDirectory: false,
+    },
+  ],
+  allDirectories: [],
+  stats: {
+    totalFiles: 8,
+    totalDirectories: 5,
+    totalSize: 25600,
+    maxDepth: 3,
+  },
+  metadata: {
+    id: 'mock-tree-id',
+    timestamp: new Date('2024-01-17T10:00:00Z'),
+    sourceType: 'mock',
+    sourceInfo: {},
+  },
+};
+
 /**
  * Default panel with various git changes
  */
 export const Default: Story = {
   args: {
     gitStatus: sampleGitStatus,
+    fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
     onFileClick: (filePath: string, status?: GitChangeSelectionStatus) => {
       console.log('File clicked:', filePath, 'Status:', status);
@@ -83,6 +308,7 @@ export const Default: Story = {
 export const Loading: Story = {
   args: {
     gitStatus: emptyGitStatus,
+    fileTree: sampleFileTree,
     isLoading: true,
     loadingMessage: 'Fetching git status...',
   },
@@ -94,6 +320,7 @@ export const Loading: Story = {
 export const NoChanges: Story = {
   args: {
     gitStatus: emptyGitStatus,
+    fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
     emptyMessage: 'Working directory clean - no changes',
   },
@@ -114,6 +341,7 @@ export const OnlyStaged: Story = {
       untracked: [],
       deleted: [],
     },
+    fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
   },
 };
@@ -133,6 +361,7 @@ export const OnlyUnstaged: Story = {
       untracked: [],
       deleted: [],
     },
+    fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
   },
 };
@@ -153,6 +382,7 @@ export const OnlyUntracked: Story = {
       ],
       deleted: [],
     },
+    fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
   },
 };
@@ -172,6 +402,7 @@ export const OnlyDeleted: Story = {
         'src/deprecated/index.ts',
       ],
     },
+    fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
   },
 };
@@ -190,6 +421,7 @@ export const ManyChanges: Story = {
         'src/old/legacy.ts',
       ],
     },
+    fileTree: sampleFileTree,
     rootPath: '/Users/developer/large-project',
   },
 };
@@ -200,6 +432,7 @@ export const ManyChanges: Story = {
 export const WithSelectedFile: Story = {
   args: {
     gitStatus: sampleGitStatus,
+    fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
     selectedFile: 'src/components/Button.tsx',
   },
@@ -330,6 +563,7 @@ const InteractiveGitChangesPanel = () => {
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <GitChangesPanelContent
             gitStatus={gitStatus}
+            fileTree={sampleFileTree}
             rootPath="/Users/developer/my-project"
             isLoading={isLoading}
             onFileClick={(filePath, status) => console.log('Clicked:', filePath, status)}
@@ -427,6 +661,7 @@ const TwoPanelsDemo = () => {
                     'src/deprecated/old-file.ts',
                   ],
                 }}
+                fileTree={sampleFileTree}
                 rootPath="/Users/developer/repository-a"
                 onFileClick={(filePath, status) => console.log('Panel 1:', filePath, status)}
               />
@@ -463,6 +698,7 @@ const TwoPanelsDemo = () => {
                   ],
                   deleted: [],
                 }}
+                fileTree={sampleFileTree}
                 rootPath="/Users/developer/repository-b"
                 onFileClick={(filePath, status) => console.log('Panel 2:', filePath, status)}
               />
@@ -502,6 +738,8 @@ export const TwoPanelsSideBySide: StoryObj = {
 
 This story renders **two GitChangesPanel instances simultaneously** to verify the fix for the React DnD backend conflict.
 
+The Git Changes panel now displays the full repository file tree with git status indicators overlaid.
+
 **The Problem (Before @principal-ade/dynamic-file-tree@0.1.36):**
 - Each panel's file tree created its own \`DndProvider\` with \`HTML5Backend\`
 - React DnD error: "Cannot have two HTML5 backends at the same time"
@@ -509,7 +747,7 @@ This story renders **two GitChangesPanel instances simultaneously** to verify th
 - Multiple panels couldn't coexist
 
 **The Solution (v0.1.36+):**
-- Drag-and-drop is disabled by default in dynamic-file-tree
+- Drag-and-drop is disabled by default in dynamic-file-tree (\`enableDragAndDrop={false}\`)
 - Trees pass \`disableDrag\` and \`disableDrop\` to react-arborist
 - No DndProvider is created, preventing backend conflicts
 - Multiple tree instances work perfectly together
