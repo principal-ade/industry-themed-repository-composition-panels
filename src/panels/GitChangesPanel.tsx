@@ -67,6 +67,36 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
 }) => {
   const { theme } = useTheme();
 
+  // DEBUG: Diagnostic logging to detect re-render issues
+  const renderCountRef = useRef(0);
+  const prevPropsRef = useRef<{
+    gitStatus: typeof gitStatus;
+    fileTree: typeof fileTree;
+    rootPath: typeof rootPath;
+    isLoading: typeof isLoading;
+    onFileClick: typeof onFileClick;
+    onContextMenuAction: typeof onContextMenuAction;
+    selectedFile: typeof selectedFile;
+  } | null>(null);
+
+  renderCountRef.current += 1;
+
+  if (prevPropsRef.current) {
+    const propsChanged = {
+      gitStatus: prevPropsRef.current.gitStatus !== gitStatus,
+      fileTree: prevPropsRef.current.fileTree !== fileTree,
+      rootPath: prevPropsRef.current.rootPath !== rootPath,
+      isLoading: prevPropsRef.current.isLoading !== isLoading,
+      onFileClick: prevPropsRef.current.onFileClick !== onFileClick,
+      onContextMenuAction: prevPropsRef.current.onContextMenuAction !== onContextMenuAction,
+      selectedFile: prevPropsRef.current.selectedFile !== selectedFile,
+    };
+
+    console.log(`[GitChangesPanelContent] Render #${renderCountRef.current}`, propsChanged);
+  }
+
+  prevPropsRef.current = { gitStatus, fileTree, rootPath, isLoading, onFileClick, onContextMenuAction, selectedFile };
+
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
@@ -434,6 +464,30 @@ export const GitChangesPanelPreview: React.FC = () => {
  * Uses context.getSlice('git') and context.getSlice('fileTree') to get data
  */
 export const GitChangesPanel: React.FC<PanelComponentProps> = ({ context, events }) => {
+  // DEBUG: Diagnostic logging to detect re-render issues
+  const renderCountRef = useRef(0);
+  const prevPropsRef = useRef<{
+    context: typeof context;
+    events: typeof events;
+  } | null>(null);
+
+  renderCountRef.current += 1;
+
+  if (prevPropsRef.current) {
+    const propsChanged = {
+      context: prevPropsRef.current.context !== context,
+      events: prevPropsRef.current.events !== events,
+      // Also check individual context properties
+      'context.currentScope': prevPropsRef.current.context.currentScope !== context.currentScope,
+      'context.getSlice': prevPropsRef.current.context.getSlice !== context.getSlice,
+      'context.slices': prevPropsRef.current.context.slices !== context.slices,
+    };
+
+    console.log(`[GitChangesPanel] Render #${renderCountRef.current}`, propsChanged);
+  }
+
+  prevPropsRef.current = { context, events };
+
   // Get data slices from context
   const gitSlice = context.getSlice<GitStatus>('git');
   const fileTreeSlice = context.getSlice<FileTree>('fileTree');
