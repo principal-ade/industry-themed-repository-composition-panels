@@ -2,17 +2,27 @@ import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GitStatusFileTree, type GitFileStatus } from '@principal-ade/dynamic-file-tree';
-import type { FileTree } from '@principal-ai/repository-abstraction';
+import type { FileTree, GitStatusWithFiles } from '@principal-ai/repository-abstraction';
 import { Copy, FileSymlink, ExternalLink, FolderOpen } from 'lucide-react';
-import type { GitStatus, GitChangeSelectionStatus, PanelComponentProps } from '../types';
+import type { GitChangeSelectionStatus, PanelComponentProps } from '../types';
 import './GitChangesPanel.css';
 
 // Stable default object to prevent new references on each render
-const EMPTY_GIT_STATUS: GitStatus = {
-  staged: [],
-  unstaged: [],
-  untracked: [],
-  deleted: [],
+const EMPTY_GIT_STATUS: GitStatusWithFiles = {
+  repoPath: '',
+  branch: '',
+  isDirty: false,
+  hasUntracked: false,
+  hasStaged: false,
+  ahead: 0,
+  behind: 0,
+  watchingEnabled: false,
+  stagedFiles: [],
+  modifiedFiles: [],
+  untrackedFiles: [],
+  deletedFiles: [],
+  createdFiles: [],
+  hash: 'empty',
 };
 
 interface ContextMenuState {
@@ -31,7 +41,7 @@ export type ContextMenuAction =
 
 export interface GitChangesPanelProps {
   /** Git status data with categorized file paths */
-  gitStatus: GitStatus;
+  gitStatus: GitStatusWithFiles;
   /** Complete file tree structure - git status will be overlaid on this tree */
   fileTree: FileTree;
   /** Root path for the repository */
@@ -124,26 +134,26 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
   // Calculate if there are changes - memoized to prevent downstream effect re-runs
   const hasChanges = useMemo(
     () =>
-      gitStatus.staged.length > 0 ||
-      gitStatus.unstaged.length > 0 ||
-      gitStatus.untracked.length > 0 ||
-      gitStatus.deleted.length > 0,
-    [gitStatus.staged.length, gitStatus.unstaged.length, gitStatus.untracked.length, gitStatus.deleted.length]
+      gitStatus.stagedFiles.length > 0 ||
+      gitStatus.modifiedFiles.length > 0 ||
+      gitStatus.untrackedFiles.length > 0 ||
+      gitStatus.deletedFiles.length > 0,
+    [gitStatus.stagedFiles.length, gitStatus.modifiedFiles.length, gitStatus.untrackedFiles.length, gitStatus.deletedFiles.length]
   );
 
   // Determine file status based on git status data
   const getFileStatus = useCallback(
     (filePath: string): GitChangeSelectionStatus | undefined => {
-      if (gitStatus.staged.includes(filePath)) {
+      if (gitStatus.stagedFiles.includes(filePath)) {
         return 'staged';
       }
-      if (gitStatus.deleted.includes(filePath)) {
+      if (gitStatus.deletedFiles.includes(filePath)) {
         return 'deleted';
       }
-      if (gitStatus.untracked.includes(filePath)) {
+      if (gitStatus.untrackedFiles.includes(filePath)) {
         return 'untracked';
       }
-      if (gitStatus.unstaged.includes(filePath)) {
+      if (gitStatus.modifiedFiles.includes(filePath)) {
         return 'unstaged';
       }
       return undefined;
@@ -243,22 +253,22 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
     };
 
     // Expand untracked directories to show all files
-    const expandedUntracked = expandDirectories(gitStatus.untracked);
+    const expandedUntracked = expandDirectories(gitStatus.untrackedFiles);
 
     const statusData: GitFileStatus[] = [
-      ...gitStatus.staged.map((filePath) => ({
+      ...gitStatus.stagedFiles.map((filePath) => ({
         filePath,
         indexStatus: 'A',
         workingTreeStatus: ' ',
         status: 'A' as const,
       })),
-      ...gitStatus.unstaged.map((filePath) => ({
+      ...gitStatus.modifiedFiles.map((filePath) => ({
         filePath,
         indexStatus: ' ',
         workingTreeStatus: 'M',
         status: 'M' as const,
       })),
-      ...gitStatus.deleted.map((filePath) => ({
+      ...gitStatus.deletedFiles.map((filePath) => ({
         filePath,
         indexStatus: ' ',
         workingTreeStatus: 'D',
@@ -489,7 +499,7 @@ export const GitChangesPanel: React.FC<PanelComponentProps> = ({ context, events
   prevPropsRef.current = { context, events };
 
   // Get data slices from context
-  const gitSlice = context.getSlice<GitStatus>('git');
+  const gitSlice = context.getSlice<GitStatusWithFiles>('gitStatusWithFiles');
   const fileTreeSlice = context.getSlice<FileTree>('fileTree');
 
   // Extract data with stable defaults to prevent unnecessary re-renders

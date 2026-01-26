@@ -177,7 +177,8 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
           <div
             style={{
               fontSize: theme.fontSizes[2],
-              fontWeight: 600,
+              fontWeight: theme.fontWeights.semibold,
+              fontFamily: theme.fonts.body,
               color: theme.colors.text,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -189,6 +190,7 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
           <div
             style={{
               fontSize: theme.fontSizes[0],
+              fontFamily: theme.fonts.body,
               color: theme.colors.textSecondary,
             }}
           >
@@ -215,7 +217,8 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
               color: packageRole.color,
               borderRadius: '4px',
               fontSize: theme.fontSizes[0],
-              fontWeight: 500,
+              fontWeight: theme.fontWeights.medium,
+              fontFamily: theme.fonts.body,
               flexShrink: 0,
             }}
           >
@@ -239,6 +242,7 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
             <div
               style={{
                 fontSize: theme.fontSizes[0],
+                fontFamily: theme.fonts.body,
                 color: theme.colors.textSecondary,
                 lineHeight: 1.4,
                 overflow: 'hidden',
@@ -265,7 +269,8 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
                   backgroundColor: theme.colors.textSecondary + '15',
                   color: theme.colors.textSecondary,
                   borderRadius: '3px',
-                  fontWeight: 500,
+                  fontWeight: theme.fontWeights.medium,
+                  fontFamily: theme.fonts.body,
                 }}
               >
                 {pkg.packageData.license}
@@ -287,7 +292,7 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
         >
           {dependsOn.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ color: theme.colors.textSecondary, display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <span style={{ color: theme.colors.textSecondary, fontFamily: theme.fonts.body, display: 'flex', alignItems: 'center', gap: '2px' }}>
                 <ArrowRight size={10} />
                 uses
               </span>
@@ -299,7 +304,8 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
                     backgroundColor: theme.colors.primary + '15',
                     color: theme.colors.primary,
                     borderRadius: '4px',
-                    fontWeight: 500,
+                    fontWeight: theme.fontWeights.medium,
+                    fontFamily: theme.fonts.body,
                   }}
                 >
                   {dep.packageData.name}
@@ -309,7 +315,7 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
           )}
           {usedBy.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ color: theme.colors.textSecondary }}>used by</span>
+              <span style={{ color: theme.colors.textSecondary, fontFamily: theme.fonts.body }}>used by</span>
               {usedBy.map((dep) => (
                 <span
                   key={dep.id}
@@ -318,7 +324,8 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
                     backgroundColor: theme.colors.textSecondary + '20',
                     color: theme.colors.textSecondary,
                     borderRadius: '4px',
-                    fontWeight: 500,
+                    fontWeight: theme.fontWeights.medium,
+                    fontFamily: theme.fonts.body,
                   }}
                 >
                   {dep.packageData.name}
@@ -335,6 +342,7 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
           display: 'flex',
           gap: '12px',
           fontSize: theme.fontSizes[0],
+          fontFamily: theme.fonts.body,
           color: theme.colors.textSecondary,
         }}
       >
@@ -480,7 +488,8 @@ const PackageCard: React.FC<PackageCardProps> = ({
             <div
               style={{
                 fontSize: theme.fontSizes[2],
-                fontWeight: 600,
+                fontWeight: theme.fontWeights.semibold,
+                fontFamily: theme.fonts.body,
                 color: theme.colors.text,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -493,6 +502,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
               <div
                 style={{
                   fontSize: theme.fontSizes[0],
+                  fontFamily: theme.fonts.body,
                   color: theme.colors.textSecondary,
                 }}
               >
@@ -513,6 +523,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                 borderRadius: '4px',
                 color: theme.colors.textSecondary,
                 fontSize: theme.fontSizes[0],
+                fontFamily: theme.fonts.body,
                 cursor: 'pointer',
               }}
               title="Open package folder"
@@ -538,6 +549,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
               <div
                 style={{
                   fontSize: theme.fontSizes[1],
+                  fontFamily: theme.fonts.body,
                   color: theme.colors.textSecondary,
                   lineHeight: 1.5,
                 }}
@@ -554,7 +566,8 @@ const PackageCard: React.FC<PackageCardProps> = ({
                     color: theme.colors.textSecondary,
                     borderRadius: '4px',
                     fontSize: theme.fontSizes[0],
-                    fontWeight: 500,
+                    fontWeight: theme.fontWeights.medium,
+                    fontFamily: theme.fonts.body,
                   }}
                 >
                   {pkg.packageData.license}
@@ -564,6 +577,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                 <span
                   style={{
                     fontSize: theme.fontSizes[0],
+                    fontFamily: theme.fonts.body,
                     color: theme.colors.textSecondary,
                   }}
                 >
@@ -599,6 +613,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                   activeTab === tab.id ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
                 color: activeTab === tab.id ? theme.colors.text : theme.colors.textSecondary,
                 fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -613,6 +628,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                   padding: '1px 6px',
                   borderRadius: '10px',
                   fontSize: theme.fontSizes[0],
+                  fontFamily: theme.fonts.body,
                 }}
               >
                 {'total' in tab ? `${tab.count}/${tab.total}` : 'inherited' in tab && (tab.inherited ?? 0) > 0 ? `${tab.count} (${tab.inherited}↑)` : tab.count}
@@ -650,6 +666,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                     padding: '12px',
                     color: theme.colors.textSecondary,
                     fontSize: theme.fontSizes[1],
+                    fontFamily: theme.fonts.body,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -677,6 +694,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                     <div
                       style={{
                         fontSize: theme.fontSizes[0],
+                        fontFamily: theme.fonts.body,
                         color: theme.colors.textSecondary,
                         marginBottom: '8px',
                       }}
@@ -691,6 +709,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                             textAlign: 'center',
                             color: theme.colors.textSecondary,
                             fontSize: theme.fontSizes[1],
+                            fontFamily: theme.fonts.body,
                           }}
                         >
                           No dependencies match your filters
@@ -755,7 +774,8 @@ const PackageCard: React.FC<PackageCardProps> = ({
           <div
             style={{
               fontSize: theme.fontSizes[2],
-              fontWeight: 600,
+              fontWeight: theme.fontWeights.semibold,
+              fontFamily: theme.fonts.body,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -767,6 +787,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
             <div
               style={{
                 fontSize: theme.fontSizes[0],
+                fontFamily: theme.fonts.body,
                 color: theme.colors.textSecondary,
               }}
             >
@@ -790,6 +811,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
               borderRadius: '4px',
               color: theme.colors.textSecondary,
               fontSize: theme.fontSizes[0],
+              fontFamily: theme.fonts.body,
               cursor: 'pointer',
             }}
             title="Open package folder"
@@ -828,6 +850,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                     activeTab === tab.id ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
                   color: activeTab === tab.id ? theme.colors.text : theme.colors.textSecondary,
                   fontSize: theme.fontSizes[1],
+                  fontFamily: theme.fonts.body,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -842,6 +865,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                     padding: '1px 6px',
                     borderRadius: '10px',
                     fontSize: theme.fontSizes[0],
+                    fontFamily: theme.fonts.body,
                   }}
                 >
                   {'total' in tab ? `${tab.count}/${tab.total}` : 'inherited' in tab && (tab.inherited ?? 0) > 0 ? `${tab.count} (${tab.inherited}↑)` : tab.count}
@@ -879,6 +903,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                       padding: '12px',
                       color: theme.colors.textSecondary,
                       fontSize: theme.fontSizes[1],
+                      fontFamily: theme.fonts.body,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -906,6 +931,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                       <div
                         style={{
                           fontSize: theme.fontSizes[0],
+                          fontFamily: theme.fonts.body,
                           color: theme.colors.textSecondary,
                           marginBottom: '8px',
                         }}
@@ -920,6 +946,7 @@ const PackageCard: React.FC<PackageCardProps> = ({
                               textAlign: 'center',
                               color: theme.colors.textSecondary,
                               fontSize: theme.fontSizes[1],
+                              fontFamily: theme.fonts.body,
                             }}
                           >
                             No dependencies match your filters
@@ -988,6 +1015,7 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
           padding: '20px',
           textAlign: 'center',
           color: theme.colors.textSecondary,
+          fontFamily: theme.fonts.body,
         }}
       >
         Loading packages...
@@ -1002,6 +1030,7 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
           padding: '20px',
           textAlign: 'center',
           color: theme.colors.textSecondary,
+          fontFamily: theme.fonts.body,
         }}
       >
         {emptyMessage}
@@ -1068,7 +1097,7 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
             }}
           >
             <FileCode size={16} color={theme.colors.primary} />
-            <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
+            <span style={{ fontSize: theme.fontSizes[1], fontFamily: theme.fonts.body, color: theme.colors.textSecondary }}>
               {packages.length} packages
             </span>
           </div>
@@ -1133,6 +1162,7 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
                 borderRadius: '4px',
                 color: theme.colors.accent,
                 fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
                 cursor: 'pointer',
                 transition: 'background-color 0.15s ease',
               }}
@@ -1175,7 +1205,8 @@ export const PackageCompositionPanelPreview: React.FC = () => {
     <div
       style={{
         padding: '12px',
-        fontSize: '12px',
+        fontSize: theme.fontSizes[0],
+        fontFamily: theme.fonts.body,
         color: theme.colors.text,
         display: 'flex',
         flexDirection: 'column',

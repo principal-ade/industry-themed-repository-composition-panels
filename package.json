@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/repository-composition-panels",
-  "version": "0.2.47",
+  "version": "0.2.49",
   "description": "Repository composition panels including Git Changes panel for the panel framework",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -59,7 +59,7 @@
     "@principal-ai/codebase-composition": "^0.2.18",
     "@principal-ai/principal-view-core": "^0.12.2",
     "@principal-ai/principal-view-react": "^0.8.0",
-    "@principal-ai/repository-abstraction": "^0.2.5",
+    "@principal-ai/repository-abstraction": "^0.5.0",
     "@xyflow/react": "^12.0.0",
     "clsx": "^2.1.1",
     "d3-dag": "^1.1.0",

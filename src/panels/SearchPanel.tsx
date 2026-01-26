@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { FileText, Copy, Check, X } from 'lucide-react';
+import { FileText, Copy, Check } from 'lucide-react';
 import type { FileTree } from '@principal-ai/repository-abstraction';
 import type { PanelComponentProps } from '../types';
 import {
   localSearchService,
   type SearchResult,
-  type DirectoryFilter,
 } from '../services/LocalSearchService';
 
 export interface SearchPanelProps {
@@ -22,8 +21,6 @@ export interface SearchPanelProps {
   onSearchResultsChange?: (results: SearchResult[]) => void;
   /** Callback when a search result is hovered */
   onSearchResultHover?: (filePath: string | null) => void;
-  /** Callback when directory filters change */
-  onDirectoryFiltersChange?: (filters: DirectoryFilter[]) => void;
   /** Currently selected file path */
   selectedFile?: string | null;
 }
@@ -38,7 +35,6 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
   onFileSelect,
   onSearchResultsChange,
   onSearchResultHover,
-  onDirectoryFiltersChange,
   selectedFile,
 }) => {
   const { theme } = useTheme();
@@ -46,22 +42,15 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [directoryFilter, setDirectoryFilter] = useState('');
-  const [directoryFilters, setDirectoryFilters] = useState<DirectoryFilter[]>([]);
-  const [excludeDirectory, setExcludeDirectory] = useState(false);
 
   // UI state
-  const [showDirectoryDropdown, setShowDirectoryDropdown] = useState(false);
-  const [selectedDirectoryIndex, setSelectedDirectoryIndex] = useState(0);
   const [selectedSearchIndex, setSelectedSearchIndex] = useState(-1);
   const [isSearchResultsFocused, setIsSearchResultsFocused] = useState(false);
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
 
   // Refs
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const directoryInputRef = useRef<HTMLInputElement>(null);
   const searchResultsRef = useRef<HTMLDivElement>(null);
-  const suppressDropdownRef = useRef<boolean>(false);
 
   // Focus search input on mount
   useEffect(() => {
@@ -75,134 +64,6 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
     }
   }, [fileTree, baseDirectory]);
 
-  // Notify parent when directory filters change
-  useEffect(() => {
-    onDirectoryFiltersChange?.(directoryFilters);
-  }, [directoryFilters, onDirectoryFiltersChange]);
-
-  // Get matching directories for dropdown
-  const matchingDirectories = useMemo(() => {
-    if (!directoryFilter || !fileTree) return [];
-
-    const directories = localSearchService.getDirectories();
-
-    return directories
-      .filter(dir => {
-        const lowerDir = dir.toLowerCase();
-        const lowerFilter = directoryFilter.toLowerCase();
-        return lowerDir.includes(lowerFilter) && lowerDir !== lowerFilter;
-      })
-      .map(dir => ({
-        path: dir,
-        displayPath: dir,
-        score: dir.toLowerCase().startsWith(directoryFilter.toLowerCase()) ? 100 : 80,
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-  }, [directoryFilter, fileTree]);
-
-  // Update dropdown visibility
-  useEffect(() => {
-    if (suppressDropdownRef.current) {
-      suppressDropdownRef.current = false;
-      return;
-    }
-    setShowDirectoryDropdown(directoryFilter.length > 0 && matchingDirectories.length > 0);
-    setSelectedDirectoryIndex(0);
-  }, [directoryFilter, matchingDirectories.length]);
-
-  // Add directory filter
-  const addDirectoryFilter = useCallback(
-    (path: string, mode: 'include' | 'exclude' = 'include') => {
-      if (!path.trim()) return;
-
-      const existingFilter = directoryFilters.find(f => f.path === path);
-      if (existingFilter) {
-        setDirectoryFilters(filters =>
-          filters.map(f =>
-            f.path === path
-              ? { ...f, mode: f.mode === 'include' ? 'exclude' : 'include' }
-              : f
-          )
-        );
-      } else {
-        const newFilter: DirectoryFilter = {
-          id: `filter-${Date.now()}`,
-          path: path.trim(),
-          mode,
-        };
-        setDirectoryFilters(filters => [...filters, newFilter]);
-      }
-    },
-    [directoryFilters]
-  );
-
-  // Remove directory filter
-  const removeDirectoryFilter = useCallback((filterId: string) => {
-    setDirectoryFilters(filters => filters.filter(f => f.id !== filterId));
-  }, []);
-
-  // Toggle filter mode
-  const toggleFilterMode = useCallback((filterId: string) => {
-    setDirectoryFilters(filters =>
-      filters.map(f =>
-        f.id === filterId
-          ? { ...f, mode: f.mode === 'include' ? 'exclude' : 'include' }
-          : f
-      )
-    );
-  }, []);
-
-  // Handle directory keyboard navigation
-  const handleDirectoryKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      switch (e.key) {
-        case 'ArrowDown':
-          if (showDirectoryDropdown && matchingDirectories.length > 0) {
-            e.preventDefault();
-            setSelectedDirectoryIndex(prev =>
-              prev < matchingDirectories.length - 1 ? prev + 1 : prev
-            );
-          }
-          break;
-        case 'ArrowUp':
-          if (showDirectoryDropdown && matchingDirectories.length > 0) {
-            e.preventDefault();
-            setSelectedDirectoryIndex(prev => (prev > 0 ? prev - 1 : prev));
-          }
-          break;
-        case 'Enter':
-          e.preventDefault();
-          setShowDirectoryDropdown(false);
-          suppressDropdownRef.current = true;
-
-          if (matchingDirectories.length > 0 && matchingDirectories[selectedDirectoryIndex]) {
-            const dir = matchingDirectories[selectedDirectoryIndex];
-            addDirectoryFilter(dir.path, excludeDirectory ? 'exclude' : 'include');
-            setDirectoryFilter('');
-          } else if (directoryFilter.trim()) {
-            addDirectoryFilter(directoryFilter, excludeDirectory ? 'exclude' : 'include');
-            setDirectoryFilter('');
-          }
-          break;
-        case 'Escape':
-          if (showDirectoryDropdown) {
-            e.preventDefault();
-            setShowDirectoryDropdown(false);
-          }
-          break;
-      }
-    },
-    [
-      showDirectoryDropdown,
-      matchingDirectories,
-      selectedDirectoryIndex,
-      directoryFilter,
-      addDirectoryFilter,
-      excludeDirectory,
-    ]
-  );
-
   // Perform search
   const performSearch = useCallback(
     (query: string) => {
@@ -213,14 +74,13 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
       }
 
       const results = localSearchService.search(query, {
-        directoryFilters: directoryFilters.length > 0 ? directoryFilters : undefined,
         limit: 100,
       });
 
       setSearchResults(results);
       onSearchResultsChange?.(results);
     },
-    [directoryFilters, onSearchResultsChange]
+    [onSearchResultsChange]
   );
 
   // Handle search input changes
@@ -316,7 +176,7 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
           key={i}
           style={{
             backgroundColor: `${theme.colors.primary}40`,
-            fontWeight: 'bold',
+            fontWeight: theme.fontWeights.bold,
           }}
         >
           {part}
@@ -329,192 +189,12 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Search Inputs */}
+      {/* Search Input */}
       <div style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
-        {/* Directory Filter Input */}
-        <div style={{ padding: '12px', paddingBottom: '8px', position: 'relative' }}>
-          <div
-            style={{
-              marginBottom: '4px',
-              fontSize: theme.fontSizes[0],
-              color: theme.colors.textSecondary,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <span>Directory Filter</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              ref={directoryInputRef}
-              type="text"
-              value={directoryFilter}
-              onChange={e => {
-                setDirectoryFilter(e.target.value);
-                suppressDropdownRef.current = false;
-              }}
-              onKeyDown={handleDirectoryKeyDown}
-              onFocus={() =>
-                setShowDirectoryDropdown(
-                  directoryFilter.length > 0 && matchingDirectories.length > 0
-                )
-              }
-              onBlur={() => {
-                setTimeout(() => {
-                  if (!directoryInputRef.current?.contains(document.activeElement)) {
-                    setShowDirectoryDropdown(false);
-                  }
-                }, 200);
-              }}
-              placeholder="Type to filter by directory path"
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                fontSize: theme.fontSizes[1],
-                borderRadius: '4px',
-                border: `1px solid ${
-                  directoryFilter && showDirectoryDropdown
-                    ? theme.colors.primary
-                    : theme.colors.border
-                }`,
-                backgroundColor: theme.colors.backgroundSecondary || theme.colors.background,
-                color: theme.colors.text,
-                outline: 'none',
-              }}
-            />
-            {directoryFilter && (
-              <button
-                onClick={() => setExcludeDirectory(!excludeDirectory)}
-                style={{
-                  padding: '8px 12px',
-                  fontSize: theme.fontSizes[0],
-                  fontWeight: 500,
-                  borderRadius: '4px',
-                  border: `1px solid ${
-                    excludeDirectory ? theme.colors.primary : theme.colors.border
-                  }`,
-                  backgroundColor: excludeDirectory
-                    ? `${theme.colors.primary}20`
-                    : theme.colors.backgroundSecondary || theme.colors.background,
-                  color: excludeDirectory ? theme.colors.text : theme.colors.textSecondary,
-                  cursor: 'pointer',
-                }}
-                title={
-                  excludeDirectory
-                    ? 'Excluding files in this directory'
-                    : 'Including only files in this directory'
-                }
-              >
-                {excludeDirectory ? 'Exclude' : 'Include'}
-              </button>
-            )}
-          </div>
-
-          {/* Directory Dropdown */}
-          {showDirectoryDropdown && matchingDirectories.length > 0 && (
-            <div
-              style={{
-                position: 'absolute',
-                zIndex: 10,
-                width: 'calc(100% - 24px)',
-                marginTop: '4px',
-                borderRadius: '4px',
-                border: `1px solid ${theme.colors.primary}`,
-                backgroundColor: theme.colors.background,
-                boxShadow: `0 4px 6px -1px ${theme.colors.border}40`,
-                maxHeight: '256px',
-                overflowY: 'auto',
-              }}
-            >
-              {matchingDirectories.map((dir, index) => (
-                <div
-                  key={dir.path}
-                  style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    fontSize: theme.fontSizes[1],
-                    backgroundColor:
-                      index === selectedDirectoryIndex
-                        ? `${theme.colors.primary}20`
-                        : 'transparent',
-                    color:
-                      index === selectedDirectoryIndex
-                        ? theme.colors.text
-                        : theme.colors.textSecondary,
-                  }}
-                  onMouseEnter={() => setSelectedDirectoryIndex(index)}
-                  onClick={() => {
-                    addDirectoryFilter(dir.path, excludeDirectory ? 'exclude' : 'include');
-                    setDirectoryFilter('');
-                    setShowDirectoryDropdown(false);
-                    directoryInputRef.current?.focus();
-                  }}
-                >
-                  {dir.displayPath}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Active Directory Filters */}
-          {directoryFilters.length > 0 && (
-            <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {directoryFilters.map(filter => (
-                <div
-                  key={filter.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: theme.fontSizes[0],
-                    backgroundColor:
-                      filter.mode === 'include'
-                        ? `${theme.colors.primary}20`
-                        : `${theme.colors.error}20`,
-                    border: `1px solid ${
-                      filter.mode === 'include' ? theme.colors.primary : theme.colors.error
-                    }`,
-                    color: theme.colors.text,
-                  }}
-                >
-                  <span
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => toggleFilterMode(filter.id)}
-                    title="Click to toggle include/exclude"
-                  >
-                    {filter.mode === 'include' ? '✓' : '✗'} {filter.path}
-                  </span>
-                  <button
-                    onClick={() => removeDirectoryFilter(filter.id)}
-                    style={{
-                      marginLeft: '4px',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: theme.colors.textSecondary,
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                    title="Remove filter"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Main Search Input */}
         <div
           style={{
             padding: '12px',
-            paddingTop: '8px',
-            borderTop: `1px solid ${theme.colors.border}40`,
           }}
         >
           <div style={{ position: 'relative' }}>
@@ -530,6 +210,7 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
                 padding: '8px 12px',
                 paddingRight: '36px',
                 fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
                 borderRadius: '4px',
                 border: `1px solid ${theme.colors.border}`,
                 backgroundColor: theme.colors.backgroundSecondary || theme.colors.background,
@@ -559,15 +240,6 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
               </svg>
             </div>
           </div>
-          <div
-            style={{
-              marginTop: '4px',
-              fontSize: theme.fontSizes[0],
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Supports wildcards: *.tsx, test?.js
-          </div>
         </div>
       </div>
 
@@ -592,6 +264,7 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
               padding: '40px 20px',
               textAlign: 'center',
               color: theme.colors.textSecondary,
+              fontFamily: theme.fonts.body,
             }}
           >
             Loading file tree...
@@ -635,7 +308,8 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
               <h3
                 style={{
                   fontSize: theme.fontSizes[3],
-                  fontWeight: 600,
+                  fontWeight: theme.fontWeights.semibold,
+                  fontFamily: theme.fonts.heading,
                   marginBottom: '8px',
                   color: theme.colors.text,
                 }}
@@ -646,6 +320,7 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
               <p
                 style={{
                   fontSize: theme.fontSizes[1],
+                  fontFamily: theme.fonts.body,
                   marginBottom: '16px',
                   color: theme.colors.textSecondary,
                 }}
@@ -655,29 +330,12 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
 
               <div style={{ textAlign: 'left' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-                  <span style={{ fontSize: theme.fontSizes[0], color: theme.colors.primary }}>
-                    💡
-                  </span>
                   <div>
-                    <div style={{ fontSize: theme.fontSizes[0], fontWeight: 500, color: theme.colors.text }}>
+                    <div style={{ fontSize: theme.fontSizes[0], fontWeight: theme.fontWeights.medium, fontFamily: theme.fonts.body, color: theme.colors.text }}>
                       Quick search
                     </div>
-                    <div style={{ fontSize: theme.fontSizes[0], color: theme.colors.textSecondary }}>
+                    <div style={{ fontSize: theme.fontSizes[0], fontFamily: theme.fonts.body, color: theme.colors.textSecondary }}>
                       Type to instantly filter by filename
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                  <span style={{ fontSize: theme.fontSizes[0], color: theme.colors.primary }}>
-                    📁
-                  </span>
-                  <div>
-                    <div style={{ fontSize: theme.fontSizes[0], fontWeight: 500, color: theme.colors.text }}>
-                      Filter by directory
-                    </div>
-                    <div style={{ fontSize: theme.fontSizes[0], color: theme.colors.textSecondary }}>
-                      Use the directory filter to narrow your search
                     </div>
                   </div>
                 </div>
@@ -712,7 +370,8 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
               <h3
                 style={{
                   fontSize: theme.fontSizes[2],
-                  fontWeight: 500,
+                  fontWeight: theme.fontWeights.medium,
+                  fontFamily: theme.fonts.heading,
                   marginBottom: '8px',
                   color: theme.colors.text,
                 }}
@@ -723,11 +382,12 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
               <p
                 style={{
                   fontSize: theme.fontSizes[1],
+                  fontFamily: theme.fonts.body,
                   color: theme.colors.textSecondary,
                 }}
               >
                 No files match{' '}
-                <span style={{ fontFamily: 'monospace', color: theme.colors.primary }}>
+                <span style={{ fontFamily: theme.fonts.monospace, color: theme.colors.primary }}>
                   "{searchQuery}"
                 </span>
               </p>
@@ -779,7 +439,8 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
                             <div
                               style={{
                                 fontSize: theme.fontSizes[1],
-                                fontWeight: 500,
+                                fontWeight: theme.fontWeights.medium,
+                                fontFamily: theme.fonts.body,
                                 color: theme.colors.text,
                               }}
                             >
@@ -788,7 +449,8 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
                             {isCurrentFile && (
                               <span
                                 style={{
-                                  fontSize: '10px',
+                                  fontSize: theme.fontSizes[0],
+                                  fontFamily: theme.fonts.body,
                                   padding: '2px 6px',
                                   borderRadius: '4px',
                                   backgroundColor: `${theme.colors.primary}20`,
@@ -802,6 +464,7 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
                           <div
                             style={{
                               fontSize: theme.fontSizes[0],
+                              fontFamily: theme.fonts.body,
                               marginTop: '2px',
                               color: theme.colors.textSecondary,
                               overflow: 'hidden',
@@ -865,28 +528,15 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
             padding: '8px 12px',
             borderTop: `1px solid ${theme.colors.border}`,
             fontSize: theme.fontSizes[0],
+            fontFamily: theme.fonts.body,
             color: theme.colors.textSecondary,
             backgroundColor: theme.colors.backgroundSecondary || theme.colors.background,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span>
-              Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "
-              {searchQuery}"
-            </span>
-            {directoryFilters.length > 0 && (
-              <span
-                style={{
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  backgroundColor: `${theme.colors.primary}20`,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                {directoryFilters.length} filter{directoryFilters.length !== 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
+          <span>
+            Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "
+            {searchQuery}"
+          </span>
         </div>
       )}
     </div>
@@ -903,7 +553,8 @@ export const SearchPanelPreview: React.FC = () => {
     <div
       style={{
         padding: '12px',
-        fontSize: '12px',
+        fontSize: theme.fontSizes[0],
+        fontFamily: theme.fonts.body,
         color: theme.colors.text,
         display: 'flex',
         flexDirection: 'column',
@@ -917,7 +568,8 @@ export const SearchPanelPreview: React.FC = () => {
           backgroundColor: theme.colors.backgroundSecondary,
           border: `1px solid ${theme.colors.border}`,
           color: theme.colors.textSecondary,
-          fontSize: '11px',
+          fontSize: theme.fontSizes[0],
+          fontFamily: theme.fonts.body,
         }}
       >
         Search files...
