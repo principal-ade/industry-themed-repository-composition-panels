@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState, useCallback } from 'react';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { GitChangesPanelContent, GitChangesPanelPreview } from './GitChangesPanel';
-import type { GitStatus, GitChangeSelectionStatus } from '../types';
-import type { FileTree } from '@principal-ai/repository-abstraction';
+import type { GitChangeSelectionStatus } from '../types';
+import type { FileTree, GitStatusWithFiles } from '@principal-ai/repository-abstraction';
 
 /**
  * GitChangesPanelContent displays git status changes in a full file tree format with git status overlays.
@@ -38,30 +38,50 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Sample git status data
-const sampleGitStatus: GitStatus = {
-  staged: [
+const sampleGitStatus: GitStatusWithFiles = {
+  repoPath: '/Users/developer/my-project',
+  branch: 'main',
+  isDirty: true,
+  hasUntracked: true,
+  hasStaged: true,
+  ahead: 0,
+  behind: 0,
+  watchingEnabled: false,
+  stagedFiles: [
     'src/components/Button.tsx',
     'src/styles/theme.css',
   ],
-  unstaged: [
+  modifiedFiles: [
     'README.md',
     'package.json',
     'src/utils/helpers.ts',
   ],
-  untracked: [
+  untrackedFiles: [
     'src/new-feature.tsx',
     'src/components/NewComponent.tsx',
   ],
-  deleted: [
+  deletedFiles: [
     'src/deprecated/old-file.ts',
   ],
+  createdFiles: [],
+  hash: 'mock-hash-123',
 };
 
-const emptyGitStatus: GitStatus = {
-  staged: [],
-  unstaged: [],
-  untracked: [],
-  deleted: [],
+const emptyGitStatus: GitStatusWithFiles = {
+  repoPath: '/Users/developer/my-project',
+  branch: 'main',
+  isDirty: false,
+  hasUntracked: false,
+  hasStaged: false,
+  ahead: 0,
+  behind: 0,
+  watchingEnabled: false,
+  stagedFiles: [],
+  modifiedFiles: [],
+  untrackedFiles: [],
+  deletedFiles: [],
+  createdFiles: [],
+  hash: 'empty',
 };
 
 // Sample file tree structure - matches @principal-ai/repository-abstraction FileTree interface
@@ -332,14 +352,24 @@ export const NoChanges: Story = {
 export const OnlyStaged: Story = {
   args: {
     gitStatus: {
-      staged: [
+      repoPath: '/Users/developer/my-project',
+      branch: 'main',
+      isDirty: true,
+      hasUntracked: false,
+      hasStaged: true,
+      ahead: 0,
+      behind: 0,
+      watchingEnabled: false,
+      stagedFiles: [
         'src/index.ts',
         'src/components/App.tsx',
         'src/styles/main.css',
       ],
-      unstaged: [],
-      untracked: [],
-      deleted: [],
+      modifiedFiles: [],
+      untrackedFiles: [],
+      deletedFiles: [],
+      createdFiles: [],
+      hash: 'only-staged',
     },
     fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
@@ -352,14 +382,24 @@ export const OnlyStaged: Story = {
 export const OnlyUnstaged: Story = {
   args: {
     gitStatus: {
-      staged: [],
-      unstaged: [
+      repoPath: '/Users/developer/my-project',
+      branch: 'main',
+      isDirty: true,
+      hasUntracked: false,
+      hasStaged: false,
+      ahead: 0,
+      behind: 0,
+      watchingEnabled: false,
+      stagedFiles: [],
+      modifiedFiles: [
         'package.json',
         'tsconfig.json',
         'src/config.ts',
       ],
-      untracked: [],
-      deleted: [],
+      untrackedFiles: [],
+      deletedFiles: [],
+      createdFiles: [],
+      hash: 'only-unstaged',
     },
     fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
@@ -372,15 +412,25 @@ export const OnlyUnstaged: Story = {
 export const OnlyUntracked: Story = {
   args: {
     gitStatus: {
-      staged: [],
-      unstaged: [],
-      untracked: [
+      repoPath: '/Users/developer/my-project',
+      branch: 'main',
+      isDirty: true,
+      hasUntracked: true,
+      hasStaged: false,
+      ahead: 0,
+      behind: 0,
+      watchingEnabled: false,
+      stagedFiles: [],
+      modifiedFiles: [],
+      untrackedFiles: [
         'src/new-feature/index.ts',
         'src/new-feature/component.tsx',
         'src/new-feature/styles.css',
         'docs/NEW_FEATURE.md',
       ],
-      deleted: [],
+      deletedFiles: [],
+      createdFiles: [],
+      hash: 'only-untracked',
     },
     fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
@@ -393,14 +443,24 @@ export const OnlyUntracked: Story = {
 export const OnlyDeleted: Story = {
   args: {
     gitStatus: {
-      staged: [],
-      unstaged: [],
-      untracked: [],
-      deleted: [
+      repoPath: '/Users/developer/my-project',
+      branch: 'main',
+      isDirty: true,
+      hasUntracked: false,
+      hasStaged: false,
+      ahead: 0,
+      behind: 0,
+      watchingEnabled: false,
+      stagedFiles: [],
+      modifiedFiles: [],
+      untrackedFiles: [],
+      deletedFiles: [
         'src/deprecated/old-component.tsx',
         'src/deprecated/legacy-utils.ts',
         'src/deprecated/index.ts',
       ],
+      createdFiles: [],
+      hash: 'only-deleted',
     },
     fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
@@ -413,13 +473,23 @@ export const OnlyDeleted: Story = {
 export const ManyChanges: Story = {
   args: {
     gitStatus: {
-      staged: Array.from({ length: 10 }, (_, i) => `src/components/Component${i}.tsx`),
-      unstaged: Array.from({ length: 15 }, (_, i) => `src/utils/util${i}.ts`),
-      untracked: Array.from({ length: 8 }, (_, i) => `src/new/file${i}.tsx`),
-      deleted: [
+      repoPath: '/Users/developer/large-project',
+      branch: 'main',
+      isDirty: true,
+      hasUntracked: true,
+      hasStaged: true,
+      ahead: 0,
+      behind: 0,
+      watchingEnabled: false,
+      stagedFiles: Array.from({ length: 10 }, (_, i) => `src/components/Component${i}.tsx`),
+      modifiedFiles: Array.from({ length: 15 }, (_, i) => `src/utils/util${i}.ts`),
+      untrackedFiles: Array.from({ length: 8 }, (_, i) => `src/new/file${i}.tsx`),
+      deletedFiles: [
         'src/old/deprecated.ts',
         'src/old/legacy.ts',
       ],
+      createdFiles: [],
+      hash: 'many-changes',
     },
     fileTree: sampleFileTree,
     rootPath: '/Users/developer/large-project',
@@ -455,84 +525,140 @@ export const Preview: StoryObj<typeof GitChangesPanelPreview> = {
  * Interactive story to test dynamic changes
  */
 const InteractiveGitChangesPanel = () => {
-  const [gitStatus, setGitStatus] = useState<GitStatus>({
-    staged: [],
-    unstaged: [],
-    untracked: [],
-    deleted: [],
+  const [gitStatus, setGitStatus] = useState<GitStatusWithFiles>({
+    repoPath: '/Users/developer/my-project',
+    branch: 'main',
+    isDirty: false,
+    hasUntracked: false,
+    hasStaged: false,
+    ahead: 0,
+    behind: 0,
+    watchingEnabled: false,
+    stagedFiles: [],
+    modifiedFiles: [],
+    untrackedFiles: [],
+    deletedFiles: [],
+    createdFiles: [],
+    hash: 'interactive',
   });
   const [isLoading, setIsLoading] = useState(false);
 
   const addStagedFile = useCallback(() => {
     setGitStatus(prev => ({
       ...prev,
-      staged: [...prev.staged, `src/components/NewComponent${prev.staged.length + 1}.tsx`],
+      isDirty: true,
+      hasStaged: true,
+      stagedFiles: [...prev.stagedFiles, `src/components/NewComponent${prev.stagedFiles.length + 1}.tsx`],
     }));
   }, []);
 
   const addUnstagedFile = useCallback(() => {
     setGitStatus(prev => ({
       ...prev,
-      unstaged: [...prev.unstaged, `src/utils/helper${prev.unstaged.length + 1}.ts`],
+      isDirty: true,
+      modifiedFiles: [...prev.modifiedFiles, `src/utils/helper${prev.modifiedFiles.length + 1}.ts`],
     }));
   }, []);
 
   const addUntrackedFile = useCallback(() => {
     setGitStatus(prev => ({
       ...prev,
-      untracked: [...prev.untracked, `src/new/file${prev.untracked.length + 1}.tsx`],
+      isDirty: true,
+      hasUntracked: true,
+      untrackedFiles: [...prev.untrackedFiles, `src/new/file${prev.untrackedFiles.length + 1}.tsx`],
     }));
   }, []);
 
   const addDeletedFile = useCallback(() => {
     setGitStatus(prev => ({
       ...prev,
-      deleted: [...prev.deleted, `src/old/deprecated${prev.deleted.length + 1}.ts`],
+      isDirty: true,
+      deletedFiles: [...prev.deletedFiles, `src/old/deprecated${prev.deletedFiles.length + 1}.ts`],
     }));
   }, []);
 
   const clearAllChanges = useCallback(() => {
     setGitStatus({
-      staged: [],
-      unstaged: [],
-      untracked: [],
-      deleted: [],
+      repoPath: '/Users/developer/my-project',
+      branch: 'main',
+      isDirty: false,
+      hasUntracked: false,
+      hasStaged: false,
+      ahead: 0,
+      behind: 0,
+      watchingEnabled: false,
+      stagedFiles: [],
+      modifiedFiles: [],
+      untrackedFiles: [],
+      deletedFiles: [],
+      createdFiles: [],
+      hash: 'cleared',
     });
   }, []);
 
   const addMultipleChanges = useCallback(() => {
     setGitStatus({
-      staged: ['src/components/Button.tsx', 'src/styles/theme.css'],
-      unstaged: ['README.md', 'package.json'],
-      untracked: ['src/new-feature.tsx'],
-      deleted: ['src/deprecated/old-file.ts'],
+      repoPath: '/Users/developer/my-project',
+      branch: 'main',
+      isDirty: true,
+      hasUntracked: true,
+      hasStaged: true,
+      ahead: 0,
+      behind: 0,
+      watchingEnabled: false,
+      stagedFiles: ['src/components/Button.tsx', 'src/styles/theme.css'],
+      modifiedFiles: ['README.md', 'package.json'],
+      untrackedFiles: ['src/new-feature.tsx'],
+      deletedFiles: ['src/deprecated/old-file.ts'],
+      createdFiles: [],
+      hash: 'multiple',
     });
   }, []);
 
   const simulateLoading = useCallback(() => {
     setIsLoading(true);
     setGitStatus({
-      staged: [],
-      unstaged: [],
-      untracked: [],
-      deleted: [],
+      repoPath: '/Users/developer/my-project',
+      branch: 'main',
+      isDirty: false,
+      hasUntracked: false,
+      hasStaged: false,
+      ahead: 0,
+      behind: 0,
+      watchingEnabled: false,
+      stagedFiles: [],
+      modifiedFiles: [],
+      untrackedFiles: [],
+      deletedFiles: [],
+      createdFiles: [],
+      hash: 'loading',
     });
     setTimeout(() => {
       setGitStatus({
-        staged: ['src/components/Button.tsx'],
-        unstaged: ['README.md', 'package.json'],
-        untracked: ['src/new-feature.tsx'],
-        deleted: [],
+        repoPath: '/Users/developer/my-project',
+        branch: 'main',
+        isDirty: true,
+        hasUntracked: true,
+        hasStaged: true,
+        ahead: 0,
+        behind: 0,
+        watchingEnabled: false,
+        stagedFiles: ['src/components/Button.tsx'],
+        modifiedFiles: ['README.md', 'package.json'],
+        untrackedFiles: ['src/new-feature.tsx'],
+        deletedFiles: [],
+        createdFiles: [],
+        hash: 'loaded',
       });
       setIsLoading(false);
     }, 1500);
   }, []);
 
   const totalChanges =
-    gitStatus.staged.length +
-    gitStatus.unstaged.length +
-    gitStatus.untracked.length +
-    gitStatus.deleted.length;
+    gitStatus.stagedFiles.length +
+    gitStatus.modifiedFiles.length +
+    gitStatus.untrackedFiles.length +
+    gitStatus.deletedFiles.length;
 
   return (
     <ThemeProvider>
@@ -644,22 +770,32 @@ const TwoPanelsDemo = () => {
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <GitChangesPanelContent
                 gitStatus={{
-                  staged: [
+                  repoPath: '/Users/developer/repository-a',
+                  branch: 'main',
+                  isDirty: true,
+                  hasUntracked: true,
+                  hasStaged: true,
+                  ahead: 0,
+                  behind: 0,
+                  watchingEnabled: false,
+                  stagedFiles: [
                     'src/components/Button.tsx',
                     'src/styles/theme.css',
                     'src/utils/helpers.ts',
                   ],
-                  unstaged: [
+                  modifiedFiles: [
                     'README.md',
                     'package.json',
                   ],
-                  untracked: [
+                  untrackedFiles: [
                     'src/new-feature.tsx',
                     'src/components/NewComponent.tsx',
                   ],
-                  deleted: [
+                  deletedFiles: [
                     'src/deprecated/old-file.ts',
                   ],
+                  createdFiles: [],
+                  hash: 'panel-1',
                 }}
                 fileTree={sampleFileTree}
                 rootPath="/Users/developer/repository-a"
@@ -683,20 +819,30 @@ const TwoPanelsDemo = () => {
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <GitChangesPanelContent
                 gitStatus={{
-                  staged: [
+                  repoPath: '/Users/developer/repository-b',
+                  branch: 'develop',
+                  isDirty: true,
+                  hasUntracked: true,
+                  hasStaged: true,
+                  ahead: 2,
+                  behind: 0,
+                  watchingEnabled: false,
+                  stagedFiles: [
                     'docs/API.md',
                     'src/index.ts',
                   ],
-                  unstaged: [
+                  modifiedFiles: [
                     'tsconfig.json',
                     'webpack.config.js',
                     'src/App.tsx',
                     'src/config.ts',
                   ],
-                  untracked: [
+                  untrackedFiles: [
                     'src/experimental/feature.tsx',
                   ],
-                  deleted: [],
+                  deletedFiles: [],
+                  createdFiles: [],
+                  hash: 'panel-2',
                 }}
                 fileTree={sampleFileTree}
                 rootPath="/Users/developer/repository-b"

@@ -131,16 +131,6 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
     }
   }, [contextMenu.visible]);
 
-  // Calculate if there are changes - memoized to prevent downstream effect re-runs
-  const hasChanges = useMemo(
-    () =>
-      gitStatus.stagedFiles.length > 0 ||
-      gitStatus.modifiedFiles.length > 0 ||
-      gitStatus.untrackedFiles.length > 0 ||
-      gitStatus.deletedFiles.length > 0,
-    [gitStatus.stagedFiles.length, gitStatus.modifiedFiles.length, gitStatus.untrackedFiles.length, gitStatus.deletedFiles.length]
-  );
-
   // Determine file status based on git status data
   const getFileStatus = useCallback(
     (filePath: string): GitChangeSelectionStatus | undefined => {
