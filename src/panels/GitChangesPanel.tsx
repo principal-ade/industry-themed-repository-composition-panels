@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GitStatusFileTree, type GitFileStatus } from '@principal-ade/dynamic-file-tree';
-import type { FileTree, GitStatusWithFiles } from '@principal-ai/repository-abstraction';
+import type { FileTree, GitStatusWithFiles, DirectoryInfo, FileTreeNode } from '@principal-ai/repository-abstraction';
 import { Copy, FileSymlink, ExternalLink, FolderOpen } from 'lucide-react';
 import type { GitChangeSelectionStatus, PanelComponentProps } from '../types';
 import './GitChangesPanel.css';
@@ -76,36 +76,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
   selectedFile,
 }) => {
   const { theme } = useTheme();
-
-  // DEBUG: Diagnostic logging to detect re-render issues
-  const renderCountRef = useRef(0);
-  const prevPropsRef = useRef<{
-    gitStatus: typeof gitStatus;
-    fileTree: typeof fileTree;
-    rootPath: typeof rootPath;
-    isLoading: typeof isLoading;
-    onFileClick: typeof onFileClick;
-    onContextMenuAction: typeof onContextMenuAction;
-    selectedFile: typeof selectedFile;
-  } | null>(null);
-
-  renderCountRef.current += 1;
-
-  if (prevPropsRef.current) {
-    const propsChanged = {
-      gitStatus: prevPropsRef.current.gitStatus !== gitStatus,
-      fileTree: prevPropsRef.current.fileTree !== fileTree,
-      rootPath: prevPropsRef.current.rootPath !== rootPath,
-      isLoading: prevPropsRef.current.isLoading !== isLoading,
-      onFileClick: prevPropsRef.current.onFileClick !== onFileClick,
-      onContextMenuAction: prevPropsRef.current.onContextMenuAction !== onContextMenuAction,
-      selectedFile: prevPropsRef.current.selectedFile !== selectedFile,
-    };
-
-    console.log(`[GitChangesPanelContent] Render #${renderCountRef.current}`, propsChanged);
-  }
-
-  prevPropsRef.current = { gitStatus, fileTree, rootPath, isLoading, onFileClick, onContextMenuAction, selectedFile };
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -272,9 +243,76 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
       })),
     ];
 
-    // Always use the complete fileTree
-    return { tree: fileTree, statusData };
-  }, [isLoading, fileTree, gitStatus]);
+    // Filter statusData based on search term
+    const filteredStatusData = searchTerm
+      ? statusData.filter((item) =>
+          item.filePath.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      : statusData;
+
+    // Filter fileTree to only include matching files and their parent directories
+    let filteredTree = fileTree;
+    if (searchTerm && fileTree.allFiles) {
+      const rootPath = fileTree.root.path;
+
+      // Convert relative paths to absolute paths for matching
+      const matchingPaths = new Set<string>();
+
+      filteredStatusData.forEach((item) => {
+        // Add the absolute path
+        const absolutePath = `${rootPath}/${item.filePath}`;
+        matchingPaths.add(absolutePath);
+
+        // Also include parent directories
+        const parts = item.filePath.split('/');
+        for (let i = 1; i < parts.length; i++) {
+          const parentPath = `${rootPath}/${parts.slice(0, i).join('/')}`;
+          matchingPaths.add(parentPath);
+        }
+      });
+
+      // Always include the root directory
+      matchingPaths.add(rootPath);
+
+      // Filter allFiles and allDirectories
+      const filteredAllFiles = fileTree.allFiles.filter((file) => matchingPaths.has(file.path));
+      const filteredAllDirectories = fileTree.allDirectories.filter((dir) => matchingPaths.has(dir.path));
+
+      // Recursively filter the directory tree structure
+      const filterDirectoryTree = (dir: DirectoryInfo): DirectoryInfo => {
+        const filteredChildren: FileTreeNode[] = dir.children
+          .filter((child) => matchingPaths.has(child.path))
+          .map((child) => {
+            if ('children' in child) {
+              return filterDirectoryTree(child as DirectoryInfo);
+            }
+            return child;
+          });
+
+        return {
+          ...dir,
+          children: filteredChildren,
+          fileCount: filteredChildren.filter((child) => !('children' in child)).length,
+        };
+      };
+
+      const filteredRoot = filterDirectoryTree(fileTree.root);
+
+      filteredTree = {
+        ...fileTree,
+        root: filteredRoot,
+        allFiles: filteredAllFiles,
+        allDirectories: filteredAllDirectories,
+        stats: {
+          ...fileTree.stats,
+          totalFiles: filteredAllFiles.length,
+          totalDirectories: filteredAllDirectories.length,
+        },
+      };
+    }
+
+    return { tree: filteredTree, statusData: filteredStatusData };
+  }, [isLoading, fileTree, gitStatus, searchTerm]);
 
   // Render content based on state
   const renderContent = () => {
@@ -317,7 +355,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
         transparentBackground={true}
         horizontalNodePadding="16px"
         verticalPadding="16px"
-        openByDefault={false}
+        openByDefault={!!searchTerm}
         enableDragAndDrop={false}
       />
     );
@@ -340,6 +378,42 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Search bar - 40px total height including border */}
+      <div
+        style={{
+          padding: '6px 16px',
+          borderBottom: `1px solid ${theme.colors.border}`,
+          backgroundColor: theme.colors.background,
+          height: '40px',
+          boxSizing: 'border-box',
+        }}
+      >
+        <input
+          type="text"
+          placeholder="Filter files..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '4px 10px',
+            fontSize: theme.fontSizes[1],
+            fontFamily: theme.fonts.body,
+            color: theme.colors.text,
+            backgroundColor: theme.colors.backgroundSecondary,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: '4px',
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = theme.colors.primary;
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = theme.colors.border;
+          }}
+        />
+      </div>
+
       <div style={{ flex: 1, overflow: 'auto' }}>
         {renderContent()}
       </div>
@@ -464,29 +538,6 @@ export const GitChangesPanelPreview: React.FC = () => {
  * Uses context.getSlice('git') and context.getSlice('fileTree') to get data
  */
 export const GitChangesPanel: React.FC<PanelComponentProps> = ({ context, events }) => {
-  // DEBUG: Diagnostic logging to detect re-render issues
-  const renderCountRef = useRef(0);
-  const prevPropsRef = useRef<{
-    context: typeof context;
-    events: typeof events;
-  } | null>(null);
-
-  renderCountRef.current += 1;
-
-  if (prevPropsRef.current) {
-    const propsChanged = {
-      context: prevPropsRef.current.context !== context,
-      events: prevPropsRef.current.events !== events,
-      // Also check individual context properties
-      'context.currentScope': prevPropsRef.current.context.currentScope !== context.currentScope,
-      'context.getSlice': prevPropsRef.current.context.getSlice !== context.getSlice,
-      'context.slices': prevPropsRef.current.context.slices !== context.slices,
-    };
-
-    console.log(`[GitChangesPanel] Render #${renderCountRef.current}`, propsChanged);
-  }
-
-  prevPropsRef.current = { context, events };
 
   // Get data slices from context
   const gitSlice = context.getSlice<GitStatusWithFiles>('gitStatusWithFiles');
