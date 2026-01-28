@@ -255,19 +255,33 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
     if (searchTerm && fileTree.allFiles) {
       const rootPath = fileTree.root.path;
 
-      // Convert relative paths to absolute paths for matching
+      // Detect if FileTree uses absolute or relative paths
+      const usesAbsolutePaths = fileTree.allFiles.length > 0 && fileTree.allFiles[0].path.startsWith('/');
+
+      // Build matching paths set
       const matchingPaths = new Set<string>();
 
       filteredStatusData.forEach((item) => {
-        // Add the absolute path
-        const absolutePath = `${rootPath}/${item.filePath}`;
-        matchingPaths.add(absolutePath);
+        if (usesAbsolutePaths) {
+          // Add the absolute path
+          const absolutePath = `${rootPath}/${item.filePath}`;
+          matchingPaths.add(absolutePath);
 
-        // Also include parent directories
-        const parts = item.filePath.split('/');
-        for (let i = 1; i < parts.length; i++) {
-          const parentPath = `${rootPath}/${parts.slice(0, i).join('/')}`;
-          matchingPaths.add(parentPath);
+          // Also include parent directories
+          const parts = item.filePath.split('/');
+          for (let i = 1; i < parts.length; i++) {
+            const parentPath = `${rootPath}/${parts.slice(0, i).join('/')}`;
+            matchingPaths.add(parentPath);
+          }
+        } else {
+          // Use relative paths directly
+          matchingPaths.add(item.filePath);
+
+          // Also include parent directories
+          const parts = item.filePath.split('/');
+          for (let i = 1; i < parts.length; i++) {
+            matchingPaths.add(parts.slice(0, i).join('/'));
+          }
         }
       });
 
