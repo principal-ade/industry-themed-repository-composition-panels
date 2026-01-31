@@ -8,16 +8,16 @@ import {
   Terminal,
   Settings,
   Folder,
-  ExternalLink,
   Package,
   ArrowRight,
   Layers,
   Box,
   LayoutGrid,
+  GitBranch,
 } from 'lucide-react';
 import { PackageManagerIcon } from './components/PackageManagerIcon';
 import { DependencyRow, FilterBar, DependencyInfoModal, LensReadinessSection, OtherScriptsSection, OrchestratorBadge, ConfigList } from './components';
-import type { PanelComponentProps } from '../types';
+import type { PanelComponentProps, PanelEventEmitter } from '../types';
 import type { PackageLayer, ConfigFile, PackageCommand } from '../types/composition';
 import type { PackagesSliceData, DependencyItem } from '../types/dependencies';
 
@@ -385,6 +385,8 @@ export interface PackageCompositionPanelProps {
   onPackageHover?: (pkg: PackageLayer | null) => void;
   /** Callback when a package is selected (null when deselected) */
   onPackageSelect?: (pkg: PackageLayer | null) => void;
+  /** Event emitter for panel communication */
+  events?: PanelEventEmitter;
 }
 
 interface PackageCardProps {
@@ -990,6 +992,7 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
   onPackageClick,
   onPackageHover,
   onPackageSelect,
+  events,
 }) => {
   const { theme } = useTheme();
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
@@ -1097,9 +1100,47 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
             }}
           >
             <FileCode size={16} color={theme.colors.primary} />
-            <span style={{ fontSize: theme.fontSizes[1], fontFamily: theme.fonts.body, color: theme.colors.textSecondary }}>
+            <span style={{ fontSize: theme.fontSizes[1], fontFamily: theme.fonts.body, color: theme.colors.textSecondary, flex: 1 }}>
               {packages.length} packages
             </span>
+            {packages.length > 1 && (
+              <button
+                onClick={() => {
+                  events?.emit({
+                    type: 'dependency-graph:open',
+                    source: 'PackageCompositionPanel',
+                    timestamp: Date.now(),
+                    payload: { packages },
+                  });
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  backgroundColor: theme.colors.backgroundTertiary,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: '4px',
+                  color: theme.colors.text,
+                  fontSize: theme.fontSizes[0],
+                  fontFamily: theme.fonts.body,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = theme.colors.primary;
+                  e.currentTarget.style.backgroundColor = theme.colors.primary + '15';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = theme.colors.border;
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                }}
+                title="Open dependency graph in new tab"
+              >
+                <GitBranch size={12} />
+                View Graph
+              </button>
+            )}
           </div>
 
           {/* Summary Cards */}
@@ -1276,6 +1317,7 @@ export const PackageCompositionPanel: React.FC<PanelComponentProps> = ({ context
       isLoading={isLoading}
       onPackageHover={handlePackageHover}
       onPackageSelect={handlePackageSelect}
+      events={events}
     />
   );
 };

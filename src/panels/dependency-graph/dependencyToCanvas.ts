@@ -1,5 +1,19 @@
-import type { ExtendedCanvas, PVNodeShape } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas, PVNodeShape, CanvasColor } from '@principal-ai/principal-view-core';
 import type { PackageLayer } from '../../types/composition';
+
+/** Root package color (orange) */
+const ROOT_COLOR = '#f97316';
+
+/**
+ * Hex colors for each language/ecosystem
+ */
+const LANGUAGE_COLORS: Record<PackageLayer['type'], string> = {
+  package: '#06b6d4',  // cyan - generic/JS
+  node: '#06b6d4',     // cyan - Node.js/TypeScript
+  python: '#fbbf24',   // yellow - Python
+  cargo: '#ef4444',    // red - Rust
+  go: '#22c55e',       // green - Go
+};
 
 export interface DependencyCanvasOptions {
   /** Include devDependencies in the graph */
@@ -36,6 +50,8 @@ export function dependencyTreeToCanvas(
   const nodes = packages.map((pkg) => {
     const isRoot = pkg.packageData.isMonorepoRoot;
     const shape: PVNodeShape = isRoot ? 'hexagon' : 'rectangle';
+    // Root gets orange, others get color based on language/ecosystem
+    const color: CanvasColor = isRoot ? ROOT_COLOR : (LANGUAGE_COLORS[pkg.type] || '#06b6d4');
 
     return {
       id: pkg.id,
@@ -45,7 +61,7 @@ export function dependencyTreeToCanvas(
       height: nodeHeight,
       type: 'text' as const,
       text: pkg.packageData.name,
-      color: isRoot ? ('2' as const) : undefined, // Use color preset 2 (orange) for root
+      color,
       pv: {
         nodeType: isRoot ? 'monorepo-root' : 'package',
         shape,

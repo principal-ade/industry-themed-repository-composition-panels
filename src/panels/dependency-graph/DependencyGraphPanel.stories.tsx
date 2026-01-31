@@ -41,10 +41,12 @@ const createMockPackage = (config: {
   isMonorepoRoot?: boolean;
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
+  type?: PackageLayer['type'];
+  packageManager?: 'npm' | 'yarn' | 'pnpm' | 'bun' | 'pip' | 'poetry' | 'pipenv' | 'cargo' | 'unknown';
 }): PackageLayer => ({
   id: `package-${config.name}`,
   name: config.name,
-  type: 'node',
+  type: config.type ?? 'node',
   enabled: true,
   derivedFrom: {
     fileSets: [],
@@ -54,8 +56,8 @@ const createMockPackage = (config: {
   packageData: {
     name: config.name,
     path: config.path ?? `packages/${config.name}`,
-    manifestPath: 'package.json',
-    packageManager: 'npm',
+    manifestPath: config.type === 'python' ? 'pyproject.toml' : config.type === 'cargo' ? 'Cargo.toml' : config.type === 'go' ? 'go.mod' : 'package.json',
+    packageManager: config.packageManager ?? (config.type === 'python' ? 'poetry' : config.type === 'cargo' ? 'cargo' : 'npm'),
     dependencies: config.dependencies ?? {},
     devDependencies: config.devDependencies ?? {},
     peerDependencies: {},
@@ -219,6 +221,91 @@ export const NoInternalDeps: Story = {
       createMockPackage({ name: '@isolated/pkg-b' }),
       createMockPackage({ name: '@isolated/pkg-c' }),
     ],
+    isLoading: false,
+  },
+};
+
+// Mixed language monorepo packages
+const mixedLanguagePackages: PackageLayer[] = [
+  createMockPackage({
+    name: '@polyglot/monorepo',
+    path: '',
+    isMonorepoRoot: true,
+  }),
+  // TypeScript/Node packages (cyan)
+  createMockPackage({
+    name: '@polyglot/web-app',
+    type: 'node',
+    dependencies: {
+      '@polyglot/api-client': 'workspace:*',
+      '@polyglot/shared-types': 'workspace:*',
+    },
+  }),
+  createMockPackage({
+    name: '@polyglot/api-client',
+    type: 'node',
+    dependencies: {
+      '@polyglot/shared-types': 'workspace:*',
+    },
+  }),
+  createMockPackage({
+    name: '@polyglot/shared-types',
+    type: 'node',
+  }),
+  // Python packages (yellow)
+  createMockPackage({
+    name: 'ml-pipeline',
+    type: 'python',
+    packageManager: 'poetry',
+    dependencies: {
+      'data-utils': 'workspace:*',
+    },
+  }),
+  createMockPackage({
+    name: 'data-utils',
+    type: 'python',
+    packageManager: 'poetry',
+  }),
+  // Rust packages (red)
+  createMockPackage({
+    name: 'core-engine',
+    type: 'cargo',
+    packageManager: 'cargo',
+  }),
+  createMockPackage({
+    name: 'wasm-bindings',
+    type: 'cargo',
+    packageManager: 'cargo',
+    dependencies: {
+      'core-engine': 'workspace:*',
+    },
+  }),
+  // Go packages (green)
+  createMockPackage({
+    name: 'api-gateway',
+    type: 'go',
+    dependencies: {
+      'auth-service': 'workspace:*',
+    },
+  }),
+  createMockPackage({
+    name: 'auth-service',
+    type: 'go',
+  }),
+];
+
+/**
+ * Mixed language monorepo with Node.js, Python, Rust, and Go packages.
+ * Demonstrates language-based color coding:
+ * - Orange: Root package
+ * - Cyan: Node.js/TypeScript
+ * - Yellow: Python
+ * - Red: Rust (Cargo)
+ * - Green: Go
+ */
+export const MixedLanguages: Story = {
+  args: {
+    packages: mixedLanguagePackages,
     isLoading: false,
   },
 };

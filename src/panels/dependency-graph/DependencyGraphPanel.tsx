@@ -74,7 +74,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
     };
 
     return applySugiyamaLayout(rawCanvas, layoutOptions);
-  }, [packages, layoutConfig, layoutVersion]);
+  }, [packages, layoutConfig]);
 
   const handleReapplyLayout = useCallback(() => {
     setLayoutVersion((v) => v + 1);
@@ -107,6 +107,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
           justifyContent: 'center',
           gap: '12px',
           color: theme.colors.textSecondary,
+          fontFamily: theme.fonts.body,
         }}
       >
         <Loader2 size={32} style={{ animation: 'spin 1s linear infinite' }} />
@@ -128,6 +129,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
           justifyContent: 'center',
           gap: '12px',
           color: theme.colors.textSecondary,
+          fontFamily: theme.fonts.body,
           padding: '24px',
           textAlign: 'center',
         }}
@@ -153,6 +155,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
           justifyContent: 'center',
           gap: '12px',
           color: theme.colors.textSecondary,
+          fontFamily: theme.fonts.body,
           padding: '24px',
           textAlign: 'center',
         }}
@@ -178,6 +181,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
           justifyContent: 'center',
           gap: '12px',
           color: theme.colors.textSecondary,
+          fontFamily: theme.fonts.body,
           padding: '24px',
           textAlign: 'center',
         }}
@@ -206,10 +210,10 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <GitBranch size={16} color={theme.colors.primary} />
-          <span style={{ fontSize: theme.fontSizes[2], fontWeight: 500 }}>
+          <span style={{ fontSize: theme.fontSizes[2], fontWeight: 500, color: theme.colors.text, fontFamily: theme.fonts.body }}>
             Dependency Graph
           </span>
-          <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
+          <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary, fontFamily: theme.fonts.body }}>
             ({packages.length} packages, {canvas.edges?.length || 0} dependencies)
           </span>
         </div>
@@ -268,7 +272,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
         >
           {/* Direction */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
+            <label style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary, fontFamily: theme.fonts.body }}>
               Direction
             </label>
             <select
@@ -281,6 +285,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
                 borderRadius: '4px',
                 color: theme.colors.text,
                 fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
               }}
             >
               {Object.entries(directionLabels).map(([value, label]) => (
@@ -293,7 +298,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
 
           {/* Horizontal Spacing */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
+            <label style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary, fontFamily: theme.fonts.body }}>
               H-Spacing: {layoutConfig.nodeSpacingX}px
             </label>
             <input
@@ -309,7 +314,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
 
           {/* Vertical Spacing */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
+            <label style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary, fontFamily: theme.fonts.body }}>
               V-Spacing: {layoutConfig.nodeSpacingY}px
             </label>
             <input
@@ -333,7 +338,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
             />
             <label
               htmlFor="include-dev-deps"
-              style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary, cursor: 'pointer' }}
+              style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary, fontFamily: theme.fonts.body, cursor: 'pointer' }}
             >
               Include devDependencies
             </label>
@@ -361,6 +366,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
           backgroundColor: theme.colors.backgroundSecondary,
           fontSize: theme.fontSizes[1],
           color: theme.colors.textSecondary,
+          fontFamily: theme.fonts.body,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -403,6 +409,7 @@ export const DependencyGraphPanelPreview: React.FC = () => {
         padding: '12px',
         fontSize: '12px',
         color: theme.colors.text,
+        fontFamily: theme.fonts.body,
         display: 'flex',
         flexDirection: 'column',
         gap: '6px',
