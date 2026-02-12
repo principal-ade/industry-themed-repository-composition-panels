@@ -2,6 +2,8 @@ import { GitChangesPanel } from './panels/GitChangesPanel';
 import { PackageCompositionPanel } from './panels/PackageCompositionPanel';
 import { SearchPanel } from './panels/SearchPanel';
 import { DependencyGraphPanel } from './panels/dependency-graph';
+import { OverworldMapPanel } from './panels/overworld-map';
+import { GitProjectsMapPanel } from './panels/GitProjectsMapPanel';
 import { TelemetryCoveragePanel } from './panels/TelemetryCoveragePanel';
 import type { PanelDefinition, PanelContextValue } from './types';
 
@@ -132,6 +134,58 @@ export const panels: PanelDefinition[] = [
   },
   {
     metadata: {
+      id: 'industry-theme.overworld-map',
+      name: 'Overworld Map',
+      icon: 'Map',
+      version: '0.1.0',
+      author: 'Industry Theme',
+      description: '8-bit Mario-style overworld map for package dependencies',
+      slices: ['packages'],
+    },
+    component: OverworldMapPanel,
+
+    onMount: async (context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Overworld Map Panel mounted');
+
+      // Refresh packages if available
+      if (
+        context.hasSlice('packages') &&
+        !context.isSliceLoading('packages')
+      ) {
+        await context.refresh('repository', 'packages');
+      }
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Overworld Map Panel unmounting');
+    },
+  },
+  {
+    metadata: {
+      id: 'industry-theme.git-projects-map',
+      name: 'Git Projects Map',
+      icon: 'Map',
+      version: '0.1.0',
+      author: 'Industry Theme',
+      description: 'Visualize multiple git projects as regions on an 8-bit overworld map',
+      slices: [],
+    },
+    component: GitProjectsMapPanel,
+
+    onMount: async (context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Git Projects Map Panel mounted');
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Git Projects Map Panel unmounting');
+    },
+  },
+  {
+    metadata: {
       id: 'industry-theme.telemetry-coverage',
       name: 'Telemetry Coverage',
       icon: 'Activity',
@@ -207,6 +261,34 @@ export type {
 } from './panels/dependency-graph';
 
 export {
+  OverworldMapPanel,
+  OverworldMapPanelContent,
+  OverworldMapPanelPreview,
+  // Package-specific converters
+  packagesToOverworldMap,
+  packagesToUnifiedOverworldMap,
+  packagesToOverworldMapCollection,
+  // Generic converters (use for repos, services, any nodes!)
+  nodesToOverworldMap,
+  nodesToUnifiedOverworldMap,
+  nodesToOverworldMapCollection,
+  // Utilities
+  gridToScreen,
+  screenToGrid,
+  MAX_NODES_PER_MAP,
+} from './panels/overworld-map';
+export type {
+  OverworldMapPanelProps,
+  OverworldMap,
+  OverworldMapCollection,
+  MapRegion,
+  LocationNode,
+  PathConnection,
+  GenericNode,
+  GenericMapperOptions,
+} from './panels/overworld-map';
+
+export {
   TelemetryCoveragePanel,
   TelemetryCoveragePanelContent,
   TelemetryCoveragePanelPreview,
@@ -215,6 +297,16 @@ export type {
   TelemetryCoveragePanelProps,
   PackageTelemetryCoverage,
 } from './panels/TelemetryCoveragePanel';
+
+export {
+  GitProjectsMapPanel,
+  GitProjectsMapPanelContent,
+  GitProjectsMapPanelPreview,
+} from './panels/GitProjectsMapPanel';
+export type {
+  GitProjectsMapPanelProps,
+  GitProject,
+} from './panels/GitProjectsMapPanel';
 
 // Re-export types
 export type {
