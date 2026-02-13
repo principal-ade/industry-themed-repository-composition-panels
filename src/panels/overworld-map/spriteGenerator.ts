@@ -52,6 +52,41 @@ function createCanvas(width: number, height: number): HTMLCanvasElement {
 }
 
 /**
+ * Generate a simple grass background texture (for tiling)
+ */
+export function generateGrassBackgroundTile(): HTMLCanvasElement {
+  const size = 32; // Small tile for efficient tiling
+  const canvas = createCanvas(size, size);
+  const ctx = canvas.getContext('2d')!;
+
+  // Dark grass base color
+  ctx.fillStyle = '#3d5a27';
+  ctx.fillRect(0, 0, size, size);
+
+  // Add random grass blade pixels for texture
+  const bladeColor = '#4a6b2f';
+  const darkBladeColor = '#2f4520';
+
+  // Random grass blades scattered across the tile
+  for (let i = 0; i < 20; i++) {
+    const x = Math.floor(Math.random() * size);
+    const y = Math.floor(Math.random() * size);
+    ctx.fillStyle = Math.random() > 0.5 ? bladeColor : darkBladeColor;
+    ctx.fillRect(x, y, 1, 1);
+  }
+
+  // Add some 2-pixel vertical grass blades
+  for (let i = 0; i < 8; i++) {
+    const x = Math.floor(Math.random() * size);
+    const y = Math.floor(Math.random() * (size - 1));
+    ctx.fillStyle = bladeColor;
+    ctx.fillRect(x, y, 1, 2);
+  }
+
+  return canvas;
+}
+
+/**
  * Generate an isometric grass tile
  */
 export function generateGrassTile(theme: BiomeTheme = 'grass'): HTMLCanvasElement {
@@ -100,6 +135,51 @@ export function generatePathTile(): HTMLCanvasElement {
   ctx.fillRect(ISO_TILE_WIDTH / 2 - 4, 4, 8, 4);
   ctx.fillRect(ISO_TILE_WIDTH / 2 + 6, ISO_TILE_HEIGHT / 2, 6, 3);
   ctx.fillRect(ISO_TILE_WIDTH / 2 - 12, ISO_TILE_HEIGHT / 2 + 4, 6, 3);
+
+  return canvas;
+}
+
+/**
+ * Generate an isometric bridge tile (wooden planks over water)
+ */
+export function generateBridgeTile(): HTMLCanvasElement {
+  const canvas = createCanvas(ISO_TILE_WIDTH, ISO_TILE_HEIGHT);
+  const ctx = canvas.getContext('2d')!;
+
+  // Draw diamond shape in brown wood
+  ctx.fillStyle = '#92400e'; // Dark brown wood
+  ctx.beginPath();
+  ctx.moveTo(ISO_TILE_WIDTH / 2, 0);
+  ctx.lineTo(ISO_TILE_WIDTH, ISO_TILE_HEIGHT / 2);
+  ctx.lineTo(ISO_TILE_WIDTH / 2, ISO_TILE_HEIGHT);
+  ctx.lineTo(0, ISO_TILE_HEIGHT / 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Add wooden plank texture with horizontal lines
+  ctx.strokeStyle = '#78350f'; // Darker brown for planks
+  ctx.lineWidth = 2;
+
+  // Draw 3 horizontal planks across the diamond
+  const plankY = [ISO_TILE_HEIGHT * 0.25, ISO_TILE_HEIGHT * 0.5, ISO_TILE_HEIGHT * 0.75];
+
+  for (const y of plankY) {
+    // Calculate the width of the diamond at this Y position
+    const widthAtY = y <= ISO_TILE_HEIGHT / 2
+      ? (y / (ISO_TILE_HEIGHT / 2)) * (ISO_TILE_WIDTH / 2)
+      : ((ISO_TILE_HEIGHT - y) / (ISO_TILE_HEIGHT / 2)) * (ISO_TILE_WIDTH / 2);
+
+    ctx.beginPath();
+    ctx.moveTo(ISO_TILE_WIDTH / 2 - widthAtY, y);
+    ctx.lineTo(ISO_TILE_WIDTH / 2 + widthAtY, y);
+    ctx.stroke();
+  }
+
+  // Add wood grain detail
+  ctx.fillStyle = '#a16207'; // Lighter brown highlight
+  ctx.fillRect(ISO_TILE_WIDTH / 2 - 3, ISO_TILE_HEIGHT / 2 - 1, 6, 2);
+  ctx.fillRect(ISO_TILE_WIDTH / 2 + 10, ISO_TILE_HEIGHT / 2 + 3, 4, 2);
+  ctx.fillRect(ISO_TILE_WIDTH / 2 - 14, ISO_TILE_HEIGHT / 2 + 3, 4, 2);
 
   return canvas;
 }
@@ -494,6 +574,9 @@ export function generateDecorativeSprite(type: 'cloud' | 'tree' | 'bush' | 'rock
 export function generateSpriteAtlas(): Record<string, HTMLCanvasElement> {
   const atlas: Record<string, HTMLCanvasElement> = {};
 
+  // Background texture
+  atlas['bg-grass'] = generateGrassBackgroundTile();
+
   // Generate terrain tiles for each biome
   for (const biome of Object.keys(BIOME_COLORS) as BiomeTheme[]) {
     atlas[`tile-grass-${biome}`] = generateGrassTile(biome);
@@ -501,6 +584,9 @@ export function generateSpriteAtlas(): Record<string, HTMLCanvasElement> {
 
   // Path tile
   atlas['tile-path'] = generatePathTile();
+
+  // Bridge tile
+  atlas['tile-bridge'] = generateBridgeTile();
 
   // Location sprites for each type and theme
   const locationTypes: LocationNodeType[] = ['castle', 'fortress', 'tower', 'house', 'pipe', 'git-repo', 'monorepo'];

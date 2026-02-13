@@ -2,8 +2,6 @@ import { GitChangesPanel } from './panels/GitChangesPanel';
 import { PackageCompositionPanel } from './panels/PackageCompositionPanel';
 import { SearchPanel } from './panels/SearchPanel';
 import { DependencyGraphPanel } from './panels/dependency-graph';
-import { OverworldMapPanel } from './panels/overworld-map';
-import { GitProjectsMapPanel } from './panels/GitProjectsMapPanel';
 import { CollectionMapPanel } from './panels/CollectionMapPanel';
 import { TelemetryCoveragePanel } from './panels/TelemetryCoveragePanel';
 import type { PanelDefinition, PanelContextValue } from './types';
@@ -135,58 +133,6 @@ export const panels: PanelDefinition[] = [
   },
   {
     metadata: {
-      id: 'industry-theme.overworld-map',
-      name: 'Overworld Map',
-      icon: 'Map',
-      version: '0.1.0',
-      author: 'Industry Theme',
-      description: '8-bit Mario-style overworld map for package dependencies',
-      slices: ['packages'],
-    },
-    component: OverworldMapPanel,
-
-    onMount: async (context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log('Overworld Map Panel mounted');
-
-      // Refresh packages if available
-      if (
-        context.hasSlice('packages') &&
-        !context.isSliceLoading('packages')
-      ) {
-        await context.refresh('repository', 'packages');
-      }
-    },
-
-    onUnmount: async (_context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log('Overworld Map Panel unmounting');
-    },
-  },
-  {
-    metadata: {
-      id: 'industry-theme.git-projects-map',
-      name: 'Git Projects Map',
-      icon: 'Map',
-      version: '0.1.0',
-      author: 'Industry Theme',
-      description: 'Visualize multiple git projects as regions on an 8-bit overworld map',
-      slices: [],
-    },
-    component: GitProjectsMapPanel,
-
-    onMount: async (context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log('Git Projects Map Panel mounted');
-    },
-
-    onUnmount: async (_context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log('Git Projects Map Panel unmounting');
-    },
-  },
-  {
-    metadata: {
       id: 'industry-theme.collection-map',
       name: 'Collection Map',
       icon: 'Map',
@@ -283,10 +229,9 @@ export type {
   SugiyamaLayoutOptions,
 } from './panels/dependency-graph';
 
+// Keep overworld map utilities for CollectionMapPanel
 export {
-  OverworldMapPanel,
   OverworldMapPanelContent,
-  OverworldMapPanelPreview,
   // Package-specific converters
   packagesToOverworldMap,
   packagesToUnifiedOverworldMap,
@@ -321,10 +266,9 @@ export type {
   PackageTelemetryCoverage,
 } from './panels/TelemetryCoveragePanel';
 
+// Keep GitProjectsMapPanelContent for CollectionMapPanel
 export {
-  GitProjectsMapPanel,
   GitProjectsMapPanelContent,
-  GitProjectsMapPanelPreview,
 } from './panels/GitProjectsMapPanel';
 export type {
   GitProjectsMapPanelProps,

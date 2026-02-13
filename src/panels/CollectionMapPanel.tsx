@@ -5,6 +5,7 @@
 import React, { useMemo } from 'react';
 import type { PanelComponentProps } from '../types';
 import { GitProjectsMapPanelContent, type GitProject } from './GitProjectsMapPanel';
+import type { RegionLayout } from './overworld-map/genericMapper';
 
 /**
  * Alexandria Collections types (from @principal-ai/alexandria-collections)
@@ -57,6 +58,9 @@ export interface CollectionMapPanelProps {
   /** Optional dependency graph for connections between repos */
   dependencies?: Record<string, string[]>;
 
+  /** Region layout configuration (columns, rows, fill direction) */
+  regionLayout?: RegionLayout;
+
   /** Panel width */
   width?: number;
 
@@ -79,6 +83,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   memberships,
   repositories,
   dependencies = {},
+  regionLayout,
   width,
   height,
   isLoading = false,
@@ -102,8 +107,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         });
 
         if (!repo) {
-          console.warn('[CollectionMapPanel] No repo found for membership:', membership.repositoryId);
-          console.log('[CollectionMapPanel] Sample repo IDs:', repositories.slice(0, 3).map(r => (r as any).github?.id || r.name));
           return null;
         }
 
@@ -160,6 +163,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       {/* Overworld map */}
       <GitProjectsMapPanelContent
         projects={projects}
+        regionLayout={regionLayout}
         width={width}
         height={height}
         isLoading={isLoading}

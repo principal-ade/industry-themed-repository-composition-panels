@@ -164,6 +164,12 @@ export interface MapRegion {
   name: string;
   description?: string;
 
+  // Grid position (which cell in the region grid)
+  gridPosition?: {
+    row: number;      // Grid row (0-based)
+    col: number;      // Grid column (0-based)
+  };
+
   // Spatial bounds in grid coordinates
   bounds: {
     x: number;        // Start X in grid

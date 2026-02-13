@@ -6,6 +6,7 @@ import React, { useMemo } from 'react';
 import type { PanelComponentProps } from '../types';
 import type { PackageLayer } from '../types/composition';
 import { OverworldMapPanelContent } from './overworld-map/OverworldMapPanel';
+import type { RegionLayout } from './overworld-map/genericMapper';
 
 /**
  * Represents a git project/repository
@@ -40,6 +41,9 @@ export interface GitProjectsMapPanelProps {
   /** Git projects to visualize */
   projects: GitProject[];
 
+  /** Region layout configuration (columns, rows, fill direction) */
+  regionLayout?: RegionLayout;
+
   /** Panel width */
   width?: number;
 
@@ -56,8 +60,9 @@ export interface GitProjectsMapPanelProps {
  */
 export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
   projects,
-  width = 800,
-  height = 600,
+  regionLayout,
+  width,
+  height,
   isLoading = false,
 }) => {
   // Convert projects to package-like structure for compatibility
@@ -93,8 +98,8 @@ export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
     return (
       <div
         style={{
-          width,
-          height,
+          width: '100%',
+          height: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -110,6 +115,7 @@ export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
   return (
     <OverworldMapPanelContent
       packages={packages}
+      regionLayout={regionLayout}
       width={width}
       height={height}
       isLoading={isLoading}
@@ -276,9 +282,11 @@ export const GitProjectsMapPanel: React.FC<PanelComponentProps> = ({ context }) 
   }, []);
 
   return (
-    <GitProjectsMapPanelContent
-      projects={projects}
-      isLoading={false}
-    />
+    <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+      <GitProjectsMapPanelContent
+        projects={projects}
+        isLoading={false}
+      />
+    </div>
   );
 };

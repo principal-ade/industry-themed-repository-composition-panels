@@ -34,11 +34,26 @@ export interface GenericNode {
 }
 
 /**
+ * Region layout configuration for multi-region maps
+ */
+export interface RegionLayout {
+  /** Number of columns in the region grid */
+  columns: number;
+  /** Number of rows in the region grid */
+  rows: number;
+  /** Direction to fill regions: 'row-major' (left-to-right, then down) or 'column-major' (top-to-bottom, then right) */
+  fillDirection?: 'row-major' | 'column-major';
+}
+
+/**
  * Options for generic mapping
  */
 export interface GenericMapperOptions {
   includeDevDependencies?: boolean;
   mapPadding?: number;
+
+  // Region layout configuration
+  regionLayout?: RegionLayout;
 
   // Customization functions
   getCategoryTheme?: (category: string) => BiomeTheme;
@@ -228,7 +243,9 @@ function generateTerrain(
   width: number,
   height: number,
   nodes: LocationNode[],
-  paths: PathConnection[]
+  paths: PathConnection[],
+  verticalBridgeXPositions: number[] = [], // X positions for vertical bridges (north-south)
+  horizontalBridgeYPositions: number[] = [] // Y positions for horizontal bridges (east-west)
 ): Tile[] {
   const tiles: Tile[] = [];
 
@@ -242,6 +259,46 @@ function generateTerrain(
         spriteIndex: 0,
         biome: 'grass',
       });
+    }
+  }
+
+  // Add vertical bridges (north-south, spanning full height)
+  for (const bridgeX of verticalBridgeXPositions) {
+    // Bridge is 3 tiles wide centered on the boundary
+    const bridgeStartX = bridgeX - 1;
+    const bridgeEndX = bridgeX + 1;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = bridgeStartX; x <= bridgeEndX; x++) {
+        if (x >= 0 && x < width) {
+          const tileIndex = y * width + x;
+          if (tileIndex >= 0 && tileIndex < tiles.length) {
+            // Use water type for visual distinction - we'll render bridge sprites over it
+            tiles[tileIndex].type = 'water';
+            tiles[tileIndex].biome = 'water';
+          }
+        }
+      }
+    }
+  }
+
+  // Add horizontal bridges (east-west, spanning full width)
+  for (const bridgeY of horizontalBridgeYPositions) {
+    // Bridge is 3 tiles tall centered on the boundary
+    const bridgeStartY = bridgeY - 1;
+    const bridgeEndY = bridgeY + 1;
+
+    for (let x = 0; x < width; x++) {
+      for (let y = bridgeStartY; y <= bridgeEndY; y++) {
+        if (y >= 0 && y < height) {
+          const tileIndex = y * width + x;
+          if (tileIndex >= 0 && tileIndex < tiles.length) {
+            // Use water type for visual distinction - we'll render bridge sprites over it
+            tiles[tileIndex].type = 'water';
+            tiles[tileIndex].biome = 'water';
+          }
+        }
+      }
     }
   }
 
@@ -401,12 +458,22 @@ export function nodesToOverworldMap(
     maxY = Math.max(maxY, node.gridY + node.size);
   });
 
-  const mapWidth = Math.ceil(maxX - minX) + mapPadding * 2;
-  const mapHeight = Math.ceil(maxY - minY) + mapPadding * 2;
+  const calculatedWidth = Math.ceil(maxX - minX) + mapPadding * 2;
+  const calculatedHeight = Math.ceil(maxY - minY) + mapPadding * 2;
 
-  // Offset all positions
-  const offsetX = mapPadding - minX;
-  const offsetY = mapPadding - minY;
+  // Make regions square - use the larger dimension for both, ensure it's a whole number
+  const squareSize = Math.ceil(Math.max(calculatedWidth, calculatedHeight));
+  const mapWidth = squareSize;
+  const mapHeight = squareSize;
+
+  // Offset all positions to center content in square region
+  const contentWidth = calculatedWidth - mapPadding * 2;
+  const contentHeight = calculatedHeight - mapPadding * 2;
+  const extraHorizontalSpace = Math.floor((squareSize - calculatedWidth) / 2);
+  const extraVerticalSpace = Math.floor((squareSize - calculatedHeight) / 2);
+
+  const offsetX = mapPadding + extraHorizontalSpace - minX;
+  const offsetY = mapPadding + extraVerticalSpace - minY;
 
   locationNodes.forEach((node) => {
     node.gridX += offsetX;
@@ -522,62 +589,125 @@ export function nodesToUnifiedOverworldMap(
     };
   }
 
-  // Multiple regions - create unified map
+  // Multiple regions - create unified map with 2D layout
   const REGION_SPACING = 5; // Tiles between regions
+
+  // First pass: generate all regions to find the largest square size needed
+  const regionMaps = nodeGroups.map((group) => nodesToOverworldMap(group, options));
+  const maxRegionSize = Math.max(...regionMaps.map((rm) => Math.max(rm.width, rm.height)));
+
+  // Make all regions the same square size - ensure it's a whole number
+  const REGION_SIZE = Math.ceil(maxRegionSize);
+
+  // Determine region layout (default: horizontal row)
+  const regionLayout = options.regionLayout || {
+    columns: nodeGroups.length,
+    rows: 1,
+    fillDirection: 'row-major',
+  };
+
   const allNodes: LocationNode[] = [];
   const allPaths: PathConnection[] = [];
   const regions: MapRegion[] = [];
+  const horizontalBridges: number[] = []; // X positions for vertical bridges
+  const verticalBridges: number[] = []; // Y positions for horizontal bridges
 
-  let currentX = 0;
-  let maxHeight = 0;
+  // Calculate grid positions for each region
+  const gridPositions: Array<{ row: number; col: number }> = [];
+  const fillDirection = regionLayout.fillDirection || 'row-major';
 
-  // Generate each region and position them horizontally
-  nodeGroups.forEach((group, index) => {
-    const regionMap = nodesToOverworldMap(group, options);
+  for (let i = 0; i < regionMaps.length; i++) {
+    if (fillDirection === 'row-major') {
+      // Fill left-to-right, then down
+      const row = Math.floor(i / regionLayout.columns);
+      const col = i % regionLayout.columns;
+      gridPositions.push({ row, col });
+    } else {
+      // Fill top-to-bottom, then right
+      const col = Math.floor(i / regionLayout.rows);
+      const row = i % regionLayout.rows;
+      gridPositions.push({ row, col });
+    }
+  }
+
+  // Place regions in 2D grid
+  regionMaps.forEach((regionMap, index) => {
+    const gridPos = gridPositions[index];
+
+    // Calculate screen position for this grid cell
+    const regionX = gridPos.col * (REGION_SIZE + REGION_SPACING);
+    const regionY = gridPos.row * (REGION_SIZE + REGION_SPACING);
+
+    // Center this region's content within the uniform square - use floor to ensure whole tiles
+    const xOffset = regionX + Math.floor((REGION_SIZE - regionMap.width) / 2);
+    const yOffset = regionY + Math.floor((REGION_SIZE - regionMap.height) / 2);
 
     // Offset all nodes in this region
     const offsetNodes = regionMap.nodes.map((node) => ({
       ...node,
-      gridX: node.gridX + currentX,
-      gridY: node.gridY,
+      gridX: node.gridX + xOffset,
+      gridY: node.gridY + yOffset,
     }));
 
     // Offset all paths in this region
     const offsetPaths = regionMap.paths.map((path) => ({
       ...path,
       points: path.points.map((point) => ({
-        gridX: point.gridX + currentX,
-        gridY: point.gridY,
+        gridX: point.gridX + xOffset,
+        gridY: point.gridY + yOffset,
       })),
     }));
 
     allNodes.push(...offsetNodes);
     allPaths.push(...offsetPaths);
 
-    // Track region bounds
+    // Track region bounds - all regions are now uniform squares
     regions.push({
       id: `region-${index}`,
       name: `Region ${index + 1}`,
       description: `Contains ${offsetNodes.length} nodes`,
+      gridPosition: gridPos,
       bounds: {
-        x: currentX,
-        y: 0,
-        width: regionMap.width,
-        height: regionMap.height,
+        x: regionX,
+        y: regionY,
+        width: REGION_SIZE,
+        height: REGION_SIZE,
       },
-      centerX: currentX + regionMap.width / 2,
-      centerY: regionMap.height / 2,
+      centerX: regionX + REGION_SIZE / 2,
+      centerY: regionY + REGION_SIZE / 2,
       nodeIds: offsetNodes.map((n) => n.id),
     });
 
-    maxHeight = Math.max(maxHeight, regionMap.height);
-    currentX += regionMap.width + REGION_SPACING;
+    // Track bridges between adjacent regions
+    // Vertical bridge to the right (if not last column)
+    if (gridPos.col < regionLayout.columns - 1) {
+      const nextRegionExists = gridPositions.some(
+        (p) => p.row === gridPos.row && p.col === gridPos.col + 1
+      );
+      if (nextRegionExists) {
+        const bridgeX = regionX + REGION_SIZE + Math.floor(REGION_SPACING / 2);
+        horizontalBridges.push(bridgeX);
+      }
+    }
+
+    // Horizontal bridge below (if not last row)
+    if (gridPos.row < regionLayout.rows - 1) {
+      const belowRegionExists = gridPositions.some(
+        (p) => p.row === gridPos.row + 1 && p.col === gridPos.col
+      );
+      if (belowRegionExists) {
+        const bridgeY = regionY + REGION_SIZE + Math.floor(REGION_SPACING / 2);
+        verticalBridges.push(bridgeY);
+      }
+    }
   });
 
-  // Generate unified terrain
-  const totalWidth = currentX - REGION_SPACING;
-  const totalHeight = maxHeight;
-  const tiles = generateTerrain(totalWidth, totalHeight, allNodes, allPaths);
+  // Calculate total map dimensions
+  const totalWidth = regionLayout.columns * REGION_SIZE + (regionLayout.columns - 1) * REGION_SPACING;
+  const totalHeight = regionLayout.rows * REGION_SIZE + (regionLayout.rows - 1) * REGION_SPACING;
+
+  // Generate unified terrain with bridges
+  const tiles = generateTerrain(totalWidth, totalHeight, allNodes, allPaths, horizontalBridges, verticalBridges);
 
   return {
     width: totalWidth,

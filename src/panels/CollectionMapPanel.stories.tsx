@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React from 'react';
-import { CollectionMapPanel } from './CollectionMapPanel';
+import { CollectionMapPanel, CollectionMapPanelContent } from './CollectionMapPanel';
 import type {
   Collection,
   AlexandriaRepository,
@@ -9,6 +9,7 @@ import type {
   AlexandriaRepositoriesSlice,
 } from './CollectionMapPanel';
 import type { PanelContextValue, PanelActions, PanelEventEmitter } from '../types';
+import type { RegionLayout } from './overworld-map/genericMapper';
 
 /**
  * CollectionMapPanel visualizes Alexandria Collections as 8-bit overworld maps.
@@ -379,6 +380,183 @@ export const LargeCollection: Story = {
     return (
       <div style={{ width: '100vw', height: '100vh' }}>
         <CollectionMapPanel context={context} actions={mockActions} events={mockEvents} />
+      </div>
+    );
+  },
+};
+
+/**
+ * Multiple Regions with Bridges - Horizontal Layout
+ *
+ * Enterprise collection with 28+ repos split into regions.
+ * Regions are laid out horizontally (default behavior).
+ *
+ * Features demonstrated:
+ * - Automatic region grouping (12 repos per region max)
+ * - Vertical water bridges between regions (3 tiles wide)
+ * - Region navigation with arrow buttons
+ * - Drag to pan across the entire unified map
+ * - Region labels showing current position (e.g., "Region 2 of 3")
+ */
+export const MultipleRegionsHorizontal: Story = {
+  render: () => {
+    const enterpriseCollection: Collection = {
+      id: 'enterprise-monorepo',
+      name: 'Enterprise Monorepo',
+      description: 'Full-stack enterprise application',
+      icon: '🏢',
+      createdAt: Date.now() - 365 * 24 * 60 * 60 * 1000,
+      updatedAt: Date.now(),
+    };
+
+    // Create 28 repositories across different categories to show regions
+    const largeRepositorySet: AlexandriaRepository[] = [
+      // Region 1 - Core & Infrastructure (11 repos)
+      { name: 'monorepo-root', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'core-types', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'shared-utils', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'config-manager', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'logger-service', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'database-layer', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'cache-service', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'auth-service', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'api-gateway', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'event-bus', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'message-queue', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+
+      // Region 2 - Frontend & UI (11 repos)
+      { name: 'design-system', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'ui-components', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'web-app', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'admin-panel', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'mobile-app', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'icons-library', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'theme-engine', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'ui-hooks', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'form-builder', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'data-grid', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'chart-components', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+
+      // Region 3 - Tools, Testing & DevOps (6 repos)
+      { name: 'cli-tools', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+      { name: 'build-scripts', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+      { name: 'code-generators', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+      { name: 'testing-utils', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+      { name: 'e2e-tests', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+      { name: 'dev-server', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+    ];
+
+    const largeMemberships: CollectionMembership[] = largeRepositorySet.map((repo, index) => ({
+      repositoryId: repo.name,
+      collectionId: 'enterprise-monorepo',
+      addedAt: Date.now() - index * 24 * 60 * 60 * 1000,
+      metadata: index === 0 ? { pinned: true, notes: 'Monorepo root' } : undefined,
+    }));
+
+    const context = createMockContext(
+      enterpriseCollection,
+      [activeProjectsCollection, readingListCollection, archiveCollection, enterpriseCollection],
+      largeMemberships,
+      largeRepositorySet
+    );
+
+    const mockActions: PanelActions = {};
+    const mockEvents: PanelEventEmitter = {
+      emit: () => {},
+      on: () => () => {},
+      off: () => {},
+    } as any;
+
+    return (
+      <div style={{ width: '100vw', height: '100vh' }}>
+        <CollectionMapPanel context={context} actions={mockActions} events={mockEvents} />
+      </div>
+    );
+  },
+};
+
+/**
+ * Multiple Regions - 2x2 Grid Layout
+ *
+ * Enterprise collection with 28+ repos split into 4 regions arranged in a 2x2 grid.
+ * Regions are laid out in a square grid pattern instead of horizontally.
+ *
+ * Features demonstrated:
+ * - Custom regionLayout configuration (2 columns, 2 rows)
+ * - Both horizontal and vertical water bridges between regions
+ * - Row-major fill direction (fills left-to-right, then top-to-bottom)
+ * - Square grid layout for better space utilization
+ */
+export const MultipleRegionsGridLayout: Story = {
+  render: () => {
+    const enterpriseCollection: Collection = {
+      id: 'enterprise-grid',
+      name: 'Enterprise Grid',
+      description: 'Full-stack application in 2x2 grid',
+      icon: '🏢',
+      createdAt: Date.now() - 365 * 24 * 60 * 60 * 1000,
+      updatedAt: Date.now(),
+    };
+
+    // Create 28 repositories across different categories
+    const largeRepositorySet: AlexandriaRepository[] = [
+      // Region 1 (top-left) - Core & Infrastructure (11 repos)
+      { name: 'monorepo-root', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'core-types', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'shared-utils', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'config-manager', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'logger-service', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'database-layer', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'cache-service', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'auth-service', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'api-gateway', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'event-bus', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+      { name: 'message-queue', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'backend' },
+
+      // Region 2 (top-right) - Frontend & UI (11 repos)
+      { name: 'design-system', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'ui-components', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'web-app', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'admin-panel', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'mobile-app', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'icons-library', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'theme-engine', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'ui-hooks', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'library' },
+      { name: 'form-builder', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'data-grid', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+      { name: 'chart-components', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'frontend' },
+
+      // Region 3 (bottom-left) - Tools & Testing (6 repos)
+      { name: 'cli-tools', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+      { name: 'build-scripts', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+      { name: 'code-generators', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+      { name: 'testing-utils', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+      { name: 'e2e-tests', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+      { name: 'dev-server', registeredAt: new Date().toISOString(), provider: { type: 'github' }, theme: 'tool' },
+    ];
+
+    const largeMemberships: CollectionMembership[] = largeRepositorySet.map((repo, index) => ({
+      repositoryId: repo.name,
+      collectionId: 'enterprise-grid',
+      addedAt: Date.now() - index * 24 * 60 * 60 * 1000,
+      metadata: index === 0 ? { pinned: true, notes: 'Monorepo root' } : undefined,
+    }));
+
+    // Configure 2x2 grid layout
+    const gridLayout: RegionLayout = {
+      columns: 2,
+      rows: 2,
+      fillDirection: 'row-major', // Fill left-to-right, then top-to-bottom
+    };
+
+    return (
+      <div style={{ width: '100vw', height: '100vh' }}>
+        <CollectionMapPanelContent
+          collection={enterpriseCollection}
+          memberships={largeMemberships}
+          repositories={largeRepositorySet}
+          regionLayout={gridLayout}
+        />
       </div>
     );
   },

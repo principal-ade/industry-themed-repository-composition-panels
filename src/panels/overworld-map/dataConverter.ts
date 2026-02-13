@@ -21,12 +21,14 @@ import {
   nodesToUnifiedOverworldMap,
   nodesToOverworldMapCollection,
   type GenericNode,
+  type RegionLayout,
 } from './genericMapper';
 
 export interface OverworldMapOptions {
   includeDevDependencies?: boolean;
   includePeerDependencies?: boolean;
   mapPadding?: number; // Padding around the map in tiles
+  regionLayout?: RegionLayout; // Layout configuration for multi-region maps
 }
 
 /**
@@ -143,6 +145,7 @@ export function packagesToUnifiedOverworldMap(
   const map = nodesToUnifiedOverworldMap(genericNodes, {
     includeDevDependencies: options.includeDevDependencies,
     mapPadding: options.mapPadding,
+    regionLayout: options.regionLayout,
   });
 
   return {

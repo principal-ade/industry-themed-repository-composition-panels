@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useRef, useMemo, useState } from 'react';
-import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
+import { Application, Container, Graphics, Sprite, Text, Texture, TilingSprite } from 'pixi.js';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PackageLayer } from '../../types/composition';
 import type { PackagesSliceData } from '../../types/dependencies';
@@ -12,6 +12,7 @@ import type { OverworldMap } from './types';
 import { packagesToUnifiedOverworldMap } from './dataConverter';
 import { generateSpriteAtlas } from './spriteGenerator';
 import { gridToScreen, screenToGrid, getIsometricZIndex, ISO_TILE_WIDTH, ISO_TILE_HEIGHT } from './isometricUtils';
+import type { RegionLayout } from './genericMapper';
 
 export interface OverworldMapPanelProps {
   /** Package data from the repository */
@@ -22,6 +23,9 @@ export interface OverworldMapPanelProps {
 
   /** Include peer dependencies in the map */
   includePeerDependencies?: boolean;
+
+  /** Region layout configuration for multi-region maps */
+  regionLayout?: RegionLayout;
 
   /** Panel width */
   width?: number;
@@ -41,8 +45,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   packages,
   includeDevDependencies = true,
   includePeerDependencies = false,
-  width = 800,
-  height = 600,
+  regionLayout,
+  width,
+  height,
   isLoading = false,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -50,20 +55,23 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const worldContainerRef = useRef<Container | null>(null);
   const scaleRef = useRef<number>(1);
   const [isRendering, setIsRendering] = useState(true);
+  const dimensionsRef = useRef({ width: width || 800, height: height || 600 });
 
   // Region navigation state
   const [currentRegionIndex, setCurrentRegionIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const animationRef = useRef<{ startTime: number; startX: number; startY: number; targetX: number; targetY: number } | null>(null);
   const hasInitializedCamera = useRef(false);
+  const skipNextAnimation = useRef(false); // Skip animation when region changes from dragging
 
   // Convert packages to unified overworld map
   const mapData = useMemo<OverworldMap>(() => {
     return packagesToUnifiedOverworldMap(packages, {
       includeDevDependencies,
       includePeerDependencies,
+      regionLayout,
     });
-  }, [packages, includeDevDependencies, includePeerDependencies]);
+  }, [packages, includeDevDependencies, includePeerDependencies, regionLayout]);
 
   // Get current region
   const currentRegion = mapData.regions[currentRegionIndex] || mapData.regions[0];
@@ -76,12 +84,17 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     let cleanup = false;
 
     const initPixi = async () => {
+      // Get initial dimensions from container
+      const containerWidth = canvasRef.current?.clientWidth || width || 800;
+      const containerHeight = canvasRef.current?.clientHeight || height || 600;
+      dimensionsRef.current = { width: containerWidth, height: containerHeight };
+
       // Create PixiJS application
       app = new Application();
       await app.init({
-        width,
-        height,
-        backgroundColor: 0x87ceeb, // Sky blue
+        width: containerWidth,
+        height: containerHeight,
+        backgroundColor: 0x3d5a27, // Dark grass green (matches background texture)
         antialias: false, // Pixel-perfect rendering
       });
 
@@ -108,6 +121,57 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       app.stage.addChild(worldContainer);
       worldContainerRef.current = worldContainer;
 
+      // Add tiling grass background
+      const bgTexture = textures['bg-grass'];
+      if (bgTexture) {
+        const backgroundTiling = new TilingSprite({
+          texture: bgTexture,
+          width: mapData.width * ISO_TILE_WIDTH * 2, // Make background larger than map
+          height: mapData.height * ISO_TILE_HEIGHT * 2,
+        });
+        // Center the background
+        backgroundTiling.x = -(mapData.width * ISO_TILE_WIDTH * 2) / 4;
+        backgroundTiling.y = -(mapData.height * ISO_TILE_HEIGHT * 2) / 4;
+        worldContainer.addChild(backgroundTiling);
+      }
+
+      // Function to detect which region is currently in view
+      const updateCurrentRegion = () => {
+        if (mapData.regions.length <= 1) return;
+
+        // Calculate viewport center in screen space
+        const viewportCenterX = dimensionsRef.current.width / 2;
+        const viewportCenterY = dimensionsRef.current.height / 2;
+
+        // Convert to world coordinates (subtract world container offset)
+        const worldX = viewportCenterX - worldContainer.x;
+        const worldY = viewportCenterY - worldContainer.y;
+
+        // Convert to grid coordinates
+        const gridPos = screenToGrid(worldX, worldY);
+
+        // Find which region contains this grid position
+        for (let i = 0; i < mapData.regions.length; i++) {
+          const region = mapData.regions[i];
+          const { x, y, width, height } = region.bounds;
+
+          // Check if grid position is within region bounds
+          if (
+            gridPos.gridX >= x &&
+            gridPos.gridX < x + width &&
+            gridPos.gridY >= y &&
+            gridPos.gridY < y + height
+          ) {
+            if (currentRegionIndex !== i) {
+              // Skip animation for region changes from dragging
+              skipNextAnimation.current = true;
+              setCurrentRegionIndex(i);
+            }
+            return;
+          }
+        }
+      };
+
       // Add drag-to-pan functionality
       let isDragging = false;
       let dragStart = { x: 0, y: 0 };
@@ -130,6 +194,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           const dy = event.globalY - dragStart.y;
           worldContainer.x = worldStart.x + dx;
           worldContainer.y = worldStart.y + dy;
+
+          // Update current region based on viewport position
+          updateCurrentRegion();
         }
       });
 
@@ -158,6 +225,26 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           sprite.y = screenY;
           sprite.anchor.set(0.5, 0.5);
           tileContainer.addChild(sprite);
+        }
+      }
+
+      // Render bridge sprites on top of water tiles
+      const bridgeContainer = new Container();
+      worldContainer.addChild(bridgeContainer);
+
+      for (const tile of mapData.tiles) {
+        // Only render bridges on water tiles
+        if (tile.type === 'water') {
+          const { screenX, screenY } = gridToScreen(tile.x, tile.y);
+          const bridgeTexture = textures['tile-bridge'];
+
+          if (bridgeTexture) {
+            const bridgeSprite = new Sprite(bridgeTexture);
+            bridgeSprite.x = screenX;
+            bridgeSprite.y = screenY;
+            bridgeSprite.anchor.set(0.5, 0.5);
+            bridgeContainer.addChild(bridgeSprite);
+          }
         }
       }
 
@@ -533,34 +620,39 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         }
       }
 
-      // Calculate scale based on largest region (so all regions appear same size)
-      // Find the largest region dimensions in screen space
-      let maxRegionWidth = 0;
-      let maxRegionHeight = 0;
+      // Function to calculate and update scale based on container dimensions
+      const updateScale = () => {
+        // Find the largest region dimensions in screen space
+        let maxRegionWidth = 0;
+        let maxRegionHeight = 0;
 
-      for (const region of mapData.regions) {
-        const topLeft = gridToScreen(region.bounds.x, region.bounds.y);
-        const bottomRight = gridToScreen(
-          region.bounds.x + region.bounds.width,
-          region.bounds.y + region.bounds.height
-        );
-        const regionWidth = Math.abs(bottomRight.screenX - topLeft.screenX);
-        const regionHeight = Math.abs(bottomRight.screenY - topLeft.screenY);
+        for (const region of mapData.regions) {
+          const topLeft = gridToScreen(region.bounds.x, region.bounds.y);
+          const bottomRight = gridToScreen(
+            region.bounds.x + region.bounds.width,
+            region.bounds.y + region.bounds.height
+          );
+          const regionWidth = Math.abs(bottomRight.screenX - topLeft.screenX);
+          const regionHeight = Math.abs(bottomRight.screenY - topLeft.screenY);
 
-        maxRegionWidth = Math.max(maxRegionWidth, regionWidth);
-        maxRegionHeight = Math.max(maxRegionHeight, regionHeight);
-      }
+          maxRegionWidth = Math.max(maxRegionWidth, regionWidth);
+          maxRegionHeight = Math.max(maxRegionHeight, regionHeight);
+        }
 
-      const padding = 40;
-      const availableWidth = width - padding * 2;
-      const availableHeight = height - padding * 2;
+        const padding = 40;
+        const availableWidth = dimensionsRef.current.width - padding * 2;
+        const availableHeight = dimensionsRef.current.height - padding * 2;
 
-      const scaleX = availableWidth / maxRegionWidth;
-      const scaleY = availableHeight / maxRegionHeight;
-      const scale = Math.min(scaleX, scaleY, 1.0);
+        const scaleX = availableWidth / maxRegionWidth;
+        const scaleY = availableHeight / maxRegionHeight;
+        const scale = Math.min(scaleX, scaleY, 1.0);
 
-      worldContainer.scale.set(scale, scale);
-      scaleRef.current = scale;
+        worldContainer.scale.set(scale, scale);
+        scaleRef.current = scale;
+      };
+
+      // Calculate initial scale
+      updateScale();
 
       // Animation ticker for smooth camera movement
       const easeOutCubic = (t: number): number => {
@@ -587,10 +679,71 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       setIsRendering(false);
     };
 
-    initPixi();
+    let resizeObserver: ResizeObserver | null = null;
+
+    const initAndSetupResize = async () => {
+      await initPixi();
+      // Store reference to resize observer for cleanup
+      if (canvasRef.current && appRef.current) {
+        resizeObserver = new ResizeObserver((entries) => {
+          if (!appRef.current || !worldContainerRef.current) return;
+
+          for (const entry of entries) {
+            const { width: newWidth, height: newHeight } = entry.contentRect;
+
+            // Update dimensions ref
+            dimensionsRef.current = { width: newWidth, height: newHeight };
+
+            // Resize the PixiJS renderer
+            appRef.current.renderer.resize(newWidth, newHeight);
+
+            // Recalculate scale for the new dimensions
+            const worldContainer = worldContainerRef.current;
+
+            // Find the largest region dimensions in screen space
+            let maxRegionWidth = 0;
+            let maxRegionHeight = 0;
+
+            for (const region of mapData.regions) {
+              const topLeft = gridToScreen(region.bounds.x, region.bounds.y);
+              const bottomRight = gridToScreen(
+                region.bounds.x + region.bounds.width,
+                region.bounds.y + region.bounds.height
+              );
+              const regionWidth = Math.abs(bottomRight.screenX - topLeft.screenX);
+              const regionHeight = Math.abs(bottomRight.screenY - topLeft.screenY);
+
+              maxRegionWidth = Math.max(maxRegionWidth, regionWidth);
+              maxRegionHeight = Math.max(maxRegionHeight, regionHeight);
+            }
+
+            const padding = 40;
+            const availableWidth = dimensionsRef.current.width - padding * 2;
+            const availableHeight = dimensionsRef.current.height - padding * 2;
+
+            const scaleX = availableWidth / maxRegionWidth;
+            const scaleY = availableHeight / maxRegionHeight;
+            const scale = Math.min(scaleX, scaleY, 1.0);
+
+            worldContainer.scale.set(scale, scale);
+            scaleRef.current = scale;
+
+            // Update hit area for the new size
+            appRef.current.stage.hitArea = appRef.current.screen;
+          }
+        });
+
+        resizeObserver.observe(canvasRef.current);
+      }
+    };
+
+    initAndSetupResize();
 
     return () => {
       cleanup = true;
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       if (appRef.current) {
         appRef.current.destroy(true);
         appRef.current = null;
@@ -598,7 +751,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       worldContainerRef.current = null;
       animationRef.current = null;
     };
-  }, [mapData, width, height]);
+  }, [mapData]);
 
   // Handle region changes with animation
   useEffect(() => {
@@ -607,8 +760,8 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     const regionCenter = gridToScreen(currentRegion.centerX, currentRegion.centerY);
     const worldContainer = worldContainerRef.current;
     const scale = scaleRef.current;
-    const targetX = width / 2 - regionCenter.screenX * scale;
-    const targetY = height / 2 - regionCenter.screenY * scale;
+    const targetX = dimensionsRef.current.width / 2 - regionCenter.screenX * scale;
+    const targetY = dimensionsRef.current.height / 2 - regionCenter.screenY * scale;
 
     // On initial load, snap to position without animation
     if (!hasInitializedCamera.current) {
@@ -618,7 +771,13 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       return;
     }
 
-    // Subsequent changes: animate smoothly
+    // Skip animation if region change came from dragging
+    if (skipNextAnimation.current) {
+      skipNextAnimation.current = false;
+      return;
+    }
+
+    // Subsequent changes: animate smoothly (from arrow button clicks)
     setIsAnimating(true);
     animationRef.current = {
       startTime: performance.now(),
@@ -627,14 +786,14 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       targetX,
       targetY,
     };
-  }, [currentRegionIndex, currentRegion, width, height, isRendering]);
+  }, [currentRegionIndex, currentRegion, isRendering]);
 
   if (packages.length === 0) {
     return (
       <div
         style={{
-          width,
-          height,
+          width: '100%',
+          height: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -648,15 +807,15 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   }
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       {(isLoading || isRendering) && (
         <div
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
-            width,
-            height,
+            width: '100%',
+            height: '100%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -673,10 +832,11 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       <div
         ref={canvasRef}
         style={{
-          width,
-          height,
+          width: '100%',
+          height: '100%',
           imageRendering: 'pixelated',
           border: '2px solid #1f2937',
+          boxSizing: 'border-box',
         }}
       />
 
@@ -743,27 +903,6 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           >
             <ChevronRight size={16} color="#fbbf24" />
           </button>
-        </div>
-      )}
-
-      {/* Info overlay - only show if single region */}
-      {mapData.regions.length === 1 && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            padding: '8px 12px',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: '#ffffff',
-            fontFamily: 'monospace',
-            fontSize: 12,
-            borderRadius: 4,
-            pointerEvents: 'none',
-          }}
-        >
-          <div>Packages: {mapData.nodes.length}</div>
-          <div>Dependencies: {mapData.paths.length}</div>
         </div>
       )}
 
