@@ -79,11 +79,12 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   memberships,
   repositories,
   dependencies = {},
-  width = 800,
-  height = 600,
+  width,
+  height,
   isLoading = false,
   onProjectMoved,
 }) => {
+
   // Convert Alexandria repositories to GitProject format
   const projects = useMemo<GitProject[]>(() => {
     // Filter memberships for this collection
@@ -94,12 +95,22 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     // Map to repositories
     return collectionMemberships
       .map((membership) => {
-        const repo = repositories.find((r) => r.name === membership.repositoryId);
-        if (!repo) return null;
+        // Match against github.id (owner/repo format) or name as fallback
+        const repo = repositories.find((r) => {
+          const repoId = (r as any).github?.id || r.name;
+          return repoId === membership.repositoryId;
+        });
+
+        if (!repo) {
+          console.warn('[CollectionMapPanel] No repo found for membership:', membership.repositoryId);
+          console.log('[CollectionMapPanel] Sample repo IDs:', repositories.slice(0, 3).map(r => (r as any).github?.id || r.name));
+          return null;
+        }
 
         // Determine category from provider or metadata
         let category: string | undefined;
-        if (repo.provider?.type === 'github') {
+        // Support both AlexandriaEntry (with github field) and AlexandriaRepository (with provider field)
+        if (repo.provider?.type === 'github' || (repo as any).github) {
           category = 'git-repo';
         } else {
           category = repo.theme || 'git-repo';
@@ -124,7 +135,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   }, [collection.id, memberships, repositories, dependencies]);
 
   return (
-    <div style={{ position: 'relative', width, height }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       {/* Collection name header */}
       <div
         style={{
@@ -229,12 +240,14 @@ export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context }) =
   const isLoading = collectionsLoading || repositoriesLoading;
 
   return (
-    <CollectionMapPanelContent
-      collection={selectedCollection}
-      memberships={collectionMemberships}
-      repositories={repositories}
-      dependencies={dependencies}
-      isLoading={isLoading}
-    />
+    <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+      <CollectionMapPanelContent
+        collection={selectedCollection}
+        memberships={collectionMemberships}
+        repositories={repositories}
+        dependencies={dependencies}
+        isLoading={isLoading}
+      />
+    </div>
   );
 };
