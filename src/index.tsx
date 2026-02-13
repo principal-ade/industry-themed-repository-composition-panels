@@ -4,6 +4,7 @@ import { SearchPanel } from './panels/SearchPanel';
 import { DependencyGraphPanel } from './panels/dependency-graph';
 import { OverworldMapPanel } from './panels/overworld-map';
 import { GitProjectsMapPanel } from './panels/GitProjectsMapPanel';
+import { CollectionMapPanel } from './panels/CollectionMapPanel';
 import { TelemetryCoveragePanel } from './panels/TelemetryCoveragePanel';
 import type { PanelDefinition, PanelContextValue } from './types';
 
@@ -186,6 +187,28 @@ export const panels: PanelDefinition[] = [
   },
   {
     metadata: {
+      id: 'industry-theme.collection-map',
+      name: 'Collection Map',
+      icon: 'Map',
+      version: '0.1.0',
+      author: 'Industry Theme',
+      description: 'Visualize Alexandria Collections as 8-bit overworld maps',
+      slices: [],
+    },
+    component: CollectionMapPanel,
+
+    onMount: async (context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Collection Map Panel mounted');
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Collection Map Panel unmounting');
+    },
+  },
+  {
+    metadata: {
       id: 'industry-theme.telemetry-coverage',
       name: 'Telemetry Coverage',
       icon: 'Activity',
@@ -307,6 +330,17 @@ export type {
   GitProjectsMapPanelProps,
   GitProject,
 } from './panels/GitProjectsMapPanel';
+
+export {
+  CollectionMapPanel,
+  CollectionMapPanelContent,
+} from './panels/CollectionMapPanel';
+export type {
+  CollectionMapPanelProps,
+  Collection,
+  AlexandriaRepository,
+  CollectionMembership,
+} from './panels/CollectionMapPanel';
 
 // Re-export types
 export type {

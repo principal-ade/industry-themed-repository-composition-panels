@@ -105,6 +105,29 @@ export function generatePathTile(): HTMLCanvasElement {
 }
 
 /**
+ * Draw the isometric base diamond that buildings sit on
+ */
+function drawIsometricBase(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  baseY: number,
+  size: number,
+  colors: { primary: string; secondary: string; accent: string }
+): void {
+  const tileHeight = ISO_TILE_HEIGHT * size;
+
+  // Base platform (isometric diamond)
+  ctx.fillStyle = colors.primary;
+  ctx.beginPath();
+  ctx.moveTo(width / 2, baseY);
+  ctx.lineTo(width, baseY + tileHeight / 2);
+  ctx.lineTo(width / 2, baseY + tileHeight);
+  ctx.lineTo(0, baseY + tileHeight / 2);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/**
  * Generate a simple isometric building/location sprite
  */
 export function generateLocationSprite(
@@ -113,51 +136,42 @@ export function generateLocationSprite(
   size: number = 2
 ): HTMLCanvasElement {
   const width = ISO_TILE_WIDTH * size;
-  const height = ISO_TILE_HEIGHT * size + 32; // Extra height for building
+  const height = ISO_TILE_HEIGHT * size + 64; // Height for building above base
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d')!;
   const colors = BIOME_COLORS[theme];
 
-  // Base position
-  const baseY = height - ISO_TILE_HEIGHT * size;
-
-  // Draw base platform (isometric diamond)
-  ctx.fillStyle = colors.secondary;
-  ctx.beginPath();
-  ctx.moveTo(width / 2, baseY);
-  ctx.lineTo(width, baseY + ISO_TILE_HEIGHT * size / 2);
-  ctx.lineTo(width / 2, baseY + ISO_TILE_HEIGHT * size);
-  ctx.lineTo(0, baseY + ISO_TILE_HEIGHT * size / 2);
-  ctx.closePath();
-  ctx.fill();
+  // No base diamond - building only
+  // Center the building in the canvas
+  const buildingAnchorY = height / 2;
 
   // Draw building based on type
   switch (type) {
     case 'castle': {
       // Large castle with towers
       const buildingHeight = 48;
-      const buildingY = baseY - buildingHeight;
+      const buildingY = buildingAnchorY - buildingHeight;
 
-      // Main building (front face)
+      // Main building (front face) - sits directly on the base
       ctx.fillStyle = colors.primary;
       ctx.fillRect(width / 4, buildingY, width / 2, buildingHeight);
 
-      // Side face (darker)
+      // Side face (darker) - proper isometric angle going UP-RIGHT
       ctx.fillStyle = colors.secondary;
       ctx.beginPath();
       ctx.moveTo(width / 2 + width / 4, buildingY);
-      ctx.lineTo(width - 4, buildingY + 12);
-      ctx.lineTo(width - 4, buildingY + buildingHeight + 12);
+      ctx.lineTo(width - 4, buildingY - 8);
+      ctx.lineTo(width - 4, buildingY + buildingHeight - 8);
       ctx.lineTo(width / 2 + width / 4, buildingY + buildingHeight);
       ctx.closePath();
       ctx.fill();
 
-      // Roof
+      // Roof - isometric pyramid going UP
       ctx.fillStyle = '#dc2626';
       ctx.beginPath();
       ctx.moveTo(width / 4 - 4, buildingY);
       ctx.lineTo(width / 2, buildingY - 12);
-      ctx.lineTo(width - 4, buildingY + 12);
+      ctx.lineTo(width - 4, buildingY - 8);
       ctx.lineTo(width / 2 + width / 4, buildingY);
       ctx.closePath();
       ctx.fill();
@@ -173,27 +187,27 @@ export function generateLocationSprite(
     case 'tower': {
       // Tower/fortress
       const buildingHeight = 32;
-      const buildingY = baseY - buildingHeight;
+      const buildingY = buildingAnchorY - buildingHeight;
 
       ctx.fillStyle = colors.primary;
       ctx.fillRect(width / 3, buildingY, width / 3, buildingHeight);
 
-      // Side
+      // Side - proper isometric angle going UP-RIGHT
       ctx.fillStyle = colors.secondary;
       ctx.beginPath();
       ctx.moveTo(width / 3 + width / 3, buildingY);
-      ctx.lineTo(width - 8, buildingY + 8);
-      ctx.lineTo(width - 8, buildingY + buildingHeight + 8);
+      ctx.lineTo(width - 8, buildingY - 6);
+      ctx.lineTo(width - 8, buildingY + buildingHeight - 6);
       ctx.lineTo(width / 3 + width / 3, buildingY + buildingHeight);
       ctx.closePath();
       ctx.fill();
 
-      // Roof
+      // Roof - isometric pyramid going UP
       ctx.fillStyle = colors.accent;
       ctx.beginPath();
       ctx.moveTo(width / 3 - 2, buildingY);
       ctx.lineTo(width / 2, buildingY - 8);
-      ctx.lineTo(width - 8, buildingY + 8);
+      ctx.lineTo(width - 8, buildingY - 6);
       ctx.lineTo(width / 3 + width / 3, buildingY);
       ctx.closePath();
       ctx.fill();
@@ -203,27 +217,27 @@ export function generateLocationSprite(
     case 'house': {
       // Simple house
       const buildingHeight = 24;
-      const buildingY = baseY - buildingHeight;
+      const buildingY = buildingAnchorY - buildingHeight;
 
       ctx.fillStyle = colors.primary;
       ctx.fillRect(width / 3, buildingY, width / 3, buildingHeight);
 
-      // Side
+      // Side - proper isometric angle going UP-RIGHT
       ctx.fillStyle = colors.secondary;
       ctx.beginPath();
       ctx.moveTo(width / 3 + width / 3, buildingY);
-      ctx.lineTo(width - 10, buildingY + 6);
-      ctx.lineTo(width - 10, buildingY + buildingHeight + 6);
+      ctx.lineTo(width - 10, buildingY - 5);
+      ctx.lineTo(width - 10, buildingY + buildingHeight - 5);
       ctx.lineTo(width / 3 + width / 3, buildingY + buildingHeight);
       ctx.closePath();
       ctx.fill();
 
-      // Roof
+      // Roof - isometric pyramid going UP
       ctx.fillStyle = '#7c2d12';
       ctx.beginPath();
       ctx.moveTo(width / 3 - 3, buildingY);
       ctx.lineTo(width / 2, buildingY - 10);
-      ctx.lineTo(width - 10, buildingY + 6);
+      ctx.lineTo(width - 10, buildingY - 5);
       ctx.lineTo(width / 3 + width / 3, buildingY);
       ctx.closePath();
       ctx.fill();
@@ -237,18 +251,18 @@ export function generateLocationSprite(
     case 'pipe': {
       // Warp pipe (Mario style!)
       const pipeHeight = 28;
-      const pipeY = baseY - pipeHeight;
+      const pipeY = buildingAnchorY - pipeHeight;
 
       // Pipe body
       ctx.fillStyle = '#22c55e';
       ctx.fillRect(width / 3, pipeY, width / 3, pipeHeight);
 
-      // Side
+      // Side - proper isometric angle going UP-RIGHT
       ctx.fillStyle = '#16a34a';
       ctx.beginPath();
       ctx.moveTo(width / 3 + width / 3, pipeY);
-      ctx.lineTo(width - 10, pipeY + 6);
-      ctx.lineTo(width - 10, pipeY + pipeHeight + 6);
+      ctx.lineTo(width - 10, pipeY - 5);
+      ctx.lineTo(width - 10, pipeY + pipeHeight - 5);
       ctx.lineTo(width / 3 + width / 3, pipeY + pipeHeight);
       ctx.closePath();
       ctx.fill();
@@ -264,6 +278,163 @@ export function generateLocationSprite(
       ctx.beginPath();
       ctx.ellipse(width / 2, pipeY + 4, width / 8, 4, 0, 0, Math.PI * 2);
       ctx.fill();
+      break;
+    }
+
+    case 'git-repo': {
+      // Single package git repository - modern office building
+      const buildingHeight = 36;
+      const buildingY = buildingAnchorY - buildingHeight;
+
+      // Main building body (front face) - modern glass building
+      ctx.fillStyle = '#3b82f6'; // Blue glass
+      ctx.fillRect(width / 4, buildingY, width / 2, buildingHeight);
+
+      // Side face (darker) - proper isometric angle going UP-RIGHT
+      ctx.fillStyle = '#2563eb';
+      ctx.beginPath();
+      ctx.moveTo(width / 2 + width / 4, buildingY);
+      ctx.lineTo(width - 4, buildingY - 6);
+      ctx.lineTo(width - 4, buildingY + buildingHeight - 6);
+      ctx.lineTo(width / 2 + width / 4, buildingY + buildingHeight);
+      ctx.closePath();
+      ctx.fill();
+
+      // Window grid (3x4 grid of windows)
+      ctx.fillStyle = '#dbeafe'; // Light blue windows
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 2; col++) {
+          const winX = width / 4 + 6 + col * 10;
+          const winY = buildingY + 6 + row * 8;
+          ctx.fillRect(winX, winY, 6, 5);
+        }
+      }
+
+      // Roof - isometric pyramid
+      ctx.fillStyle = '#1e40af'; // Dark blue
+      ctx.beginPath();
+      ctx.moveTo(width / 4 - 2, buildingY);
+      ctx.lineTo(width / 2, buildingY - 8);
+      ctx.lineTo(width - 4, buildingY - 6);
+      ctx.lineTo(width / 2 + width / 4, buildingY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Git logo indicator (simple "G" or branch icon on roof)
+      ctx.fillStyle = '#f97316'; // Orange accent
+      ctx.fillRect(width / 2 - 3, buildingY - 10, 6, 6);
+      break;
+    }
+
+    case 'monorepo': {
+      // Multi-package monorepo - cluster of connected buildings
+      const buildingHeight = 40;
+      const buildingY = buildingAnchorY - buildingHeight;
+
+      // Main central building (tallest)
+      ctx.fillStyle = '#8b5cf6'; // Purple
+      ctx.fillRect(width / 3, buildingY, width / 3, buildingHeight);
+
+      // Side face of main building - proper isometric angle going UP-RIGHT
+      ctx.fillStyle = '#7c3aed';
+      ctx.beginPath();
+      ctx.moveTo(width / 3 + width / 3, buildingY);
+      ctx.lineTo(width - 4, buildingY - 6);
+      ctx.lineTo(width - 4, buildingY + buildingHeight - 6);
+      ctx.lineTo(width / 3 + width / 3, buildingY + buildingHeight);
+      ctx.closePath();
+      ctx.fill();
+
+      // Left smaller building
+      const leftHeight = 28;
+      const leftY = buildingY + (buildingHeight - leftHeight);
+      ctx.fillStyle = '#a78bfa';
+      ctx.fillRect(width / 6, leftY, width / 6, leftHeight);
+
+      // Left building side face - proper isometric angle going UP-RIGHT
+      ctx.fillStyle = '#9333ea';
+      ctx.beginPath();
+      ctx.moveTo(width / 6 + width / 6, leftY);
+      ctx.lineTo(width / 3 + 4, leftY - 3);
+      ctx.lineTo(width / 3 + 4, leftY + leftHeight - 3);
+      ctx.lineTo(width / 6 + width / 6, leftY + leftHeight);
+      ctx.closePath();
+      ctx.fill();
+
+      // Right smaller building
+      const rightHeight = 24;
+      const rightY = buildingY + (buildingHeight - rightHeight);
+      const rightX = width - width / 6 - width / 6;
+      ctx.fillStyle = '#a78bfa';
+      ctx.fillRect(rightX, rightY, width / 6, rightHeight);
+
+      // Right building side face - proper isometric angle going UP-RIGHT
+      ctx.fillStyle = '#9333ea';
+      ctx.beginPath();
+      ctx.moveTo(rightX + width / 6, rightY);
+      ctx.lineTo(width - width / 6 + 2, rightY - 3);
+      ctx.lineTo(width - width / 6 + 2, rightY + rightHeight - 3);
+      ctx.lineTo(rightX + width / 6, rightY + rightHeight);
+      ctx.closePath();
+      ctx.fill();
+
+      // Windows on main building
+      ctx.fillStyle = '#ede9fe'; // Light purple windows
+      for (let row = 0; row < 5; row++) {
+        for (let col = 0; col < 2; col++) {
+          const winX = width / 3 + 4 + col * 8;
+          const winY = buildingY + 4 + row * 7;
+          ctx.fillRect(winX, winY, 5, 4);
+        }
+      }
+
+      // Windows on left building
+      for (let row = 0; row < 3; row++) {
+        const winX = width / 6 + 3;
+        const winY = leftY + 4 + row * 8;
+        ctx.fillRect(winX, winY, 4, 4);
+      }
+
+      // Connecting bridges/walkways between buildings
+      ctx.fillStyle = '#6d28d9';
+      ctx.fillRect(width / 6 + width / 6, buildingY + 15, width / 6, 3);
+      ctx.fillRect(width / 3 + width / 3, buildingY + 20, width / 6, 3);
+
+      // Roofs - isometric pyramids for each building
+      ctx.fillStyle = '#5b21b6'; // Dark purple
+
+      // Main building roof
+      ctx.beginPath();
+      ctx.moveTo(width / 3 - 2, buildingY);
+      ctx.lineTo(width / 2, buildingY - 10);
+      ctx.lineTo(width - 4, buildingY - 6);
+      ctx.lineTo(width / 3 + width / 3, buildingY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Left building roof
+      ctx.beginPath();
+      ctx.moveTo(width / 6 - 1, leftY);
+      ctx.lineTo(width / 6 + width / 12, leftY - 6);
+      ctx.lineTo(width / 3 + 4, leftY - 3);
+      ctx.lineTo(width / 6 + width / 6, leftY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Right building roof
+      ctx.beginPath();
+      ctx.moveTo(rightX - 1, rightY);
+      ctx.lineTo(rightX + width / 12, rightY - 6);
+      ctx.lineTo(width - width / 6 + 2, rightY - 3);
+      ctx.lineTo(rightX + width / 6, rightY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Monorepo indicator - multiple dots representing packages (on top of roof)
+      ctx.fillStyle = '#fbbf24'; // Gold
+      ctx.fillRect(width / 2 - 6, buildingY - 12, 3, 3);
+      ctx.fillRect(width / 2, buildingY - 12, 3, 3);
+      ctx.fillRect(width / 2 + 6, buildingY - 12, 3, 3);
       break;
     }
   }
@@ -332,12 +503,13 @@ export function generateSpriteAtlas(): Record<string, HTMLCanvasElement> {
   atlas['tile-path'] = generatePathTile();
 
   // Location sprites for each type and theme
-  const locationTypes: LocationNodeType[] = ['castle', 'fortress', 'tower', 'house', 'pipe'];
+  const locationTypes: LocationNodeType[] = ['castle', 'fortress', 'tower', 'house', 'pipe', 'git-repo', 'monorepo'];
   const themes: BiomeTheme[] = ['grass', 'desert', 'water', 'volcano', 'ice'];
 
   for (const type of locationTypes) {
     for (const theme of themes) {
-      atlas[`location-${type}-${theme}`] = generateLocationSprite(type, theme, type === 'castle' ? 3 : 2);
+      const size = type === 'castle' ? 3 : type === 'monorepo' ? 3 : 2;
+      atlas[`location-${type}-${theme}`] = generateLocationSprite(type, theme, size);
     }
   }
 

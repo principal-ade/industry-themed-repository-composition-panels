@@ -352,6 +352,89 @@ export const SingleProject: Story = {
 };
 
 /**
+ * Mix of single repos and monorepos showing different building styles.
+ * Monorepos appear as clusters of connected buildings.
+ * Single repos appear as modern office buildings.
+ */
+export const GitReposAndMonorepos: Story = {
+  args: {
+    projects: [
+      // Monorepos - large clusters
+      {
+        id: 'main-monorepo',
+        name: 'Main Monorepo',
+        path: '/repos/main-monorepo',
+        category: 'monorepo',
+        importance: 95,
+        isRoot: true,
+        isMonorepo: true,
+        dependencies: ['shared-lib', 'tools-repo'],
+      },
+      {
+        id: 'platform-monorepo',
+        name: 'Platform',
+        path: '/repos/platform-monorepo',
+        category: 'monorepo',
+        importance: 90,
+        isMonorepo: true,
+        dependencies: ['shared-lib'],
+      },
+      // Single package repos - modern buildings
+      {
+        id: 'web-app',
+        name: 'Web App',
+        path: '/repos/web-app',
+        category: 'git-repo',
+        importance: 80,
+        dependencies: ['api-client', 'shared-lib'],
+      },
+      {
+        id: 'mobile-app',
+        name: 'Mobile App',
+        path: '/repos/mobile-app',
+        category: 'git-repo',
+        importance: 75,
+        dependencies: ['api-client'],
+      },
+      {
+        id: 'api-client',
+        name: 'API Client',
+        path: '/repos/api-client',
+        category: 'git-repo',
+        importance: 70,
+        dependencies: ['shared-lib'],
+      },
+      {
+        id: 'shared-lib',
+        name: 'Shared Library',
+        path: '/repos/shared-lib',
+        category: 'git-repo',
+        importance: 85,
+        dependencies: [],
+      },
+      {
+        id: 'tools-repo',
+        name: 'Dev Tools',
+        path: '/repos/tools',
+        category: 'git-repo',
+        importance: 60,
+        dependencies: [],
+      },
+      {
+        id: 'docs',
+        name: 'Documentation',
+        path: '/repos/docs',
+        category: 'git-repo',
+        importance: 50,
+        dependencies: [],
+      },
+    ],
+    width: 800,
+    height: 600,
+  },
+};
+
+/**
  * Projects categorized by type (frontend, backend, library, tool).
  * Different categories get different biome themes in the map.
  */

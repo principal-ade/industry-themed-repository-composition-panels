@@ -31,6 +31,9 @@ export interface GitProject {
 
   /** Is this a root/primary project? */
   isRoot?: boolean;
+
+  /** Is this a monorepo containing multiple packages? */
+  isMonorepo?: boolean;
 }
 
 export interface GitProjectsMapPanelProps {
@@ -82,9 +85,7 @@ export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
         isWorkspace: !project.isRoot,
         availableCommands: [],
       },
-      type: project.category === 'backend' ? 'node' :
-            project.category === 'frontend' ? 'node' :
-            project.category === 'library' ? 'node' : 'node',
+      type: (project.isMonorepo ? 'monorepo' : 'git-repo') as any,
     })) as unknown as PackageLayer[];
   }, [projects]);
 

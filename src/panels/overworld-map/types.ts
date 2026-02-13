@@ -50,7 +50,9 @@ export type LocationNodeType =
   | 'fortress'     // Large package
   | 'house'        // Regular package
   | 'tower'        // Special package
-  | 'pipe';        // Entry point
+  | 'pipe'         // Entry point
+  | 'git-repo'     // Single package git repository
+  | 'monorepo';    // Multi-package monorepo
 
 /**
  * Location node representing a package on the map

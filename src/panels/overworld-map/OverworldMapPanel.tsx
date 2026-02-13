@@ -8,10 +8,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PackageLayer } from '../../types/composition';
 import type { PackagesSliceData } from '../../types/dependencies';
 import type { PanelComponentProps } from '../../types';
-import type { OverworldMap, MapRegion } from './types';
+import type { OverworldMap } from './types';
 import { packagesToUnifiedOverworldMap } from './dataConverter';
 import { generateSpriteAtlas } from './spriteGenerator';
-import { gridToScreen, getIsometricZIndex } from './isometricUtils';
+import { gridToScreen, screenToGrid, getIsometricZIndex, ISO_TILE_WIDTH, ISO_TILE_HEIGHT } from './isometricUtils';
 
 export interface OverworldMapPanelProps {
   /** Package data from the repository */
@@ -108,6 +108,41 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       app.stage.addChild(worldContainer);
       worldContainerRef.current = worldContainer;
 
+      // Add drag-to-pan functionality
+      let isDragging = false;
+      let dragStart = { x: 0, y: 0 };
+      let worldStart = { x: 0, y: 0 };
+
+      app.stage.eventMode = 'static';
+      app.stage.hitArea = app.screen;
+      app.stage.cursor = 'grab';
+
+      app.stage.on('pointerdown', (event) => {
+        isDragging = true;
+        dragStart = { x: event.globalX, y: event.globalY };
+        worldStart = { x: worldContainer.x, y: worldContainer.y };
+        app.stage.cursor = 'grabbing';
+      });
+
+      app.stage.on('pointermove', (event) => {
+        if (isDragging) {
+          const dx = event.globalX - dragStart.x;
+          const dy = event.globalY - dragStart.y;
+          worldContainer.x = worldStart.x + dx;
+          worldContainer.y = worldStart.y + dy;
+        }
+      });
+
+      app.stage.on('pointerup', () => {
+        isDragging = false;
+        app.stage.cursor = 'default';
+      });
+
+      app.stage.on('pointerupoutside', () => {
+        isDragging = false;
+        app.stage.cursor = 'default';
+      });
+
       // Render terrain tiles
       const tileContainer = new Container();
       worldContainer.addChild(tileContainer);
@@ -130,36 +165,145 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       const pathContainer = new Container();
       worldContainer.addChild(pathContainer);
 
-      for (const path of mapData.paths) {
-        const graphics = new Graphics();
-        const color = path.type === 'dev-dependency' ? 0x94a3b8 : 0x6366f1;
-        const alpha = path.type === 'dev-dependency' ? 0.5 : 0.8;
+      // Store path graphics for dynamic updates
+      const pathGraphics: Array<{ path: typeof mapData.paths[0]; graphics: Graphics }> = [];
 
-        graphics.setStrokeStyle({
-          width: 3,
-          color: color,
-          alpha: alpha,
-        });
+      // Function to redraw all paths based on current node positions
+      const redrawPaths = () => {
+        for (const { path, graphics } of pathGraphics) {
+          // Find source and target nodes by ID
+          const fromNode = mapData.nodes.find((n) => n.id === path.from);
+          const toNode = mapData.nodes.find((n) => n.id === path.to);
 
-        // Draw path as connected line
-        if (path.points.length > 0) {
-          const firstPoint = gridToScreen(path.points[0].gridX, path.points[0].gridY);
-          graphics.moveTo(firstPoint.screenX, firstPoint.screenY);
+          if (!fromNode || !toNode) continue;
 
-          for (let i = 1; i < path.points.length; i++) {
-            const point = gridToScreen(path.points[i].gridX, path.points[i].gridY);
-            graphics.lineTo(point.screenX, point.screenY);
+          // Clear previous drawing
+          graphics.clear();
+
+          // Get screen positions
+          const fromScreen = gridToScreen(fromNode.gridX, fromNode.gridY);
+          const toScreen = gridToScreen(toNode.gridX, toNode.gridY);
+
+          // Road styling based on dependency type
+          const isDev = path.type === 'dev-dependency';
+          const roadWidth = isDev ? 8 : 12; // Dev dependencies are narrower roads
+          const borderWidth = roadWidth + 4; // Border is 2px wider on each side
+
+          // Colors: dev dependencies are gray dirt roads, regular are tan paved roads
+          const roadColor = isDev ? 0x8b7355 : 0xd2b48c; // Gray-brown vs tan
+          const borderColor = isDev ? 0x5c4a3a : 0x8b6f47; // Darker borders
+          const alpha = isDev ? 0.7 : 1.0;
+
+          // Draw road border (wider, darker)
+          graphics.setStrokeStyle({
+            width: borderWidth,
+            color: borderColor,
+            alpha: alpha,
+          });
+          graphics.moveTo(fromScreen.screenX, fromScreen.screenY);
+          graphics.lineTo(toScreen.screenX, toScreen.screenY);
+          graphics.stroke();
+
+          // Draw road surface (thinner, lighter) on top
+          graphics.setStrokeStyle({
+            width: roadWidth,
+            color: roadColor,
+            alpha: alpha,
+          });
+          graphics.moveTo(fromScreen.screenX, fromScreen.screenY);
+          graphics.lineTo(toScreen.screenX, toScreen.screenY);
+          graphics.stroke();
+
+          // Add subtle directional arrows to show one-way flow
+          const dx = toScreen.screenX - fromScreen.screenX;
+          const dy = toScreen.screenY - fromScreen.screenY;
+          const length = Math.sqrt(dx * dx + dy * dy);
+
+          // Calculate angle of the road
+          const angle = Math.atan2(dy, dx);
+
+          // Subtle arrow styling - fewer, smaller, more transparent
+          const arrowSize = isDev ? 5 : 6;
+          const arrowSpacing = 60; // More space between arrows
+          const numArrows = Math.max(1, Math.floor(length / arrowSpacing));
+
+          graphics.setFillStyle({
+            color: isDev ? 0x6b5d52 : 0xa08968, // Lighter colors
+            alpha: isDev ? 0.4 : 0.5, // More transparent
+          });
+
+          // Draw arrows along the road pointing from source to target
+          for (let i = 1; i <= numArrows; i++) {
+            const t = i / (numArrows + 1); // Distribute arrows evenly
+            const x = fromScreen.screenX + dx * t;
+            const y = fromScreen.screenY + dy * t;
+
+            // Draw small arrow chevron pointing in the direction of flow
+            const x1 = x + Math.cos(angle) * arrowSize;
+            const y1 = y + Math.sin(angle) * arrowSize;
+            const x2 = x + Math.cos(angle + Math.PI * 2.5 / 3) * arrowSize;
+            const y2 = y + Math.sin(angle + Math.PI * 2.5 / 3) * arrowSize;
+            const x3 = x + Math.cos(angle - Math.PI * 2.5 / 3) * arrowSize;
+            const y3 = y + Math.sin(angle - Math.PI * 2.5 / 3) * arrowSize;
+
+            graphics.moveTo(x1, y1);
+            graphics.lineTo(x2, y2);
+            graphics.lineTo(x3, y3);
+            graphics.lineTo(x1, y1);
+            graphics.fill();
           }
 
-          graphics.stroke();
-        }
+          // Add dashed center line for regular dependencies (like highways)
+          if (!isDev) {
+            const dashLength = 8;
+            const gapLength = 8;
+            const segmentLength = dashLength + gapLength;
+            const numSegments = Math.floor(length / segmentLength);
 
+            graphics.setStrokeStyle({
+              width: 2,
+              color: 0xffffff,
+              alpha: 0.4,
+            });
+
+            for (let i = 0; i < numSegments; i++) {
+              const t1 = (i * segmentLength) / length;
+              const t2 = (i * segmentLength + dashLength) / length;
+
+              const x1 = fromScreen.screenX + dx * t1;
+              const y1 = fromScreen.screenY + dy * t1;
+              const x2 = fromScreen.screenX + dx * t2;
+              const y2 = fromScreen.screenY + dy * t2;
+
+              graphics.moveTo(x1, y1);
+              graphics.lineTo(x2, y2);
+              graphics.stroke();
+            }
+          }
+        }
+      };
+
+      // Initialize path graphics
+      for (const path of mapData.paths) {
+        const graphics = new Graphics();
+        pathGraphics.push({ path, graphics });
         pathContainer.addChild(graphics);
       }
+
+      // Draw paths initially
+      redrawPaths();
 
       // Render location nodes
       const nodeContainer = new Container();
       worldContainer.addChild(nodeContainer);
+
+      // Store highlights and positions for intersection detection
+      const buildingData: Array<{
+        node: typeof mapData.nodes[0];
+        sprite: Sprite;
+        highlight: Graphics;
+        label: Text;
+      }> = [];
 
       // Sort nodes by z-index for proper isometric rendering
       const sortedNodes = [...mapData.nodes].sort((a, b) => {
@@ -173,41 +317,219 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         const texture = textures[node.sprite];
 
         if (texture) {
+          // Create highlight for hover - always 4x4 tiles (2x the 2x2 footprint)
+          const highlight = new Graphics();
+          const HOVER_SIZE = 4; // Hover highlight is 4x4 (double the 2x2 footprint)
+          const tileSize = ISO_TILE_WIDTH * HOVER_SIZE; // 64 * 4 = 256px
+          const tileHeight = ISO_TILE_HEIGHT * HOVER_SIZE; // 32 * 4 = 128px
+
+          // Draw diamond shape centered at (0,0)
+          highlight.beginFill(0xffff00, 0.4); // Yellow with transparency (default)
+          highlight.moveTo(0, -tileHeight / 2);
+          highlight.lineTo(tileSize / 2, 0);
+          highlight.lineTo(0, tileHeight / 2);
+          highlight.lineTo(-tileSize / 2, 0);
+          highlight.closePath();
+          highlight.endFill();
+
+          // Store original tint
+          (highlight as any).isIntersecting = false;
+
+          // Position highlight centered on sprite - no base diamond to worry about
+          highlight.x = screenX;
+          highlight.y = screenY;
+          highlight.visible = false; // Hidden by default
+          nodeContainer.addChild(highlight);
+
           const sprite = new Sprite(texture);
+
+          // Scale down if sprite is too large (max 256x256)
+          const MAX_SPRITE_SIZE = 256;
+          if (sprite.width > MAX_SPRITE_SIZE || sprite.height > MAX_SPRITE_SIZE) {
+            const scaleX = MAX_SPRITE_SIZE / sprite.width;
+            const scaleY = MAX_SPRITE_SIZE / sprite.height;
+            const scale = Math.min(scaleX, scaleY); // Preserve aspect ratio
+            sprite.scale.set(scale, scale);
+          }
+
           sprite.x = screenX;
           sprite.y = screenY;
-          sprite.anchor.set(0.5, 1); // Bottom center anchor for buildings
+          // Anchor adjusted to match visual center
+          // X: isometric side shifts building right → 0.61
+          // Y: leave space below for label → 0.45
+          sprite.anchor.set(0.61, 0.45);
 
-          // Make interactive
+          // Make interactive and draggable
           sprite.eventMode = 'static';
-          sprite.cursor = 'pointer';
+          sprite.cursor = 'grab';
+
+          let isDraggingBuilding = false;
+          let dragOffset = { x: 0, y: 0 };
+
+          sprite.on('pointerdown', (event) => {
+            isDraggingBuilding = true;
+            sprite.cursor = 'grabbing';
+
+            // Calculate offset from sprite position to pointer
+            const globalPos = event.global;
+            const localPos = worldContainer.toLocal(globalPos);
+            dragOffset = {
+              x: localPos.x - sprite.x,
+              y: localPos.y - sprite.y,
+            };
+
+            // Stop event propagation to prevent map panning
+            event.stopPropagation();
+          });
+
+          sprite.on('pointerup', (event) => {
+            if (isDraggingBuilding) {
+              isDraggingBuilding = false;
+              sprite.cursor = 'grab';
+
+              // Convert screen position back to grid coordinates
+              const { gridX, gridY } = screenToGrid(sprite.x, sprite.y);
+
+              // Snap to nearest grid position
+              const snappedGridX = Math.round(gridX);
+              const snappedGridY = Math.round(gridY);
+              const snapped = gridToScreen(snappedGridX, snappedGridY);
+
+              // Update sprite, highlight, and label to snapped position
+              sprite.x = snapped.screenX;
+              sprite.y = snapped.screenY;
+              highlight.x = sprite.x;
+              highlight.y = sprite.y;
+              label.x = sprite.x;
+              label.y = sprite.y + labelOffset;
+
+              // Update node data
+              node.gridX = snappedGridX;
+              node.gridY = snappedGridY;
+
+              // Redraw all paths with updated positions
+              redrawPaths();
+
+              // Hide all intersection highlights and reset tint
+              for (const other of buildingData) {
+                if (other !== currentBuildingData) {
+                  other.highlight.visible = false;
+                  other.highlight.tint = 0xffffff; // Reset to default yellow
+                  (other.highlight as any).isIntersecting = false;
+                }
+              }
+
+              // Log the moved building position for debugging
+              // console.log(`Moved ${node.label} to grid (${snappedGridX}, ${snappedGridY})`);
+
+              event.stopPropagation();
+            }
+          });
+
+          sprite.on('pointerupoutside', () => {
+            if (isDraggingBuilding) {
+              isDraggingBuilding = false;
+              sprite.cursor = 'grab';
+
+              // Hide all intersection highlights and reset tint
+              for (const other of buildingData) {
+                if (other !== currentBuildingData) {
+                  other.highlight.visible = false;
+                  other.highlight.tint = 0xffffff; // Reset to default yellow
+                  (other.highlight as any).isIntersecting = false;
+                }
+              }
+            }
+          });
+
           sprite.on('pointerover', () => {
-            sprite.tint = 0xffff00; // Yellow highlight
+            if (!isDraggingBuilding) {
+              highlight.visible = true; // Show base highlight
+              highlight.tint = 0xffffff; // Yellow (default)
+            }
           });
+
           sprite.on('pointerout', () => {
-            sprite.tint = 0xffffff; // Reset
-          });
-          sprite.on('pointertap', () => {
-            console.log('Clicked node:', node.label);
-            // TODO: Show package details
+            if (!(highlight as any).isIntersecting) {
+              highlight.visible = false; // Hide base highlight
+            }
           });
 
           nodeContainer.addChild(sprite);
 
-          // Add label text
+          // Add label text just below the base center
+          const labelOffset = 25;
+
           const label = new Text({
             text: node.label,
             style: {
               fontFamily: 'monospace',
-              fontSize: 10,
+              fontSize: 16,
               fill: 0xffffff,
-              stroke: { color: 0x000000, width: 2 },
+              stroke: { color: 0x000000, width: 4 },
+              fontWeight: 'bold',
             },
           });
           label.x = screenX;
-          label.y = screenY + 10;
+          label.y = screenY + labelOffset;
           label.anchor.set(0.5, 0);
           nodeContainer.addChild(label);
+
+          // Store building data for intersection detection
+          const currentBuildingData = { node, sprite, highlight, label };
+          buildingData.push(currentBuildingData);
+
+          // Now add pointermove handler with access to label
+          sprite.on('pointermove', (event) => {
+            if (isDraggingBuilding) {
+              const globalPos = event.global;
+              const localPos = worldContainer.toLocal(globalPos);
+
+              // Update sprite position
+              sprite.x = localPos.x - dragOffset.x;
+              sprite.y = localPos.y - dragOffset.y;
+
+              // Update highlight and label positions
+              highlight.x = sprite.x;
+              highlight.y = sprite.y;
+              label.x = sprite.x;
+              label.y = sprite.y + labelOffset;
+
+              // Update node position temporarily for path rendering
+              const { gridX: tempGridX, gridY: tempGridY } = screenToGrid(sprite.x, sprite.y);
+              node.gridX = tempGridX;
+              node.gridY = tempGridY;
+
+              // Redraw paths in real-time while dragging
+              redrawPaths();
+
+              // Check for intersections with other buildings
+              const HIGHLIGHT_RADIUS = (ISO_TILE_WIDTH * HOVER_SIZE) / 2; // Half the highlight width (128px)
+              const INTERSECTION_THRESHOLD = HIGHLIGHT_RADIUS * 2; // Both radii combined (256px)
+
+              for (const other of buildingData) {
+                if (other === currentBuildingData) continue;
+
+                // Calculate distance between dragged building and other building
+                const dx = sprite.x - other.sprite.x;
+                const dy = sprite.y - other.sprite.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // Show highlight if highlights are intersecting (distance < sum of both radii)
+                if (distance < INTERSECTION_THRESHOLD) {
+                  other.highlight.visible = true;
+                  // Tint red for intersection warning
+                  other.highlight.tint = 0xff6b6b; // Red
+                  (other.highlight as any).isIntersecting = true;
+                } else if (!(other.highlight as any).isIntersecting) {
+                  // Only hide if not being hovered by mouse
+                  other.highlight.visible = false;
+                }
+              }
+
+              event.stopPropagation();
+            }
+          });
         }
       }
 

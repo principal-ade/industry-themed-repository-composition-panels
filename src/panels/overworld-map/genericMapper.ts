@@ -85,7 +85,11 @@ const DEFAULT_CATEGORY_COLORS: Record<string, string> = {
   backend: '#ef4444',
   database: '#3b82f6',
   api: '#fbbf24',
-  default: '#94a3b8',    // gray
+  'git-repo': '#3b82f6',  // blue
+  monorepo: '#8b5cf6',    // purple
+  library: '#22c55e',     // green
+  tool: '#fbbf24',        // yellow
+  default: '#94a3b8',     // gray
 };
 
 /**
@@ -113,6 +117,10 @@ function getCategoryColor(category: string | undefined, isRoot: boolean): string
  * Determine node type based on importance/size
  */
 function determineNodeType(node: GenericNode, isRoot: boolean): LocationNodeType {
+  // Check for git-specific categories
+  if (node.category === 'git-repo') return 'git-repo';
+  if (node.category === 'monorepo') return 'monorepo';
+
   if (isRoot) return 'castle';
 
   const importance = node.importance || 0;
@@ -130,11 +138,15 @@ function getNodeSize(type: LocationNodeType): number {
   switch (type) {
     case 'castle':
       return 3;
+    case 'monorepo':
+      return 3;
     case 'fortress':
       return 2;
     case 'tower':
       return 2;
     case 'house':
+      return 2;
+    case 'git-repo':
       return 2;
     case 'pipe':
       return 1;
