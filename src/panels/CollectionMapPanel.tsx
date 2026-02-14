@@ -7,6 +7,7 @@ import { useDropZone, type PanelDragData } from '@principal-ade/panel-framework-
 import type { PanelComponentProps } from '../types';
 import { GitProjectsMapPanelContent, type GitProject } from './GitProjectsMapPanel';
 import type { RegionLayout } from './overworld-map/genericMapper';
+import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library/types';
 
 /**
  * Alexandria Collections types (from @principal-ai/alexandria-collections)
@@ -23,16 +24,18 @@ export interface Collection {
   metadata?: Record<string, unknown>;
 }
 
-export interface AlexandriaRepository {
-  name: string;
-  registeredAt: string;
-  provider?: {
-    type: 'github' | 'gitlab' | 'bitbucket' | 'generic';
-    metadata?: any;
-    url?: string;
+/**
+ * Extended Alexandria Entry with metrics for visualization sizing
+ * (Local extension until metrics are added to upstream)
+ */
+export interface AlexandriaEntryWithMetrics extends AlexandriaEntry {
+  /** Repository metrics for visualization sizing */
+  metrics?: {
+    fileCount?: number;
+    lineCount?: number;
+    commitCount?: number;
+    contributors?: number;
   };
-  lastChecked?: string;
-  theme?: string;
 }
 
 export interface CollectionMembership {
@@ -54,7 +57,7 @@ export interface CollectionMapPanelProps {
   memberships: CollectionMembership[];
 
   /** Full repository data */
-  repositories: AlexandriaRepository[];
+  repositories: AlexandriaEntryWithMetrics[];
 
   /** Optional dependency graph for connections between repos */
   dependencies?: Record<string, string[]>;
@@ -147,10 +150,9 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           return null;
         }
 
-        // Determine category from provider or metadata
+        // Determine category from github metadata or theme
         let category: string | undefined;
-        // Support both AlexandriaEntry (with github field) and AlexandriaRepository (with provider field)
-        if (repo.provider?.type === 'github' || (repo as any).github) {
+        if (repo.github) {
           category = 'git-repo';
         } else {
           category = repo.theme || 'git-repo';
@@ -235,7 +237,7 @@ export interface UserCollectionsSlice {
  * Data slice for Alexandria repositories
  */
 export interface AlexandriaRepositoriesSlice {
-  repositories: AlexandriaRepository[];
+  repositories: AlexandriaEntryWithMetrics[];
   loading: boolean;
   error?: string;
 }
@@ -243,7 +245,7 @@ export interface AlexandriaRepositoriesSlice {
 /**
  * Main panel component that integrates with the panel framework
  */
-export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context }) => {
+export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context, actions }) => {
   // Get collections data from context
   const collectionsSlice = context.getSlice<UserCollectionsSlice>('userCollections');
   const collections = collectionsSlice?.data?.collections || [];
@@ -261,14 +263,14 @@ export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context }) =
 
   // Handle adding a project to the collection
   const handleProjectAdded = useCallback((repositoryPath: string, repositoryMetadata: any) => {
-    // Call context method to add repository to collection
-    // This will need to be implemented in the host application's context
-    if ((context as any).addRepositoryToCollection) {
-      (context as any).addRepositoryToCollection(selectedCollectionId, repositoryPath, repositoryMetadata);
+    // Call actions method to add repository to collection
+    // This is provided by the host application's context provider
+    if ((actions as any)?.addRepositoryToCollection) {
+      (actions as any).addRepositoryToCollection(selectedCollectionId, repositoryPath, repositoryMetadata);
     } else {
-      console.warn('Context does not support addRepositoryToCollection - drag-drop feature requires context integration');
+      console.warn('Actions does not support addRepositoryToCollection - drag-drop feature requires context integration');
     }
-  }, [context, selectedCollectionId]);
+  }, [actions, selectedCollectionId]);
 
   // If no collection is selected, show a placeholder
   if (!selectedCollection) {

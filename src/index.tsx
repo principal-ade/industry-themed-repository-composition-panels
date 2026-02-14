@@ -282,7 +282,7 @@ export {
 export type {
   CollectionMapPanelProps,
   Collection,
-  AlexandriaRepository,
+  AlexandriaEntryWithMetrics,
   CollectionMembership,
 } from './panels/CollectionMapPanel';
 
