@@ -2,7 +2,8 @@
  * CollectionMapPanel - Visualize Alexandria Collections as overworld maps
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
+import { useDropZone, type PanelDragData } from '@principal-ade/panel-framework-core';
 import type { PanelComponentProps } from '../types';
 import { GitProjectsMapPanelContent, type GitProject } from './GitProjectsMapPanel';
 import type { RegionLayout } from './overworld-map/genericMapper';
@@ -72,6 +73,9 @@ export interface CollectionMapPanelProps {
 
   /** Callback when a project is moved (for saving position) */
   onProjectMoved?: (projectId: string, gridX: number, gridY: number) => void;
+
+  /** Callback when a project is dropped to add to collection */
+  onProjectAdded?: (repositoryPath: string, repositoryMetadata: any) => void;
 }
 
 /**
@@ -88,7 +92,40 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   height,
   isLoading = false,
   onProjectMoved,
+  onProjectAdded,
 }) => {
+
+  // Handle dropped projects
+  const handleProjectDrop = useCallback((data: PanelDragData, event: React.DragEvent) => {
+    if (!onProjectAdded) {
+      console.warn('No onProjectAdded callback provided - cannot add project to collection');
+      return;
+    }
+
+    // Extract repository info from dropped data
+    const repositoryPath = data.primaryData;
+    const repositoryMetadata = data.metadata || {};
+
+    console.log('Project dropped on collection map:', {
+      path: repositoryPath,
+      metadata: repositoryMetadata,
+      collectionId: collection.id,
+      sourcePanel: data.sourcePanel,
+    });
+
+    onProjectAdded(repositoryPath, repositoryMetadata);
+  }, [collection.id, onProjectAdded]);
+
+  // Set up drop zone
+  const { isDragOver, ...dropZoneProps } = useDropZone({
+    handlers: [
+      {
+        dataType: 'repository-project',
+        onDrop: handleProjectDrop,
+      },
+    ],
+    showVisualFeedback: true,
+  });
 
   // Convert Alexandria repositories to GitProject format
   const projects = useMemo<GitProject[]>(() => {
@@ -138,7 +175,17 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   }, [collection.id, memberships, repositories, dependencies]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        border: isDragOver ? '2px solid #3b82f6' : 'none',
+        transition: 'border 0.2s ease',
+      }}
+      {...dropZoneProps}
+    >
       {/* Collection name header */}
       <div
         style={{
@@ -146,7 +193,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           top: 8,
           left: 8,
           zIndex: 100,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          backgroundColor: isDragOver ? 'rgba(59, 130, 246, 0.9)' : 'rgba(0, 0, 0, 0.7)',
           padding: '8px 16px',
           borderRadius: 8,
           color: 'white',
@@ -154,10 +201,12 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           fontSize: 14,
           fontWeight: 'bold',
           pointerEvents: 'none',
+          transition: 'background-color 0.2s ease',
         }}
       >
         {collection.icon && <span style={{ marginRight: 8 }}>{collection.icon}</span>}
         {collection.name}
+        {isDragOver && <span style={{ marginLeft: 8 }}>+ Drop to add</span>}
       </div>
 
       {/* Overworld map */}
@@ -210,6 +259,17 @@ export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context }) =
   const selectedCollectionId = (context as any).selectedCollection?.id;
   const selectedCollection = collections.find((c) => c.id === selectedCollectionId);
 
+  // Handle adding a project to the collection
+  const handleProjectAdded = useCallback((repositoryPath: string, repositoryMetadata: any) => {
+    // Call context method to add repository to collection
+    // This will need to be implemented in the host application's context
+    if ((context as any).addRepositoryToCollection) {
+      (context as any).addRepositoryToCollection(selectedCollectionId, repositoryPath, repositoryMetadata);
+    } else {
+      console.warn('Context does not support addRepositoryToCollection - drag-drop feature requires context integration');
+    }
+  }, [context, selectedCollectionId]);
+
   // If no collection is selected, show a placeholder
   if (!selectedCollection) {
     return (
@@ -251,6 +311,7 @@ export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context }) =
         repositories={repositories}
         dependencies={dependencies}
         isLoading={isLoading}
+        onProjectAdded={handleProjectAdded}
       />
     </div>
   );

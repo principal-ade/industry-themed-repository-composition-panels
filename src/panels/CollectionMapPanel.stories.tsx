@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React from 'react';
+import React, { useState } from 'react';
 import { CollectionMapPanel, CollectionMapPanelContent } from './CollectionMapPanel';
 import type {
   Collection,
@@ -557,6 +557,132 @@ export const MultipleRegionsGridLayout: Story = {
           repositories={largeRepositorySet}
           regionLayout={gridLayout}
         />
+      </div>
+    );
+  },
+};
+
+/**
+ * Drag-and-Drop Demo
+ *
+ * Tests dropping repository projects onto the collection map.
+ * This demonstrates the drop zone integration for adding projects from local projects panel.
+ */
+export const DragDropDemo: Story = {
+  render: () => {
+    const [droppedProjects, setDroppedProjects] = useState<string[]>([]);
+    const [memberships, setMemberships] = useState<CollectionMembership[]>([
+      {
+        repositoryId: 'web-ade',
+        collectionId: 'active-projects',
+        addedAt: Date.now() - 20 * 24 * 60 * 60 * 1000,
+        metadata: { pinned: true },
+      },
+    ]);
+
+    // Mock draggable projects for testing
+    const mockDraggableProjects = [
+      { path: '/Users/dev/backend-api', name: 'backend-api', github: { owner: 'principal', primaryLanguage: 'TypeScript' } },
+      { path: '/Users/dev/mobile-app', name: 'mobile-app', github: { owner: 'principal', primaryLanguage: 'Dart' } },
+      { path: '/Users/dev/shared-ui', name: 'shared-ui', github: { owner: 'principal', primaryLanguage: 'TypeScript' } },
+    ];
+
+    const handleProjectAdded = (repositoryPath: string, repositoryMetadata: any) => {
+      console.log('Project dropped:', { repositoryPath, repositoryMetadata });
+      setDroppedProjects(prev => [...prev, repositoryMetadata.name || repositoryPath]);
+
+      // Add to memberships (simulating adding to collection)
+      const newMembership: CollectionMembership = {
+        repositoryId: repositoryMetadata.name || repositoryPath,
+        collectionId: 'active-projects',
+        addedAt: Date.now(),
+      };
+      setMemberships(prev => [...prev, newMembership]);
+    };
+
+    return (
+      <div style={{ display: 'flex', gap: '0', height: '100vh', width: '100vw', backgroundColor: '#0a0a0f' }}>
+        {/* Source: Draggable project items */}
+        <div style={{ width: '300px', borderRight: '1px solid #333', padding: '16px', overflow: 'auto', backgroundColor: '#1a1a2e' }}>
+          <h3 style={{ color: '#fff', marginTop: 0, marginBottom: '16px', fontSize: '14px', fontWeight: 600 }}>
+            📦 Drag Source (Mock Projects)
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {mockDraggableProjects.map((project) => (
+              <div
+                key={project.path}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', project.path);
+                  e.dataTransfer.setData('application/x-panel-data', JSON.stringify({
+                    dataType: 'repository-project',
+                    primaryData: project.path,
+                    metadata: {
+                      name: project.name,
+                      github: project.github,
+                    },
+                    sourcePanel: 'local-projects',
+                    suggestedActions: ['add-to-collection'],
+                  }));
+                }}
+                style={{
+                  padding: '12px',
+                  backgroundColor: '#16213e',
+                  border: '1px solid #333',
+                  borderRadius: '6px',
+                  cursor: 'grab',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.cursor = 'grabbing';
+                  e.currentTarget.style.opacity = '0.7';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.cursor = 'grab';
+                  e.currentTarget.style.opacity = '1';
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '4px', backgroundColor: '#0f3460', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
+                    {project.name[0].toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: '#fff', fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {project.name}
+                    </div>
+                    <div style={{ color: '#888', fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {project.github.primaryLanguage}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Dropped projects list */}
+          {droppedProjects.length > 0 && (
+            <div style={{ marginTop: '24px', padding: '12px', backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '6px' }}>
+              <div style={{ color: '#10b981', fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
+                ✓ {droppedProjects.length} Project{droppedProjects.length !== 1 ? 's' : ''} Dropped
+              </div>
+              <div style={{ fontSize: '11px', color: '#888' }}>
+                {droppedProjects.map((name, i) => (
+                  <div key={i}>• {name}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Target: Collection Map with drop zone */}
+        <div style={{ flex: 1 }}>
+          <CollectionMapPanelContent
+            collection={activeProjectsCollection}
+            memberships={memberships}
+            repositories={repositories}
+            onProjectAdded={handleProjectAdded}
+          />
+        </div>
       </div>
     );
   },
