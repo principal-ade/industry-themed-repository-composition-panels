@@ -66,6 +66,7 @@
     "d3-dag": "^1.1.0",
     "d3-force": "^3.0.0",
     "lucide-react": "^0.552.0",
+    "pixi-viewport": "^6.0.3",
     "pixi.js": "^8.16.0"
   },
   "devDependencies": {
