@@ -568,10 +568,37 @@ export function generateDecorativeSprite(type: 'cloud' | 'tree' | 'bush' | 'rock
 }
 
 /**
+ * Load an image from a URL and draw it to a canvas
+ */
+export async function loadCustomSprite(imagePath: string): Promise<HTMLCanvasElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+
+    img.onload = () => {
+      const canvas = createCanvas(img.width, img.height);
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas);
+    };
+
+    img.onerror = () => {
+      console.warn(`Failed to load custom sprite: ${imagePath}`);
+      resolve(null);
+    };
+
+    // Support file:// URLs for local files
+    img.src = imagePath;
+  });
+}
+
+/**
  * Generate a complete sprite atlas from all tile types
  * Returns a texture map for PixiJS
+ * @param customSprites Optional map of sprite keys to custom image paths
  */
-export function generateSpriteAtlas(): Record<string, HTMLCanvasElement> {
+export async function generateSpriteAtlas(
+  customSprites?: Record<string, string>
+): Promise<Record<string, HTMLCanvasElement>> {
   const atlas: Record<string, HTMLCanvasElement> = {};
 
   // Background texture
@@ -594,12 +621,58 @@ export function generateSpriteAtlas(): Record<string, HTMLCanvasElement> {
 
   for (const type of locationTypes) {
     for (const theme of themes) {
+      const spriteKey = `location-${type}-${theme}`;
+
+      // Check for custom sprite first
+      if (customSprites?.[spriteKey]) {
+        const customCanvas = await loadCustomSprite(customSprites[spriteKey]);
+        if (customCanvas) {
+          atlas[spriteKey] = customCanvas;
+          continue; // Skip procedural generation
+        }
+      }
+
+      // Fall back to procedural generation
+      const size = type === 'castle' ? 3 : type === 'monorepo' ? 3 : 2;
+      atlas[spriteKey] = generateLocationSprite(type, theme, size);
+    }
+  }
+
+  // Decorative sprites
+  atlas['deco-cloud'] = generateDecorativeSprite('cloud');
+  atlas['deco-tree'] = generateDecorativeSprite('tree');
+  atlas['deco-bush'] = generateDecorativeSprite('bush');
+  atlas['deco-rock'] = generateDecorativeSprite('rock');
+
+  return atlas;
+}
+
+/**
+ * Synchronous version of generateSpriteAtlas for backwards compatibility
+ * Does not support custom sprites
+ */
+export function generateSpriteAtlasSync(): Record<string, HTMLCanvasElement> {
+  const atlas: Record<string, HTMLCanvasElement> = {};
+
+  atlas['bg-grass'] = generateGrassBackgroundTile();
+
+  for (const biome of Object.keys(BIOME_COLORS) as BiomeTheme[]) {
+    atlas[`tile-grass-${biome}`] = generateGrassTile(biome);
+  }
+
+  atlas['tile-path'] = generatePathTile();
+  atlas['tile-bridge'] = generateBridgeTile();
+
+  const locationTypes: LocationNodeType[] = ['castle', 'fortress', 'tower', 'house', 'pipe', 'git-repo', 'monorepo'];
+  const themes: BiomeTheme[] = ['grass', 'desert', 'water', 'volcano', 'ice'];
+
+  for (const type of locationTypes) {
+    for (const theme of themes) {
       const size = type === 'castle' ? 3 : type === 'monorepo' ? 3 : 2;
       atlas[`location-${type}-${theme}`] = generateLocationSprite(type, theme, size);
     }
   }
 
-  // Decorative sprites
   atlas['deco-cloud'] = generateDecorativeSprite('cloud');
   atlas['deco-tree'] = generateDecorativeSprite('tree');
   atlas['deco-bush'] = generateDecorativeSprite('bush');

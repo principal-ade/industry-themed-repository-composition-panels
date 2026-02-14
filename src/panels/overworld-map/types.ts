@@ -71,6 +71,9 @@ export interface LocationNode {
   packageType: 'node' | 'python' | 'cargo' | 'go' | 'package';
   isRoot: boolean;
   color: string;       // Accent color
+
+  // Custom sprite support
+  customSpritePath?: string;  // Optional path to custom sprite PNG (e.g., file://.claude/repo-sprite.png)
 }
 
 /**

@@ -107,8 +107,17 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       canvasRef.current?.appendChild(app.canvas as HTMLCanvasElement);
       appRef.current = app;
 
-      // Generate sprite atlas
-      const atlas = generateSpriteAtlas();
+      // Build custom sprite mapping from location nodes
+      const customSprites: Record<string, string> = {};
+      for (const location of mapData.nodes) {
+        if (location.customSpritePath) {
+          // Map custom sprite path to the sprite key used by this location
+          customSprites[location.sprite] = location.customSpritePath;
+        }
+      }
+
+      // Generate sprite atlas (async to support custom sprites)
+      const atlas = await generateSpriteAtlas(customSprites);
 
       // Convert canvas sprites to PixiJS textures
       const textures: Record<string, Texture> = {};

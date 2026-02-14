@@ -287,7 +287,7 @@ describe('spriteGenerator', () => {
 
   describe('generateSpriteAtlas', () => {
     test('generates atlas with all expected tiles', () => {
-      const atlas = generateSpriteAtlas();
+      const atlas = generateSpriteAtlasSync();
 
       // Should have grass tiles for each biome
       expect(atlas['tile-grass-grass']).toBeDefined();
@@ -301,7 +301,7 @@ describe('spriteGenerator', () => {
     });
 
     test('generates location sprites for all types and themes', () => {
-      const atlas = generateSpriteAtlas();
+      const atlas = generateSpriteAtlasSync();
       const locationTypes: LocationNodeType[] = [
         'castle',
         'fortress',
@@ -323,7 +323,7 @@ describe('spriteGenerator', () => {
     });
 
     test('generates decorative sprites', () => {
-      const atlas = generateSpriteAtlas();
+      const atlas = generateSpriteAtlasSync();
 
       expect(atlas['deco-cloud']).toBeDefined();
       expect(atlas['deco-tree']).toBeDefined();
@@ -332,7 +332,7 @@ describe('spriteGenerator', () => {
     });
 
     test('all atlas entries are HTMLCanvasElement instances', () => {
-      const atlas = generateSpriteAtlas();
+      const atlas = generateSpriteAtlasSync();
 
       for (const [key, canvas] of Object.entries(atlas)) {
         expect(canvas).toBeInstanceOf(HTMLCanvasElement);
@@ -340,7 +340,7 @@ describe('spriteGenerator', () => {
     });
 
     test('atlas contains expected number of entries', () => {
-      const atlas = generateSpriteAtlas();
+      const atlas = generateSpriteAtlasSync();
 
       // 5 grass tiles (one per biome) + 1 path tile = 6 terrain tiles
       // 7 location types * 5 themes = 35 location sprites
