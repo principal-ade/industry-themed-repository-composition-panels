@@ -76,7 +76,6 @@ describe('hoverHighlight', () => {
       const tileHeight = ISO_TILE_HEIGHT * size; // 32px
 
       // Sprite properties
-      const spriteAnchor = { x: 0.5, y: 0.5 }; // Center anchor
       const spriteAnchorY = canvasHeight / 2; // 48px
 
       // Base diamond in sprite canvas
@@ -105,7 +104,6 @@ describe('hoverHighlight', () => {
       const tileHeight = ISO_TILE_HEIGHT * size; // 64px
 
       // Sprite properties
-      const spriteAnchor = { x: 0.5, y: 0.5 }; // Center anchor
       const spriteAnchorY = canvasHeight / 2; // 64px
 
       // Base diamond in sprite canvas
@@ -203,7 +201,6 @@ describe('hoverHighlight', () => {
       const tileHeight = ISO_TILE_HEIGHT * size; // 32
 
       // Sprite at screen position (100, 100)
-      const screenX = 100;
       const screenY = 100;
 
       // Sprite anchor (0.5, 0.5) is at canvas center Y=48
@@ -214,7 +211,6 @@ describe('hoverHighlight', () => {
       const baseYWorld = spriteTopY + baseY; // 52 + 64 = 116
       const baseDiamondTop = baseYWorld; // 116
       const baseDiamondBottom = baseYWorld + tileHeight; // 148
-      const baseDiamondCenter = baseYWorld + tileHeight / 2; // 132
 
       // Highlight positioning with current formula
       const highlightOffset = tileHeight / 2; // 16
@@ -243,7 +239,6 @@ describe('hoverHighlight', () => {
       const tileHeight = ISO_TILE_HEIGHT * size; // 64
 
       // Sprite at screen position (100, 100)
-      const screenX = 100;
       const screenY = 100;
 
       // Sprite anchor (0.5, 0.5) is at canvas center Y=64
@@ -273,7 +268,6 @@ describe('hoverHighlight', () => {
       const tileHeight = ISO_TILE_HEIGHT * size; // 96
 
       // Sprite at screen position (100, 100)
-      const screenX = 100;
       const screenY = 100;
 
       // Sprite anchor (0.5, 0.5) is at canvas center Y=80
@@ -285,7 +279,6 @@ describe('hoverHighlight', () => {
       const baseYWorld = spriteTopY + baseY; // 20 + 64 = 84
       const baseDiamondTop = baseYWorld; // 84
       const baseDiamondBottom = baseYWorld + tileHeight; // 180
-      const baseDiamondCenter = baseYWorld + tileHeight / 2; // 132
 
       // Highlight positioning with current formula
       const highlightOffset = tileHeight / 2; // 48
@@ -314,7 +307,6 @@ describe('hoverHighlight', () => {
       const constantOffset = 32;
 
       // Size 1 verification
-      const size1CanvasHeight = 96;
       const size1SpriteAnchorY = 48; // Canvas center
       const size1BaseY = 64;
       const size1TileHeight = 32;
@@ -323,7 +315,6 @@ describe('hoverHighlight', () => {
       expect(size1SpriteAnchorY + constantOffset).toBe(size1BaseCenterY);
 
       // Size 2 verification
-      const size2CanvasHeight = 128;
       const size2SpriteAnchorY = 64; // Canvas center
       const size2BaseY = 64;
       const size2TileHeight = 64;
@@ -332,7 +323,6 @@ describe('hoverHighlight', () => {
       expect(size2SpriteAnchorY + constantOffset).toBe(size2BaseCenterY);
 
       // Size 3 verification
-      const size3CanvasHeight = 160;
       const size3SpriteAnchorY = 80; // Canvas center
       const size3BaseY = 64;
       const size3TileHeight = 96;

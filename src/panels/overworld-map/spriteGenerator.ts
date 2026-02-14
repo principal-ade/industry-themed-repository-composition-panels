@@ -4,11 +4,10 @@
  */
 
 import {
-  TILE_SIZE,
   ISO_TILE_WIDTH,
   ISO_TILE_HEIGHT,
 } from './isometricUtils';
-import type { BiomeTheme, LocationNodeType, TileType } from './types';
+import type { BiomeTheme, LocationNodeType } from './types';
 
 /**
  * Color palettes for different biomes (NES-style limited colors)
@@ -185,29 +184,6 @@ export function generateBridgeTile(): HTMLCanvasElement {
 }
 
 /**
- * Draw the isometric base diamond that buildings sit on
- */
-function drawIsometricBase(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  baseY: number,
-  size: number,
-  colors: { primary: string; secondary: string; accent: string }
-): void {
-  const tileHeight = ISO_TILE_HEIGHT * size;
-
-  // Base platform (isometric diamond)
-  ctx.fillStyle = colors.primary;
-  ctx.beginPath();
-  ctx.moveTo(width / 2, baseY);
-  ctx.lineTo(width, baseY + tileHeight / 2);
-  ctx.lineTo(width / 2, baseY + tileHeight);
-  ctx.lineTo(0, baseY + tileHeight / 2);
-  ctx.closePath();
-  ctx.fill();
-}
-
-/**
  * Generate a simple isometric building/location sprite
  */
 export function generateLocationSprite(
@@ -380,13 +356,73 @@ export function generateLocationSprite(
       ctx.closePath();
       ctx.fill();
 
-      // Window grid (3x4 grid of windows)
+      // Door at bottom center of front face
+      const doorWidth = size < 2.5 ? 8 : 16;
+      const doorHeight = size < 2.5 ? 12 : 14;
+      const doorX = width / 2 - doorWidth / 2;
+      const doorY = buildingY + buildingHeight - doorHeight;
+
+      ctx.fillStyle = '#64748b'; // Gray metal/glass door
+      ctx.fillRect(doorX, doorY, doorWidth, doorHeight);
+
+      if (size >= 2.5) {
+        // Door frame for double doors (top, left, right - no bottom)
+        ctx.fillStyle = '#cbd5e1'; // Light gray frame
+        ctx.fillRect(doorX, doorY, doorWidth, 2); // Top
+        ctx.fillRect(doorX, doorY, 2, doorHeight); // Left
+        ctx.fillRect(doorX + doorWidth - 2, doorY, 2, doorHeight); // Right
+
+        // Door divider
+        ctx.fillRect(width / 2 - 1, doorY, 2, doorHeight);
+      }
+
+      // Window grid on FRONT FACE - split on either side of door
+      // Small (1.5x): 1x2, Medium (2.5x): 2x4, Large (4.0x): 3x6
+      const windowRows = Math.max(1, Math.min(3, Math.floor(size * 0.8)));
+      const windowColsPerSide = Math.max(1, Math.min(3, Math.floor(size * 0.75)));
+
+      const windowWidth = 6;
+      const windowHeight = 5;
+      const windowSpacingX = 10;
+      const windowSpacingY = 8;
+
+      // Calculate front face dimensions
+      const frontFaceLeft = width / 4;
+      const frontFaceWidth = width / 2;
+
+      // Start windows from top, stop above door
+      const startY = buildingY + 6;
+      const maxY = doorY - 4; // Stop 4px above door
+
       ctx.fillStyle = '#dbeafe'; // Light blue windows
-      for (let row = 0; row < 4; row++) {
-        for (let col = 0; col < 2; col++) {
-          const winX = width / 4 + 6 + col * 10;
-          const winY = buildingY + 6 + row * 8;
-          ctx.fillRect(winX, winY, 6, 5);
+
+      // Left side windows
+      const leftSideEnd = doorX - 6; // 6px gap from door
+      const leftStartX = frontFaceLeft + 6;
+      for (let row = 0; row < windowRows; row++) {
+        const winY = startY + row * windowSpacingY;
+        if (winY + windowHeight > maxY) break; // Stop if window would overlap door area
+
+        for (let col = 0; col < windowColsPerSide; col++) {
+          const winX = leftStartX + col * windowSpacingX;
+          if (winX + windowWidth <= leftSideEnd) {
+            ctx.fillRect(winX, winY, windowWidth, windowHeight);
+          }
+        }
+      }
+
+      // Right side windows
+      const rightSideStart = doorX + doorWidth + 6; // 6px gap from door
+      const rightStartX = rightSideStart;
+      for (let row = 0; row < windowRows; row++) {
+        const winY = startY + row * windowSpacingY;
+        if (winY + windowHeight > maxY) break; // Stop if window would overlap door area
+
+        for (let col = 0; col < windowColsPerSide; col++) {
+          const winX = rightStartX + col * windowSpacingX;
+          if (winX + windowWidth <= frontFaceLeft + frontFaceWidth - 6) {
+            ctx.fillRect(winX, winY, windowWidth, windowHeight);
+          }
         }
       }
 
@@ -458,21 +494,108 @@ export function generateLocationSprite(
       ctx.closePath();
       ctx.fill();
 
-      // Windows on main building
+      // Doors on all three buildings
+      ctx.fillStyle = '#64748b'; // Gray metal/glass door
+
+      // Main building door (center)
+      const mainDoorWidth = size < 2.5 ? 8 : 16;
+      const mainDoorHeight = size < 2.5 ? 12 : 14;
+      const mainDoorX = width / 2 - mainDoorWidth / 2;
+      const mainDoorY = buildingY + buildingHeight - mainDoorHeight;
+      ctx.fillRect(mainDoorX, mainDoorY, mainDoorWidth, mainDoorHeight);
+
+      if (size >= 2.5) {
+        // Door frame for double doors (top, left, right - no bottom)
+        ctx.fillStyle = '#cbd5e1'; // Light gray frame
+        ctx.fillRect(mainDoorX, mainDoorY, mainDoorWidth, 2); // Top
+        ctx.fillRect(mainDoorX, mainDoorY, 2, mainDoorHeight); // Left
+        ctx.fillRect(mainDoorX + mainDoorWidth - 2, mainDoorY, 2, mainDoorHeight); // Right
+
+        // Door divider
+        ctx.fillRect(width / 2 - 1, mainDoorY, 2, mainDoorHeight);
+      }
+
+      // Windows on main building FRONT FACE - split on either side of door
+      // Small (1.5x): 1x3, Medium (2.5x): 2x5, Large (4.0x): 3x8
+      const mainWindowRows = Math.max(1, Math.min(3, Math.floor(size * 0.8)));
+      const mainWindowColsPerSide = Math.max(1, Math.min(4, Math.floor(size * 1.0)));
+
+      const mainWindowWidth = 5;
+      const mainWindowHeight = 4;
+      const mainWindowSpacingX = 8;
+      const mainWindowSpacingY = 7;
+
+      // Main building front face: width/3 to 2*width/3
+      const mainFaceLeft = width / 3;
+      const mainFaceWidth = width / 3;
+
+      const mainStartY = buildingY + 4;
+      const mainMaxY = mainDoorY - 4; // Stop 4px above door
+
       ctx.fillStyle = '#ede9fe'; // Light purple windows
-      for (let row = 0; row < 5; row++) {
-        for (let col = 0; col < 2; col++) {
-          const winX = width / 3 + 4 + col * 8;
-          const winY = buildingY + 4 + row * 7;
-          ctx.fillRect(winX, winY, 5, 4);
+
+      // Left side windows on main building
+      const mainLeftEnd = mainDoorX - 6;
+      const mainLeftStartX = mainFaceLeft + 4;
+      for (let row = 0; row < mainWindowRows; row++) {
+        const winY = mainStartY + row * mainWindowSpacingY;
+        if (winY + mainWindowHeight > mainMaxY) break;
+
+        for (let col = 0; col < mainWindowColsPerSide; col++) {
+          const winX = mainLeftStartX + col * mainWindowSpacingX;
+          if (winX + mainWindowWidth <= mainLeftEnd) {
+            ctx.fillRect(winX, winY, mainWindowWidth, mainWindowHeight);
+          }
         }
       }
 
-      // Windows on left building
-      for (let row = 0; row < 3; row++) {
-        const winX = width / 6 + 3;
-        const winY = leftY + 4 + row * 8;
-        ctx.fillRect(winX, winY, 4, 4);
+      // Right side windows on main building
+      const mainRightStart = mainDoorX + mainDoorWidth + 6;
+      for (let row = 0; row < mainWindowRows; row++) {
+        const winY = mainStartY + row * mainWindowSpacingY;
+        if (winY + mainWindowHeight > mainMaxY) break;
+
+        for (let col = 0; col < mainWindowColsPerSide; col++) {
+          const winX = mainRightStart + col * mainWindowSpacingX;
+          if (winX + mainWindowWidth <= mainFaceLeft + mainFaceWidth - 4) {
+            ctx.fillRect(winX, winY, mainWindowWidth, mainWindowHeight);
+          }
+        }
+      }
+
+      // Left building door and window
+      ctx.fillStyle = '#64748b'; // Gray metal/glass door
+      const leftFaceWidth = width / 6;
+      const leftDoorWidth = 6;
+      const leftDoorHeight = 10;
+      const leftDoorX = width / 6 + leftFaceWidth / 2 - leftDoorWidth / 2;
+      const leftDoorY = leftY + leftHeight - leftDoorHeight;
+      ctx.fillRect(leftDoorX, leftDoorY, leftDoorWidth, leftDoorHeight);
+
+      // Single window above door on left building
+      ctx.fillStyle = '#ede9fe';
+      const leftWindowWidth = 4;
+      const leftWindowX = width / 6 + leftFaceWidth / 2 - leftWindowWidth / 2;
+      const leftWindowY = leftY + 6;
+      if (leftWindowY + 4 < leftDoorY - 4) {
+        ctx.fillRect(leftWindowX, leftWindowY, leftWindowWidth, 4);
+      }
+
+      // Right building door and window
+      ctx.fillStyle = '#64748b'; // Gray metal/glass door
+      const rightDoorWidth = 6;
+      const rightDoorHeight = 10;
+      const rightDoorX = rightX + width / 6 / 2 - rightDoorWidth / 2;
+      const rightDoorY = rightY + rightHeight - rightDoorHeight;
+      ctx.fillRect(rightDoorX, rightDoorY, rightDoorWidth, rightDoorHeight);
+
+      // Single window above door on right building
+      ctx.fillStyle = '#ede9fe';
+      const rightWindowWidth = 4;
+      const rightWindowX = rightX + width / 6 / 2 - rightWindowWidth / 2;
+      const rightWindowY = rightY + 6;
+      if (rightWindowY + 4 < rightDoorY - 4) {
+        ctx.fillRect(rightWindowX, rightWindowY, rightWindowWidth, 4);
       }
 
       // Connecting bridges/walkways between buildings
@@ -619,22 +742,52 @@ export async function generateSpriteAtlas(
   const locationTypes: LocationNodeType[] = ['castle', 'fortress', 'tower', 'house', 'pipe', 'git-repo', 'monorepo'];
   const themes: BiomeTheme[] = ['grass', 'desert', 'water', 'volcano', 'ice'];
 
+  // Size tiers for window variation (1.5x to 4.0x in 0.5x increments)
+  const sizeTiers = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
+
   for (const type of locationTypes) {
     for (const theme of themes) {
-      const spriteKey = `location-${type}-${theme}`;
+      // Generate sprites at different size tiers for types with windows
+      if (type === 'git-repo' || type === 'monorepo') {
+        for (const sizeTier of sizeTiers) {
+          const spriteKey = `location-${type}-${theme}-${sizeTier}x`;
 
-      // Check for custom sprite first
-      if (customSprites?.[spriteKey]) {
-        const customCanvas = await loadCustomSprite(customSprites[spriteKey]);
-        if (customCanvas) {
-          atlas[spriteKey] = customCanvas;
-          continue; // Skip procedural generation
+          // Check for custom sprite first
+          if (customSprites?.[spriteKey]) {
+            const customCanvas = await loadCustomSprite(customSprites[spriteKey]);
+            if (customCanvas) {
+              atlas[spriteKey] = customCanvas;
+              continue;
+            }
+          }
+
+          // Generate with size tier for window variation
+          atlas[spriteKey] = generateLocationSprite(type, theme, sizeTier);
         }
-      }
 
-      // Fall back to procedural generation
-      const size = type === 'castle' ? 3 : type === 'monorepo' ? 3 : 2;
-      atlas[spriteKey] = generateLocationSprite(type, theme, size);
+        // Also generate default without size suffix for backwards compatibility
+        const spriteKey = `location-${type}-${theme}`;
+        if (!atlas[spriteKey]) {
+          const baseSize = type === 'monorepo' ? 3 : 2;
+          atlas[spriteKey] = generateLocationSprite(type, theme, baseSize);
+        }
+      } else {
+        // For other types, generate single sprite as before
+        const spriteKey = `location-${type}-${theme}`;
+
+        // Check for custom sprite first
+        if (customSprites?.[spriteKey]) {
+          const customCanvas = await loadCustomSprite(customSprites[spriteKey]);
+          if (customCanvas) {
+            atlas[spriteKey] = customCanvas;
+            continue;
+          }
+        }
+
+        // Fall back to procedural generation
+        const size = type === 'castle' ? 3 : 2;
+        atlas[spriteKey] = generateLocationSprite(type, theme, size);
+      }
     }
   }
 

@@ -14,7 +14,8 @@ import type {
   Tile,
   GridPoint,
 } from './types';
-import { MAX_NODES_PER_MAP } from './types';
+import { REGION_SIZE_TILES } from './types';
+import type { AgingMetrics } from '../../utils/repositoryAging';
 
 /**
  * Generic node - represents any entity (package, repo, service, etc.)
@@ -27,6 +28,8 @@ export interface GenericNode {
   // For determining visual representation
   category?: string;      // e.g., 'frontend', 'backend', 'database', 'python', 'node'
   importance?: number;    // 0-100, affects building size
+  size?: number;          // Size multiplier (1.5x - 4.0x) for sprite scaling based on metrics
+  aging?: AgingMetrics;   // Aging metrics for weathering and color fade
 
   // Connections to other nodes
   dependencies?: string[];    // IDs of nodes this depends on
@@ -171,67 +174,91 @@ function getNodeSize(type: LocationNodeType): number {
 }
 
 /**
- * Layout nodes in a circular pattern
+ * Calculate priority score for node layout ordering
+ * Higher priority = better maintained (fresher) + larger size
+ */
+function calculateLayoutPriority(node: GenericNode): number {
+  let priority = 0;
+
+  // Size contribution (0-40 points, based on size 1.5x-4.0x)
+  if (node.size) {
+    priority += ((node.size - 1.5) / 2.5) * 40; // Normalize 1.5-4.0 to 0-40
+  } else {
+    priority += 20; // Default mid-range
+  }
+
+  // Maintenance contribution (0-60 points, based on aging)
+  if (node.aging) {
+    // Fresh repos get high score, old repos get low score
+    const freshnessScore = (1 - node.aging.colorFade) * 60; // Invert fade: 0 fade = 60 points, 0.7 fade = 18 points
+    priority += freshnessScore;
+  } else {
+    priority += 60; // No aging data = assume fresh
+  }
+
+  // Root nodes get bonus priority (always appear first)
+  if (node.isRoot) {
+    priority += 100;
+  }
+
+  return priority;
+}
+
+/**
+ * Get the highlight radius for a node in tiles
+ * HOVER_SIZE = 4 * sizeMultiplier, radius is half of that
+ */
+function getNodeHighlightRadius(node: GenericNode): number {
+  const sizeMultiplier = node.size || 1.0;
+  const hoverSize = 4 * sizeMultiplier; // Highlight diameter in tiles
+  return hoverSize / 2; // Highlight radius
+}
+
+/**
+ * Layout nodes using flow layout (left-to-right, top-to-bottom)
+ * Places nodes sequentially, wrapping to next row when needed
+ * Each node is positioned based on its actual size (highlight radius)
  */
 function layoutNodes(nodes: GenericNode[]): Map<string, GridPoint> {
   const positions = new Map<string, GridPoint>();
 
-  // Find root node
-  const rootNode = nodes.find((n) => n.isRoot);
+  if (nodes.length === 0) return positions;
 
-  if (!rootNode) {
-    // No root, arrange in grid
-    const cols = Math.ceil(Math.sqrt(nodes.length));
-    nodes.forEach((node, index) => {
-      const x = (index % cols) * 4;
-      const y = Math.floor(index / cols) * 4;
-      positions.set(node.id, { gridX: x, gridY: y });
-    });
-    return positions;
-  }
+  // Sort nodes by priority (descending)
+  const sortedNodes = [...nodes].sort((a, b) => {
+    return calculateLayoutPriority(b) - calculateLayoutPriority(a);
+  });
 
-  // Place root in center
-  const centerX = 10;
-  const centerY = 10;
-  positions.set(rootNode.id, { gridX: centerX, gridY: centerY });
+  let currentX = 1; // Current X position (left edge + padding)
+  let currentY = 1; // Current Y position (top edge + padding)
+  let rowHeight = 0; // Height of tallest node in current row
+  const padding = 1; // Space between nodes
+  const maxWidth = 100; // Max width before wrapping (will be constrained by region bounds)
 
-  // Get dependencies of root
-  const rootDeps = new Set([
-    ...(rootNode.dependencies || []),
-    ...(rootNode.devDependencies || []),
-  ]);
+  for (const node of sortedNodes) {
+    const nodeRadius = getNodeHighlightRadius(node);
+    const nodeDiameter = nodeRadius * 2;
 
-  // Separate into direct dependencies and others
-  const directDeps: GenericNode[] = [];
-  const others: GenericNode[] = [];
-
-  nodes.forEach((node) => {
-    if (node.id === rootNode.id) return;
-
-    if (rootDeps.has(node.id)) {
-      directDeps.push(node);
-    } else {
-      others.push(node);
+    // Check if we need to wrap to next row
+    if (currentX + nodeRadius > maxWidth && currentX > 1) {
+      // Wrap to next row
+      currentX = 1;
+      currentY += rowHeight + padding;
+      rowHeight = 0;
     }
-  });
 
-  // Arrange direct dependencies in circle
-  const radius = 5;
-  directDeps.forEach((node, index) => {
-    const angle = (index / directDeps.length) * Math.PI * 2;
-    const x = centerX + Math.cos(angle) * radius;
-    const y = centerY + Math.sin(angle) * radius;
-    positions.set(node.id, { gridX: Math.round(x), gridY: Math.round(y) });
-  });
+    // Place node at center of its highlight circle
+    positions.set(node.id, {
+      gridX: currentX + nodeRadius,
+      gridY: currentY + nodeRadius,
+    });
 
-  // Arrange others in outer ring
-  const outerRadius = 9;
-  others.forEach((node, index) => {
-    const angle = (index / others.length) * Math.PI * 2;
-    const x = centerX + Math.cos(angle) * outerRadius;
-    const y = centerY + Math.sin(angle) * outerRadius;
-    positions.set(node.id, { gridX: Math.round(x), gridY: Math.round(y) });
-  });
+    // Move cursor right by node diameter + padding
+    currentX += nodeDiameter + padding;
+
+    // Track tallest node in this row
+    rowHeight = Math.max(rowHeight, nodeDiameter);
+  }
 
   return positions;
 }
@@ -339,6 +366,14 @@ export function nodesToOverworldMap(
   // Build node ID set for dependency checking
   const nodeIds = new Set(nodes.map((n) => n.id));
 
+  // Helper to round size to nearest tier for sprite selection
+  const roundToNearestTier = (size: number): number => {
+    const tiers = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
+    return tiers.reduce((prev, curr) =>
+      Math.abs(curr - size) < Math.abs(prev - size) ? curr : prev
+    );
+  };
+
   // Create location nodes
   const locationNodes: LocationNode[] = nodes.map((node) => {
     const pos = positions.get(node.id) || { gridX: 0, gridY: 0 };
@@ -347,23 +382,42 @@ export function nodesToOverworldMap(
     const nodeType = customNodeTypeMapper
       ? customNodeTypeMapper(node)
       : determineNodeType(node, isRoot);
-    const size = getNodeSize(nodeType);
+    // Use node.size if provided (from metrics), otherwise fall back to type-based size
+    const size = node.size ?? getNodeSize(nodeType);
     const color = customColorMapper
       ? customColorMapper(node)
       : getCategoryColor(node.category, isRoot);
+
+    // Generate sprite key with size tier for types that have window variation
+    let spriteKey: string;
+    if ((nodeType === 'git-repo' || nodeType === 'monorepo') && node.size) {
+      const sizeTier = roundToNearestTier(node.size);
+      spriteKey = `location-${nodeType}-${theme}-${sizeTier}x`;
+    } else {
+      spriteKey = `location-${nodeType}-${theme}`;
+    }
+
+    // Validate packageType to ensure it's one of the allowed values
+    const validPackageTypes: Array<'node' | 'python' | 'cargo' | 'go' | 'package'> = [
+      'node', 'python', 'cargo', 'go', 'package'
+    ];
+    const packageType = validPackageTypes.includes(node.category as any)
+      ? (node.category as 'node' | 'python' | 'cargo' | 'go' | 'package')
+      : 'package';
 
     return {
       id: node.id,
       gridX: pos.gridX,
       gridY: pos.gridY,
       type: nodeType,
-      sprite: `location-${nodeType}-${theme}`,
+      sprite: spriteKey,
       size,
       theme,
       label: node.name,
-      packageType: (node.category as any) || 'package', // Keep for backwards compat
+      packageType, // Keep for backwards compat
       isRoot,
       color,
+      aging: node.aging, // Pass through aging for weathering effects
     };
   });
 
@@ -467,8 +521,6 @@ export function nodesToOverworldMap(
   const mapHeight = squareSize;
 
   // Offset all positions to center content in square region
-  const contentWidth = calculatedWidth - mapPadding * 2;
-  const contentHeight = calculatedHeight - mapPadding * 2;
   const extraHorizontalSpace = Math.floor((squareSize - calculatedWidth) / 2);
   const extraVerticalSpace = Math.floor((squareSize - calculatedHeight) / 2);
 
@@ -513,47 +565,63 @@ export function nodesToOverworldMap(
 }
 
 /**
- * Split nodes into multiple maps if needed
+ * Split nodes into regions using flow layout
+ * Places nodes left-to-right, wrapping to next row when full
+ * Creates new region when current region runs out of vertical space
  */
-function splitNodesIntoGroups(
+function splitNodesIntoRegions(
   nodes: GenericNode[],
-  maxPerMap: number
+  regionSize: number // Size in tiles (e.g., 30x30)
 ): GenericNode[][] {
-  if (nodes.length <= maxPerMap) {
-    return [nodes];
-  }
+  if (nodes.length === 0) return [];
+
+  // Sort by priority first
+  const sortedNodes = [...nodes].sort((a, b) => {
+    return calculateLayoutPriority(b) - calculateLayoutPriority(a);
+  });
 
   const groups: GenericNode[][] = [];
-  const rootNode = nodes.find((n) => n.isRoot);
+  let currentGroup: GenericNode[] = [];
+  let currentX = 1; // Current horizontal position in region
+  let currentY = 1; // Current vertical position in region
+  let rowHeight = 0; // Height of tallest node in current row
+  const padding = 1; // Padding between nodes
 
-  if (rootNode) {
-    const rootDeps = new Set([
-      ...(rootNode.dependencies || []),
-      ...(rootNode.devDependencies || []),
-    ]);
+  for (const node of sortedNodes) {
+    const nodeRadius = getNodeHighlightRadius(node);
+    const nodeDiameter = nodeRadius * 2;
 
-    const group1: GenericNode[] = [rootNode];
-    const remaining: GenericNode[] = [];
+    // Check if node fits horizontally in current row
+    const nodeRight = currentX + nodeRadius;
+    if (nodeRight > regionSize - 1) {
+      // Move to next row
+      currentX = 1;
+      currentY += rowHeight + padding;
+      rowHeight = 0;
+    }
 
-    nodes.forEach((node) => {
-      if (node.id === rootNode.id) return;
-
-      if (rootDeps.has(node.id) && group1.length < maxPerMap) {
-        group1.push(node);
-      } else {
-        remaining.push(node);
+    // Check if node fits vertically in current region
+    const nodeBottom = currentY + nodeRadius;
+    if (nodeBottom > regionSize - 1) {
+      // Start new region
+      if (currentGroup.length > 0) {
+        groups.push(currentGroup);
       }
-    });
-
-    groups.push(group1);
-
-    for (let i = 0; i < remaining.length; i += maxPerMap) {
-      groups.push(remaining.slice(i, i + maxPerMap));
+      currentGroup = [];
+      currentX = 1;
+      currentY = 1;
+      rowHeight = 0;
     }
-  } else {
-    for (let i = 0; i < nodes.length; i += maxPerMap) {
-      groups.push(nodes.slice(i, i + maxPerMap));
-    }
+
+    // Place node
+    currentGroup.push(node);
+    currentX += nodeDiameter + padding; // Move cursor right
+    rowHeight = Math.max(rowHeight, nodeDiameter); // Track row height
+  }
+
+  // Add final group
+  if (currentGroup.length > 0) {
+    groups.push(currentGroup);
   }
 
   return groups;
@@ -567,8 +635,9 @@ export function nodesToUnifiedOverworldMap(
   nodes: GenericNode[],
   options: GenericMapperOptions = {}
 ): OverworldMap {
-  // Split nodes into regions
-  const nodeGroups = splitNodesIntoGroups(nodes, MAX_NODES_PER_MAP);
+  // Split nodes into regions based on spatial constraints
+  // Regions are fixed-size square areas (50x50 tiles)
+  const nodeGroups = splitNodesIntoRegions(nodes, REGION_SIZE_TILES);
 
   if (nodeGroups.length === 1) {
     // Single region - just use regular map
@@ -590,14 +659,11 @@ export function nodesToUnifiedOverworldMap(
   }
 
   // Multiple regions - create unified map with 2D layout
-  const REGION_SPACING = 5; // Tiles between regions
+  const REGION_SPACING = 5; // Tiles between regions (for water bridges)
 
-  // First pass: generate all regions to find the largest square size needed
+  // All regions are the same fixed square size (defined above)
+  // Generate individual maps for each region
   const regionMaps = nodeGroups.map((group) => nodesToOverworldMap(group, options));
-  const maxRegionSize = Math.max(...regionMaps.map((rm) => Math.max(rm.width, rm.height)));
-
-  // Make all regions the same square size - ensure it's a whole number
-  const REGION_SIZE = Math.ceil(maxRegionSize);
 
   // Determine region layout (default: horizontal row)
   const regionLayout = options.regionLayout || {
@@ -635,12 +701,12 @@ export function nodesToUnifiedOverworldMap(
     const gridPos = gridPositions[index];
 
     // Calculate screen position for this grid cell
-    const regionX = gridPos.col * (REGION_SIZE + REGION_SPACING);
-    const regionY = gridPos.row * (REGION_SIZE + REGION_SPACING);
+    const regionX = gridPos.col * (REGION_SIZE_TILES + REGION_SPACING);
+    const regionY = gridPos.row * (REGION_SIZE_TILES + REGION_SPACING);
 
     // Center this region's content within the uniform square - use floor to ensure whole tiles
-    const xOffset = regionX + Math.floor((REGION_SIZE - regionMap.width) / 2);
-    const yOffset = regionY + Math.floor((REGION_SIZE - regionMap.height) / 2);
+    const xOffset = regionX + Math.floor((REGION_SIZE_TILES - regionMap.width) / 2);
+    const yOffset = regionY + Math.floor((REGION_SIZE_TILES - regionMap.height) / 2);
 
     // Offset all nodes in this region
     const offsetNodes = regionMap.nodes.map((node) => ({
@@ -670,11 +736,11 @@ export function nodesToUnifiedOverworldMap(
       bounds: {
         x: regionX,
         y: regionY,
-        width: REGION_SIZE,
-        height: REGION_SIZE,
+        width: REGION_SIZE_TILES,
+        height: REGION_SIZE_TILES,
       },
-      centerX: regionX + REGION_SIZE / 2,
-      centerY: regionY + REGION_SIZE / 2,
+      centerX: regionX + REGION_SIZE_TILES / 2,
+      centerY: regionY + REGION_SIZE_TILES / 2,
       nodeIds: offsetNodes.map((n) => n.id),
     });
 
@@ -685,7 +751,7 @@ export function nodesToUnifiedOverworldMap(
         (p) => p.row === gridPos.row && p.col === gridPos.col + 1
       );
       if (nextRegionExists) {
-        const bridgeX = regionX + REGION_SIZE + Math.floor(REGION_SPACING / 2);
+        const bridgeX = regionX + REGION_SIZE_TILES + Math.floor(REGION_SPACING / 2);
         horizontalBridges.push(bridgeX);
       }
     }
@@ -696,15 +762,15 @@ export function nodesToUnifiedOverworldMap(
         (p) => p.row === gridPos.row + 1 && p.col === gridPos.col
       );
       if (belowRegionExists) {
-        const bridgeY = regionY + REGION_SIZE + Math.floor(REGION_SPACING / 2);
+        const bridgeY = regionY + REGION_SIZE_TILES + Math.floor(REGION_SPACING / 2);
         verticalBridges.push(bridgeY);
       }
     }
   });
 
   // Calculate total map dimensions
-  const totalWidth = regionLayout.columns * REGION_SIZE + (regionLayout.columns - 1) * REGION_SPACING;
-  const totalHeight = regionLayout.rows * REGION_SIZE + (regionLayout.rows - 1) * REGION_SPACING;
+  const totalWidth = regionLayout.columns * REGION_SIZE_TILES + (regionLayout.columns - 1) * REGION_SPACING;
+  const totalHeight = regionLayout.rows * REGION_SIZE_TILES + (regionLayout.rows - 1) * REGION_SPACING;
 
   // Generate unified terrain with bridges
   const tiles = generateTerrain(totalWidth, totalHeight, allNodes, allPaths, horizontalBridges, verticalBridges);
@@ -730,7 +796,7 @@ export function nodesToOverworldMapCollection(
   nodes: GenericNode[],
   options: GenericMapperOptions = {}
 ): OverworldMapCollection {
-  const nodeGroups = splitNodesIntoGroups(nodes, MAX_NODES_PER_MAP);
+  const nodeGroups = splitNodesIntoRegions(nodes, REGION_SIZE_TILES);
 
   const maps: OverworldMap[] = nodeGroups.map((group, index) => {
     const map = nodesToOverworldMap(group, options);

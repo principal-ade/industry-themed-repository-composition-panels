@@ -38,8 +38,8 @@ export const IsometricGridTest: React.FC<IsometricGridTestProps> = ({
     const init = async () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      const worldWidth = gridWidth * 32;
-      const worldHeight = gridHeight * 16;
+      const worldWidth = gridWidth * 64;
+      const worldHeight = gridHeight * 32;
 
       // 1. Create canvas with viewport
       const canvas = new IsometricPixiCanvas({
@@ -200,8 +200,8 @@ export const IsometricGridTest: React.FC<IsometricGridTestProps> = ({
       const renderer = new IsometricRenderer({
         viewport,
         atlas,
-        tileWidth: 32,
-        tileHeight: 16,
+        tileWidth: 64,  // Must match ISO_TILE_WIDTH from isometricUtils
+        tileHeight: 32, // Must match ISO_TILE_HEIGHT from isometricUtils
         gridColor: 0x333333,
         regionColor: 0xff6600,
       });
@@ -212,14 +212,20 @@ export const IsometricGridTest: React.FC<IsometricGridTestProps> = ({
       // 5. Calculate grid center and position all containers
       const centerGridX = gridWidth / 2;
       const centerGridY = gridHeight / 2;
-      const centerScreenX = (centerGridX - centerGridY) * 16;
-      const centerScreenY = (centerGridX + centerGridY) * 8;
+      const centerScreenX = (centerGridX - centerGridY) * 32;  // ISO_TILE_WIDTH / 2
+      const centerScreenY = (centerGridX + centerGridY) * 16;  // ISO_TILE_HEIGHT / 2
       const offsetX = worldWidth / 2 - centerScreenX;
       const offsetY = worldHeight / 2 - centerScreenY;
 
-      // Position all scene containers
+      // Position all scene containers with same offset
       scene.background.x = offsetX;
       scene.background.y = offsetY;
+      scene.tiles.x = offsetX;
+      scene.tiles.y = offsetY;
+      scene.bridges.x = offsetX;
+      scene.bridges.y = offsetY;
+      scene.paths.x = offsetX;
+      scene.paths.y = offsetY;
       scene.nodes.x = offsetX;
       scene.nodes.y = offsetY;
 
@@ -235,12 +241,21 @@ export const IsometricGridTest: React.FC<IsometricGridTestProps> = ({
 
       // 7. Create interaction manager if sprite is shown
       if (showSprite && scene.spriteInstances.size > 0) {
+        // Sprite boundary is 4 × spriteSize tiles total, extending 2 × spriteSize in each direction
+        const boundaryRadius = 2 * spriteSize; // For size=2, this is 4 tiles
+
         const interaction = new IsometricInteractionManager(
           {
             viewport,
             worldContainer: viewport,
-            tileWidth: 32,
-            tileHeight: 16,
+            tileWidth: 64,  // Must match ISO_TILE_WIDTH from isometricUtils
+            tileHeight: 32, // Must match ISO_TILE_HEIGHT from isometricUtils
+            mapBounds: {
+              minX: boundaryRadius,
+              minY: boundaryRadius,
+              maxX: gridWidth - boundaryRadius,  // Try without the -1
+              maxY: gridHeight - boundaryRadius,
+            },
           },
           {
             onDragStart: (nodeId) => {

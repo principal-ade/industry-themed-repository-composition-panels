@@ -20,7 +20,7 @@ import type { RegionLayout } from './overworld-map/genericMapper';
 const createMockRepository = (
   name: string,
   theme?: string,
-  metrics?: { fileCount?: number; lineCount?: number }
+  metrics?: { fileCount?: number; lineCount?: number; commitCount?: number; contributors?: number; lastEditedAt?: string }
 ): AlexandriaEntryWithMetrics => ({
   name,
   registeredAt: new Date().toISOString(),
@@ -116,18 +116,28 @@ const archiveCollection: Collection = {
   updatedAt: Date.now() - 90 * 24 * 60 * 60 * 1000,
 };
 
-// Example repositories
+// Example repositories with varying metrics for size and aging testing
+const now = Date.now();
+const daysAgo = (days: number) => new Date(now - days * 24 * 60 * 60 * 1000).toISOString();
+
 const repositories: AlexandriaEntryWithMetrics[] = [
-  createMockRepository('web-ade', 'frontend'),
-  createMockRepository('mobile-app', 'frontend'),
-  createMockRepository('backend-api', 'backend'),
-  createMockRepository('auth-service', 'backend'),
-  createMockRepository('database', 'backend'),
-  createMockRepository('shared-ui', 'library'),
-  createMockRepository('api-client', 'library'),
-  createMockRepository('shared-types', 'library'),
-  createMockRepository('cli-tool', 'tool'),
-  createMockRepository('docs', 'frontend'),
+  // Fresh repos (0-3 months) - vibrant, no weathering
+  createMockRepository('web-ade', 'frontend', { fileCount: 5000, lineCount: 250000, commitCount: 1500, lastEditedAt: daysAgo(7) }), // Large, edited 1 week ago
+  createMockRepository('mobile-app', 'frontend', { fileCount: 2000, lineCount: 100000, commitCount: 800, lastEditedAt: daysAgo(30) }), // Medium, edited 1 month ago
+
+  // Recent repos (3-12 months) - slight fading, light weathering
+  createMockRepository('backend-api', 'backend', { fileCount: 3000, lineCount: 150000, commitCount: 1200, lastEditedAt: daysAgo(180) }), // Medium-large, edited 6 months ago
+  createMockRepository('auth-service', 'backend', { fileCount: 500, lineCount: 25000, commitCount: 300, lastEditedAt: daysAgo(300) }), // Small-medium, edited 10 months ago
+
+  // Old repos (1+ year) - significant fading, heavy weathering
+  createMockRepository('database', 'backend', { fileCount: 200, lineCount: 10000, commitCount: 150, lastEditedAt: daysAgo(540) }), // Small, edited 18 months ago
+  createMockRepository('shared-ui', 'library', { fileCount: 800, lineCount: 40000, commitCount: 400, lastEditedAt: daysAgo(730) }), // Medium, edited 2 years ago
+
+  // Mixed ages for variety
+  createMockRepository('api-client', 'library', { fileCount: 150, lineCount: 8000, commitCount: 100, lastEditedAt: daysAgo(90) }), // Small, edited 3 months ago (fresh)
+  createMockRepository('shared-types', 'library', { fileCount: 50, lineCount: 2000, commitCount: 50, lastEditedAt: daysAgo(450) }), // Tiny, edited 15 months ago (old)
+  createMockRepository('cli-tool', 'tool', { fileCount: 300, lineCount: 15000, commitCount: 200, lastEditedAt: daysAgo(200) }), // Small, edited 6.5 months ago (recent)
+  createMockRepository('docs', 'frontend', { fileCount: 100, lineCount: 5000, commitCount: 80, lastEditedAt: daysAgo(600) }), // Tiny, edited 20 months ago (old)
 ];
 
 /**
@@ -534,10 +544,9 @@ export const MultipleRegionsGridLayout: Story = {
  * Tests dropping repository projects onto the collection map.
  * This demonstrates the drop zone integration for adding projects from local projects panel.
  */
-export const DragDropDemo: Story = {
-  render: () => {
-    const [droppedProjects, setDroppedProjects] = useState<string[]>([]);
-    const [memberships, setMemberships] = useState<CollectionMembership[]>([
+const DragDropDemoComponent = () => {
+  const [droppedProjects, setDroppedProjects] = useState<string[]>([]);
+  const [memberships, setMemberships] = useState<CollectionMembership[]>([
       {
         repositoryId: 'web-ade',
         collectionId: 'active-projects',
@@ -651,5 +660,8 @@ export const DragDropDemo: Story = {
         </div>
       </div>
     );
-  },
+};
+
+export const DragDropDemo: Story = {
+  render: () => <DragDropDemoComponent />,
 };

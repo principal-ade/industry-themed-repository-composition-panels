@@ -7,6 +7,7 @@ import type { PanelComponentProps } from '../types';
 import type { PackageLayer } from '../types/composition';
 import { OverworldMapPanelContent } from './overworld-map/OverworldMapPanel';
 import type { RegionLayout } from './overworld-map/genericMapper';
+import type { AgingMetrics } from '../utils/repositoryAging';
 
 /**
  * Represents a git project/repository
@@ -26,6 +27,12 @@ export interface GitProject {
 
   /** Importance level 0-100 (affects visual size) */
   importance?: number;
+
+  /** Size multiplier for sprite (1.5x - 4.0x, based on repository metrics) */
+  size?: number;
+
+  /** Aging metrics for weathering and color fade (based on lastEditedAt) */
+  aging?: AgingMetrics;
 
   /** Other projects this one depends on (by id) */
   dependencies?: string[];
@@ -73,6 +80,9 @@ export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
       id: project.id,
       name: project.name,
       path: project.path,
+      size: project.size, // Pass through size for metrics-based scaling
+      importance: project.importance, // Pass through importance
+      aging: project.aging, // Pass through aging for weathering effects
       packageData: {
         name: project.name,
         version: '1.0.0',

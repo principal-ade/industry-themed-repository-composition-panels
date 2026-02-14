@@ -20,9 +20,9 @@ import type {
 } from '../types';
 import { gridToScreen, getIsometricZIndex } from '../isometricUtils';
 
-// Isometric tile constants (matching IsometricGridTest)
-const ISO_TILE_WIDTH = 32;
-const ISO_TILE_HEIGHT = 16;
+// Isometric tile constants (must match isometricUtils.ts)
+const ISO_TILE_WIDTH = 64;
+const ISO_TILE_HEIGHT = 32;
 
 export interface SpriteInstance {
   sprite: Sprite;

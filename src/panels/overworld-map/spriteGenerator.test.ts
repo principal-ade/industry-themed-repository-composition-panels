@@ -8,7 +8,7 @@ import {
   generatePathTile,
   generateLocationSprite,
   generateDecorativeSprite,
-  generateSpriteAtlas,
+  generateSpriteAtlasSync,
   BIOME_COLORS,
 } from './spriteGenerator';
 import { ISO_TILE_WIDTH, ISO_TILE_HEIGHT } from './isometricUtils';
@@ -334,7 +334,7 @@ describe('spriteGenerator', () => {
     test('all atlas entries are HTMLCanvasElement instances', () => {
       const atlas = generateSpriteAtlasSync();
 
-      for (const [key, canvas] of Object.entries(atlas)) {
+      for (const [_key, canvas] of Object.entries(atlas)) {
         expect(canvas).toBeInstanceOf(HTMLCanvasElement);
       }
     });

@@ -23,6 +23,13 @@ export interface IsometricInteractionConfig {
   regionSize?: number;
   highlightColor?: number;
   intersectionColor?: number;
+  containerOffset?: { x: number; y: number };
+  mapBounds?: {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  };
 }
 
 export interface IsometricInteractionEvents {
@@ -52,12 +59,14 @@ export class IsometricInteractionManager {
   private dragState: DragState | null = null;
   private hoveredNodeId: string | null = null;
   private draggingEnabled = true;
+  private mapBounds: { minX: number; minY: number; maxX: number; maxY: number } | null = null;
 
   constructor(config: IsometricInteractionConfig, events: IsometricInteractionEvents = {}) {
     this.viewport = config.viewport;
     this.worldContainer = config.worldContainer;
     this.config = config;
     this.events = events;
+    this.mapBounds = config.mapBounds || null;
   }
 
   /**
@@ -149,6 +158,27 @@ export class IsometricInteractionManager {
   }
 
   /**
+   * Clamp grid position to map bounds
+   */
+  private clampToMapBounds(gridX: number, gridY: number): { gridX: number; gridY: number } {
+    if (!this.mapBounds) {
+      console.log('No map bounds set');
+      return { gridX, gridY };
+    }
+
+    const clamped = {
+      gridX: Math.max(this.mapBounds.minX, Math.min(this.mapBounds.maxX, gridX)),
+      gridY: Math.max(this.mapBounds.minY, Math.min(this.mapBounds.maxY, gridY)),
+    };
+
+    if (clamped.gridX !== gridX || clamped.gridY !== gridY) {
+      console.log('Clamping position:', { gridX, gridY }, 'to:', clamped, 'bounds:', this.mapBounds);
+    }
+
+    return clamped;
+  }
+
+  /**
    * Handle global pointer move - update drag
    * Extracted from IsometricGridTest.tsx lines 192-211
    */
@@ -157,22 +187,34 @@ export class IsometricInteractionManager {
 
     event.stopPropagation();
 
-    const pos = event.global;
-    const deltaX = pos.x - this.dragState.dragStartPos.x;
-    const deltaY = pos.y - this.dragState.dragStartPos.y;
+    // Convert screen coordinates to world coordinates (relative to worldContainer)
+    const worldPos = this.viewport.toWorld(event.global.x, event.global.y);
+    const worldStartPos = this.viewport.toWorld(
+      this.dragState.dragStartPos.x,
+      this.dragState.dragStartPos.y
+    );
 
-    // Convert screen delta to grid delta (reverse isometric transformation)
+    // Account for worldContainer offset
+    const containerOffsetX = this.worldContainer.x || 0;
+    const containerOffsetY = this.worldContainer.y || 0;
+
+    const deltaX = (worldPos.x - worldStartPos.x);
+    const deltaY = (worldPos.y - worldStartPos.y);
+
+    // Convert world delta to grid delta (reverse isometric transformation)
     const tileWidth = this.config.tileWidth ?? 32;
     const tileHeight = this.config.tileHeight ?? 16;
-    const scale = this.viewport.scale.x;
 
-    const deltaGridX =
-      (deltaX / (tileWidth / 2) + deltaY / (tileHeight / 2)) / 2 / scale;
-    const deltaGridY =
-      (deltaY / (tileHeight / 2) - deltaX / (tileWidth / 2)) / 2 / scale;
+    const deltaGridX = (deltaX / (tileWidth / 2) + deltaY / (tileHeight / 2)) / 2;
+    const deltaGridY = (deltaY / (tileHeight / 2) - deltaX / (tileWidth / 2)) / 2;
 
-    const newGridX = this.dragState.spriteStartPos.gridX + deltaGridX;
-    const newGridY = this.dragState.spriteStartPos.gridY + deltaGridY;
+    let newGridX = this.dragState.spriteStartPos.gridX + deltaGridX;
+    let newGridY = this.dragState.spriteStartPos.gridY + deltaGridY;
+
+    // Clamp to map bounds
+    const clamped = this.clampToMapBounds(newGridX, newGridY);
+    newGridX = clamped.gridX;
+    newGridY = clamped.gridY;
 
     // Update sprite position
     this.dragState.instance.update(newGridX, newGridY);
@@ -213,8 +255,13 @@ export class IsometricInteractionManager {
     const { nodeId, instance } = this.dragState;
 
     // Snap to grid
-    const snappedGridX = Math.round(instance.gridPosition.gridX);
-    const snappedGridY = Math.round(instance.gridPosition.gridY);
+    let snappedGridX = Math.round(instance.gridPosition.gridX);
+    let snappedGridY = Math.round(instance.gridPosition.gridY);
+
+    // Clamp to map bounds
+    const clamped = this.clampToMapBounds(snappedGridX, snappedGridY);
+    snappedGridX = clamped.gridX;
+    snappedGridY = clamped.gridY;
 
     instance.update(snappedGridX, snappedGridY);
 

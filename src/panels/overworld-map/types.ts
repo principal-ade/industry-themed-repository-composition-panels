@@ -2,8 +2,14 @@
  * Core type definitions for 8-bit overworld map
  */
 
+import type { AgingMetrics } from '../../utils/repositoryAging';
+
 // Tile size constant
 export const TILE_SIZE = 32;
+
+// Isometric tile constants (for new Pixi components)
+export const ISO_TILE_WIDTH = 32; // Reduced from 64 for better fit
+export const ISO_TILE_HEIGHT = 16; // Reduced from 32
 
 /**
  * Basic point in grid coordinates
@@ -71,6 +77,7 @@ export interface LocationNode {
   packageType: 'node' | 'python' | 'cargo' | 'go' | 'package';
   isRoot: boolean;
   color: string;       // Accent color
+  aging?: AgingMetrics; // Aging metrics for weathering and color fade
 
   // Custom sprite support
   customSpritePath?: string;  // Optional path to custom sprite PNG (e.g., file://.claude/repo-sprite.png)
@@ -156,8 +163,9 @@ export interface Camera {
 /**
  * Map limits and configuration
  */
-export const MAX_NODES_PER_MAP = 12; // Max packages per individual map
+export const MAX_NODES_PER_MAP = 12; // Max nodes per region (spatial constraint, not hard limit)
 export const MAP_TRANSITION_THRESHOLD = 10; // When to suggest splitting
+export const REGION_SIZE_TILES = 25; // Fixed region size in tiles (25x25)
 
 /**
  * Region within a unified map
@@ -265,4 +273,17 @@ export interface MapConfig {
   zoomSpeed: number;
   minZoom: number;
   maxZoom: number;
+}
+
+/**
+ * Event types for isometric components
+ */
+export interface IsometricDragEvent {
+  id: string;
+  gridX: number;
+  gridY: number;
+}
+
+export interface IsometricHoverEvent {
+  id: string;
 }

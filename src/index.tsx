@@ -143,7 +143,7 @@ export const panels: PanelDefinition[] = [
     },
     component: CollectionMapPanel,
 
-    onMount: async (context: PanelContextValue) => {
+    onMount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log('Collection Map Panel mounted');
     },

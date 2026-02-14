@@ -8,6 +8,8 @@ import type { PanelComponentProps } from '../types';
 import { GitProjectsMapPanelContent, type GitProject } from './GitProjectsMapPanel';
 import type { RegionLayout } from './overworld-map/genericMapper';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library/types';
+import { calculateRepositorySize } from '../utils/repositoryScaling';
+import { calculateAgingMetrics, type AgingMetrics } from '../utils/repositoryAging';
 
 /**
  * Alexandria Collections types (from @principal-ai/alexandria-collections)
@@ -35,6 +37,8 @@ export interface AlexandriaEntryWithMetrics extends AlexandriaEntry {
     lineCount?: number;
     commitCount?: number;
     contributors?: number;
+    lastEditedAt?: string; // ISO timestamp of last edit (for aging/weathering)
+    createdAt?: string; // ISO timestamp of creation (for future architectural style)
   };
 }
 
@@ -161,12 +165,20 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         // Get importance from metadata (pinned items have higher importance)
         const importance = membership.metadata?.pinned ? 95 : 75;
 
+        // Calculate sprite size from repository metrics (logarithmic scaling)
+        const size = calculateRepositorySize(repo.metrics);
+
+        // Calculate aging metrics for weathering and color fade
+        const aging = calculateAgingMetrics(repo.metrics?.lastEditedAt);
+
         const project: GitProject = {
           id: membership.repositoryId,
           name: repo.name,
           path: repo.name, // Could derive from clones in future
           category,
           importance,
+          size,
+          aging, // Pass aging metrics for visual weathering
           dependencies: dependencies[membership.repositoryId] || [],
           isRoot: membership.metadata?.pinned || false,
         };

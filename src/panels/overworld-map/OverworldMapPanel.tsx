@@ -413,11 +413,14 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         const texture = textures[node.sprite];
 
         if (texture) {
-          // Create highlight for hover - always 4x4 tiles (2x the 2x2 footprint)
+          // Scale highlight based on node size (from repository metrics)
+          const sizeMultiplier = node.size || 1.0;
+
+          // Create highlight for hover - scaled by repository size
           const highlight = new Graphics();
-          const HOVER_SIZE = 4; // Hover highlight is 4x4 (double the 2x2 footprint)
-          const tileSize = ISO_TILE_WIDTH * HOVER_SIZE; // 64 * 4 = 256px
-          const tileHeight = ISO_TILE_HEIGHT * HOVER_SIZE; // 32 * 4 = 128px
+          const HOVER_SIZE = 4 * sizeMultiplier; // Base 4x4 tiles scaled by metrics
+          const tileSize = ISO_TILE_WIDTH * HOVER_SIZE;
+          const tileHeight = ISO_TILE_HEIGHT * HOVER_SIZE;
 
           // Draw diamond shape centered at (0,0)
           highlight.beginFill(0xffff00, 0.4); // Yellow with transparency (default)
@@ -439,14 +442,20 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
           const sprite = new Sprite(texture);
 
-          // Scale down if sprite is too large (max 256x256)
+          // Calculate final sprite scale
+          // 1. Scale down if sprite is too large (max 256x256)
           const MAX_SPRITE_SIZE = 256;
+          let baseScale = 1.0;
           if (sprite.width > MAX_SPRITE_SIZE || sprite.height > MAX_SPRITE_SIZE) {
             const scaleX = MAX_SPRITE_SIZE / sprite.width;
             const scaleY = MAX_SPRITE_SIZE / sprite.height;
-            const scale = Math.min(scaleX, scaleY); // Preserve aspect ratio
-            sprite.scale.set(scale, scale);
+            baseScale = Math.min(scaleX, scaleY); // Preserve aspect ratio
           }
+
+          // 2. Apply repository size multiplier from metrics (1.5x - 4.0x)
+          // sizeMultiplier already declared above for highlight
+          const finalScale = baseScale * sizeMultiplier;
+          sprite.scale.set(finalScale, finalScale);
 
           sprite.x = screenX;
           sprite.y = screenY;
@@ -454,6 +463,40 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           // X: isometric side shifts building right → 0.61
           // Y: leave space below for label → 0.45
           sprite.anchor.set(0.61, 0.45);
+
+          // Apply aging effects (color fade + weathering) based on lastEditedAt
+          if (node.aging && node.aging.colorFade > 0) {
+            // Desaturate by tinting toward gray
+            // colorFade: 0.0 (no fade) to 0.7 (max fade)
+            const fadeAmount = node.aging.colorFade;
+            const gray = 0.6; // Target gray level
+            const tintValue = Math.floor((1 - fadeAmount + fadeAmount * gray) * 255);
+            sprite.tint = (tintValue << 16) | (tintValue << 8) | tintValue;
+          }
+
+          // Add weathering overlay for old buildings
+          if (node.aging && node.aging.weatheringLevel > 0.3) {
+            const weathering = new Graphics();
+            weathering.alpha = node.aging.weatheringLevel * 0.3; // Max 30% opacity
+
+            // Draw random dark spots/cracks for weathering effect
+            weathering.beginFill(0x3f3f3f); // Dark gray
+            const spotCount = Math.floor(node.aging.weatheringLevel * 8);
+            for (let i = 0; i < spotCount; i++) {
+              const offsetX = (Math.random() - 0.5) * sprite.width * 0.8;
+              const offsetY = (Math.random() - 0.5) * sprite.height * 0.8;
+              const size = 2 + Math.random() * 3;
+              weathering.drawCircle(offsetX, offsetY, size);
+            }
+            weathering.endFill();
+
+            // Position weathering overlay relative to sprite
+            weathering.x = sprite.x;
+            weathering.y = sprite.y;
+            // Graphics uses pivot instead of anchor
+            weathering.pivot.set(sprite.anchor.x * sprite.width, sprite.anchor.y * sprite.height);
+            nodeContainer.addChild(weathering);
+          }
 
           // Make interactive and draggable
           sprite.eventMode = 'static';
@@ -487,8 +530,28 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
               const { gridX, gridY } = screenToGrid(sprite.x, sprite.y);
 
               // Snap to nearest grid position
-              const snappedGridX = Math.round(gridX);
-              const snappedGridY = Math.round(gridY);
+              let snappedGridX = Math.round(gridX);
+              let snappedGridY = Math.round(gridY);
+
+              // Find which region this node belongs to
+              const nodeRegion = mapData.regions.find(r => r.nodeIds.includes(node.id));
+
+              // Constrain to region boundaries if region exists
+              // Account for highlight radius (the actual footprint)
+              if (nodeRegion) {
+                const bounds = nodeRegion.bounds;
+                // HOVER_SIZE is the highlight diameter in tiles (4 * sizeMultiplier)
+                // Radius is half of that, so we need that much clearance from edge
+                const highlightRadius = HOVER_SIZE / 2; // Half the highlight diameter
+                const minX = bounds.x + highlightRadius;
+                const maxX = bounds.x + bounds.width - highlightRadius;
+                const minY = bounds.y + highlightRadius;
+                const maxY = bounds.y + bounds.height - highlightRadius;
+
+                snappedGridX = Math.max(minX, Math.min(snappedGridX, maxX));
+                snappedGridY = Math.max(minY, Math.min(snappedGridY, maxY));
+              }
+
               const snapped = gridToScreen(snappedGridX, snappedGridY);
 
               // Update sprite, highlight, and label to snapped position
@@ -505,6 +568,10 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
               // Redraw all paths with updated positions
               redrawPaths();
+
+              // Reset current highlight tint and hide
+              highlight.tint = 0xffff00; // Reset to yellow
+              highlight.visible = false;
 
               // Hide all intersection highlights and reset tint
               for (const other of buildingData) {
@@ -526,6 +593,51 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
             if (isDraggingBuilding) {
               isDraggingBuilding = false;
               sprite.cursor = 'grab';
+
+              // Convert screen position back to grid coordinates
+              const { gridX, gridY } = screenToGrid(sprite.x, sprite.y);
+
+              // Snap to nearest grid position
+              let snappedGridX = Math.round(gridX);
+              let snappedGridY = Math.round(gridY);
+
+              // Find which region this node belongs to
+              const nodeRegion = mapData.regions.find(r => r.nodeIds.includes(node.id));
+
+              // Constrain to region boundaries if region exists
+              // Account for highlight radius (the actual footprint)
+              if (nodeRegion) {
+                const bounds = nodeRegion.bounds;
+                const highlightRadius = HOVER_SIZE / 2;
+                const minX = bounds.x + highlightRadius;
+                const maxX = bounds.x + bounds.width - highlightRadius;
+                const minY = bounds.y + highlightRadius;
+                const maxY = bounds.y + bounds.height - highlightRadius;
+
+                snappedGridX = Math.max(minX, Math.min(snappedGridX, maxX));
+                snappedGridY = Math.max(minY, Math.min(snappedGridY, maxY));
+              }
+
+              const snapped = gridToScreen(snappedGridX, snappedGridY);
+
+              // Snap back to constrained position
+              sprite.x = snapped.screenX;
+              sprite.y = snapped.screenY;
+              highlight.x = sprite.x;
+              highlight.y = sprite.y;
+              label.x = sprite.x;
+              label.y = sprite.y + labelOffset;
+
+              // Update node data
+              node.gridX = snappedGridX;
+              node.gridY = snappedGridY;
+
+              // Redraw paths with final position
+              redrawPaths();
+
+              // Reset current highlight tint and hide
+              highlight.tint = 0xffff00; // Reset to yellow
+              highlight.visible = false;
 
               // Hide all intersection highlights and reset tint
               for (const other of buildingData) {
@@ -554,7 +666,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           nodeContainer.addChild(sprite);
 
           // Add label text just below the base center
-          const labelOffset = 25;
+          // Scale label offset based on sprite size for better positioning
+          const baseLabelOffset = 25;
+          const labelOffset = baseLabelOffset * sizeMultiplier;
 
           const label = new Text({
             text: node.label,
@@ -595,6 +709,31 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
               const { gridX: tempGridX, gridY: tempGridY } = screenToGrid(sprite.x, sprite.y);
               node.gridX = tempGridX;
               node.gridY = tempGridY;
+
+              // Check if position is within region boundaries
+              // Account for highlight radius (the actual footprint)
+              const nodeRegion = mapData.regions.find(r => r.nodeIds.includes(node.id));
+              if (nodeRegion) {
+                const bounds = nodeRegion.bounds;
+                const highlightRadius = HOVER_SIZE / 2;
+                const minX = bounds.x + highlightRadius;
+                const maxX = bounds.x + bounds.width - highlightRadius;
+                const minY = bounds.y + highlightRadius;
+                const maxY = bounds.y + bounds.height - highlightRadius;
+
+                const isOutsideRegion =
+                  tempGridX < minX ||
+                  tempGridX > maxX ||
+                  tempGridY < minY ||
+                  tempGridY > maxY;
+
+                // Visual feedback: red highlight when outside region
+                if (isOutsideRegion && !(highlight as any).isIntersecting) {
+                  highlight.tint = 0xff0000; // Red = outside region
+                } else if (!(highlight as any).isIntersecting) {
+                  highlight.tint = 0xffff00; // Yellow = valid position
+                }
+              }
 
               // Redraw paths in real-time while dragging
               redrawPaths();
