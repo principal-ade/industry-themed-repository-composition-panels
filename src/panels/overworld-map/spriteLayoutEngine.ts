@@ -217,6 +217,11 @@ export function layoutSpritesMultiRegion(
   let regionRow = 0;
   let regionCol = 0;
 
+  // Calculate grid size dynamically for square-ish arrangement
+  // Estimate total regions needed (rough estimate based on average packing efficiency)
+  const estimatedRegions = Math.ceil(nodes.length / 10); // Assume ~10 sprites per region
+  const gridSize = Math.max(2, Math.ceil(Math.sqrt(estimatedRegions))); // Square root for balanced grid, min 2x2
+
   while (remainingNodes.length > 0) {
     const regionId = `region-${regionRow}-${regionCol}`;
     const regionBounds: RegionBounds = { width: regionSize, height: regionSize };
@@ -254,8 +259,8 @@ export function layoutSpritesMultiRegion(
 
     // Move to next region (fill left-to-right, then down)
     regionCol++;
-    if (regionCol >= 3) {
-      // Max 3 columns, then move to next row
+    if (regionCol >= gridSize) {
+      // Wrap to next row after gridSize columns
       regionCol = 0;
       regionRow++;
     }
