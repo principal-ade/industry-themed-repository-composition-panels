@@ -30,6 +30,7 @@ export interface SpriteInstance {
   label: Text;
   weathering?: Graphics;
   gridPosition: { gridX: number; gridY: number };
+  size: number; // Size multiplier for boundary calculations
 
   update(gridX: number, gridY: number): void;
   destroy(): void;
@@ -370,6 +371,7 @@ export class IsometricRenderer {
         label,
         weathering,
         gridPosition: { gridX: node.gridX, gridY: node.gridY },
+        size: sizeMultiplier,
         update: (gridX: number, gridY: number) => {
           const pos = gridToScreen(gridX, gridY);
           sprite.x = pos.screenX;

@@ -158,22 +158,26 @@ export class IsometricInteractionManager {
   }
 
   /**
-   * Clamp grid position to map bounds
+   * Clamp grid position to map bounds, accounting for sprite boundary size
    */
-  private clampToMapBounds(gridX: number, gridY: number): { gridX: number; gridY: number } {
+  private clampToMapBounds(gridX: number, gridY: number, spriteSize?: number): { gridX: number; gridY: number } {
     if (!this.mapBounds) {
-      console.log('No map bounds set');
       return { gridX, gridY };
     }
 
-    const clamped = {
-      gridX: Math.max(this.mapBounds.minX, Math.min(this.mapBounds.maxX, gridX)),
-      gridY: Math.max(this.mapBounds.minY, Math.min(this.mapBounds.maxY, gridY)),
-    };
+    // Account for boundary radius (boundary extends 2 × size in each direction)
+    const boundaryRadius = spriteSize ? 2 * spriteSize : 0;
 
-    if (clamped.gridX !== gridX || clamped.gridY !== gridY) {
-      console.log('Clamping position:', { gridX, gridY }, 'to:', clamped, 'bounds:', this.mapBounds);
-    }
+    const clamped = {
+      gridX: Math.max(
+        this.mapBounds.minX + boundaryRadius,
+        Math.min(this.mapBounds.maxX - boundaryRadius, gridX)
+      ),
+      gridY: Math.max(
+        this.mapBounds.minY + boundaryRadius,
+        Math.min(this.mapBounds.maxY - boundaryRadius, gridY)
+      ),
+    };
 
     return clamped;
   }
@@ -202,8 +206,8 @@ export class IsometricInteractionManager {
     const deltaY = (worldPos.y - worldStartPos.y);
 
     // Convert world delta to grid delta (reverse isometric transformation)
-    const tileWidth = this.config.tileWidth ?? 32;
-    const tileHeight = this.config.tileHeight ?? 16;
+    const tileWidth = this.config.tileWidth ?? 64;
+    const tileHeight = this.config.tileHeight ?? 32;
 
     const deltaGridX = (deltaX / (tileWidth / 2) + deltaY / (tileHeight / 2)) / 2;
     const deltaGridY = (deltaY / (tileHeight / 2) - deltaX / (tileWidth / 2)) / 2;
@@ -211,10 +215,16 @@ export class IsometricInteractionManager {
     let newGridX = this.dragState.spriteStartPos.gridX + deltaGridX;
     let newGridY = this.dragState.spriteStartPos.gridY + deltaGridY;
 
-    // Clamp to map bounds
-    const clamped = this.clampToMapBounds(newGridX, newGridY);
+    // Clamp to map bounds (accounting for sprite boundary size)
+    const clamped = this.clampToMapBounds(newGridX, newGridY, this.dragState.instance.size);
     newGridX = clamped.gridX;
     newGridY = clamped.gridY;
+
+    // Check for collisions - if collision, don't update position
+    if (this.wouldCollide(this.dragState.nodeId, { gridX: newGridX, gridY: newGridY })) {
+      // Keep current position, don't move
+      return;
+    }
 
     // Update sprite position
     this.dragState.instance.update(newGridX, newGridY);
@@ -258,10 +268,17 @@ export class IsometricInteractionManager {
     let snappedGridX = Math.round(instance.gridPosition.gridX);
     let snappedGridY = Math.round(instance.gridPosition.gridY);
 
-    // Clamp to map bounds
-    const clamped = this.clampToMapBounds(snappedGridX, snappedGridY);
+    // Clamp to map bounds (accounting for sprite boundary size)
+    const clamped = this.clampToMapBounds(snappedGridX, snappedGridY, instance.size);
     snappedGridX = clamped.gridX;
     snappedGridY = clamped.gridY;
+
+    // Check if snapped position would cause collision
+    // If so, revert to start position
+    if (this.wouldCollide(nodeId, { gridX: snappedGridX, gridY: snappedGridY })) {
+      snappedGridX = this.dragState.spriteStartPos.gridX;
+      snappedGridY = this.dragState.spriteStartPos.gridY;
+    }
 
     instance.update(snappedGridX, snappedGridY);
 
@@ -328,6 +345,37 @@ export class IsometricInteractionManager {
   }
 
   /**
+   * Check if position would cause boundary overlap with other sprites
+   * Boundary size is 4 × size tiles, extending 2 × size in each direction
+   */
+  private wouldCollide(draggedId: string, position: GridPoint): boolean {
+    const draggedInstance = this.sprites.get(draggedId);
+    if (!draggedInstance) return false;
+
+    // Boundary extends 2 × size in each direction (total 4 × size)
+    const draggedRadius = 2 * draggedInstance.size;
+
+    for (const [id, instance] of this.sprites.entries()) {
+      if (id === draggedId) continue;
+
+      const otherRadius = 2 * instance.size;
+
+      // Calculate distance between centers
+      const distance = Math.sqrt(
+        Math.pow(position.gridX - instance.gridPosition.gridX, 2) +
+          Math.pow(position.gridY - instance.gridPosition.gridY, 2)
+      );
+
+      // Collision if distance is less than sum of radii
+      if (distance < draggedRadius + otherRadius) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Check intersections between dragged sprite and other sprites
    * Returns array of intersecting sprite IDs
    * Extracted from OverworldMapPanel.tsx lines 745-763
@@ -337,12 +385,12 @@ export class IsometricInteractionManager {
     if (!draggedInstance) return [];
 
     const intersecting: string[] = [];
-    const draggedRadius = 4 * (draggedInstance.sprite.scale.x || 1);
+    const draggedRadius = 2 * draggedInstance.size;
 
     for (const [id, instance] of this.sprites.entries()) {
       if (id === draggedId) continue;
 
-      const otherRadius = 4 * (instance.sprite.scale.x || 1);
+      const otherRadius = 2 * instance.size;
       const distance = Math.sqrt(
         Math.pow(position.gridX - instance.gridPosition.gridX, 2) +
           Math.pow(position.gridY - instance.gridPosition.gridY, 2)
