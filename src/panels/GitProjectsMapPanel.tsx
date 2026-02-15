@@ -25,6 +25,9 @@ export interface GitProject {
   /** Category/type of project (e.g., 'frontend', 'backend', 'tool') */
   category?: string;
 
+  /** Primary programming language (e.g., 'typescript', 'python', 'rust') */
+  language?: string;
+
   /** Importance level 0-100 (affects visual size) */
   importance?: number;
 
@@ -83,6 +86,7 @@ export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
       size: project.size, // Pass through size for metrics-based scaling
       importance: project.importance, // Pass through importance
       aging: project.aging, // Pass through aging for weathering effects
+      language: project.language, // Pass through language for color-based visualization
       packageData: {
         name: project.name,
         version: '1.0.0',

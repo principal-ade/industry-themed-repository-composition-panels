@@ -16,6 +16,17 @@ import type {
 } from './types';
 import { REGION_SIZE_TILES } from './types';
 import type { AgingMetrics } from '../../utils/repositoryAging';
+import { layoutSpritesMultiRegion, type LayoutNode } from './spriteLayoutEngine';
+
+/**
+ * Round size to nearest tier for sprite selection
+ */
+function roundToNearestTier(size: number): number {
+  const tiers = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
+  return tiers.reduce((prev, curr) =>
+    Math.abs(curr - size) < Math.abs(prev - size) ? curr : prev
+  );
+}
 
 /**
  * Generic node - represents any entity (package, repo, service, etc.)
@@ -27,6 +38,7 @@ export interface GenericNode {
 
   // For determining visual representation
   category?: string;      // e.g., 'frontend', 'backend', 'database', 'python', 'node'
+  language?: string;      // Primary programming language (e.g., 'typescript', 'python', 'rust')
   importance?: number;    // 0-100, affects building size
   size?: number;          // Size multiplier (1.5x - 4.0x) for sprite scaling based on metrics
   aging?: AgingMetrics;   // Aging metrics for weathering and color fade
@@ -347,8 +359,20 @@ function generateTerrain(
 
 /**
  * Convert generic nodes to a single OverworldMap
+ * Now uses automatic layout engine
  */
 export function nodesToOverworldMap(
+  nodes: GenericNode[],
+  options: GenericMapperOptions = {}
+): OverworldMap {
+  // Just use the unified layout with automatic circle packing
+  return nodesToUnifiedOverworldMap(nodes, options);
+}
+
+/**
+ * DEPRECATED: Old manual layout for single region
+ */
+function nodesToOverworldMapOldManual(
   nodes: GenericNode[],
   options: GenericMapperOptions = {}
 ): OverworldMap {
@@ -628,10 +652,165 @@ function splitNodesIntoRegions(
 }
 
 /**
- * Convert generic nodes to unified OverworldMap with regions
- * Creates one continuous map with spatially separated regions
+ * Convert generic nodes to unified OverworldMap with automatic layout
+ * Uses circle packing algorithm for collision-free placement
  */
 export function nodesToUnifiedOverworldMap(
+  nodes: GenericNode[],
+  options: GenericMapperOptions = {}
+): OverworldMap {
+  // Use automatic layout engine for positioning
+  const layoutNodes: Array<{ id: string; size: number; language?: string }> = nodes.map(node => ({
+    id: node.id,
+    size: node.size || 1.0,
+    language: node.language,
+  }));
+
+  // Layout nodes across regions using circle packing
+  const layoutRegions = layoutSpritesMultiRegion(layoutNodes, REGION_SIZE_TILES, { spacing: 0.5 });
+
+  // Create node position lookup
+  const nodePositions = new Map<string, { gridX: number; gridY: number; size: number; language?: string }>();
+  for (const region of layoutRegions) {
+    for (const layoutNode of region.nodes) {
+      nodePositions.set(layoutNode.id, {
+        gridX: layoutNode.gridX,
+        gridY: layoutNode.gridY,
+        size: layoutNode.size,
+        language: layoutNode.language,
+      });
+    }
+  }
+
+  // Convert to LocationNodes
+  const locationNodes: LocationNode[] = nodes.map((node) => {
+    const pos = nodePositions.get(node.id) || { gridX: 0, gridY: 0, size: 1.0 };
+    const isRoot = node.isRoot || false;
+    const theme = getCategoryTheme(node.category, options.getCategoryTheme);
+    const nodeType = options.getNodeType
+      ? options.getNodeType(node)
+      : determineNodeType(node, isRoot);
+    const size = node.size ?? getNodeSize(nodeType);
+    const color = options.getNodeColor
+      ? options.getNodeColor(node)
+      : getCategoryColor(node.category || node.language, isRoot);
+
+    // Generate sprite key with size tier for types that have window variation
+    let spriteKey: string;
+    if ((nodeType === 'git-repo' || nodeType === 'monorepo') && node.size) {
+      const sizeTier = roundToNearestTier(node.size);
+      spriteKey = `location-${nodeType}-${theme}-${sizeTier}x`;
+    } else {
+      spriteKey = `location-${nodeType}-${theme}`;
+    }
+
+    // Validate packageType
+    const packageType = (['node', 'python', 'cargo', 'go', 'package'] as const).includes(
+      node.category as any
+    )
+      ? (node.category as 'node' | 'python' | 'cargo' | 'go' | 'package')
+      : 'package';
+
+    return {
+      id: node.id,
+      gridX: pos.gridX,
+      gridY: pos.gridY,
+      type: nodeType,
+      sprite: spriteKey,
+      size,
+      theme,
+      label: node.name,
+      packageType,
+      isRoot,
+      color,
+      aging: node.aging,
+    };
+  });
+
+  // Create paths between nodes
+  const paths: PathConnection[] = [];
+  let pathId = 0;
+  for (const node of nodes) {
+    const fromPos = nodePositions.get(node.id);
+    if (!fromPos) continue;
+
+    // Production dependencies
+    if (node.dependencies) {
+      for (const depId of node.dependencies) {
+        const toPos = nodePositions.get(depId);
+        if (!toPos) continue;
+
+        // Simple straight line path
+        paths.push({
+          id: `path-${pathId++}`,
+          from: node.id,
+          to: depId,
+          points: [
+            { gridX: fromPos.gridX, gridY: fromPos.gridY },
+            { gridX: toPos.gridX, gridY: toPos.gridY },
+          ],
+          type: 'dependency',
+          style: 'solid',
+        });
+      }
+    }
+
+    // Dev dependencies
+    if (node.devDependencies && options.includeDevDependencies) {
+      for (const depId of node.devDependencies) {
+        const toPos = nodePositions.get(depId);
+        if (!toPos) continue;
+
+        // Simple straight line path with dashed style for dev deps
+        paths.push({
+          id: `path-${pathId++}`,
+          from: node.id,
+          to: depId,
+          points: [
+            { gridX: fromPos.gridX, gridY: fromPos.gridY },
+            { gridX: toPos.gridX, gridY: toPos.gridY },
+          ],
+          type: 'dev-dependency',
+          style: 'dashed',
+        });
+      }
+    }
+  }
+
+  // Calculate total map dimensions
+  const maxCol = Math.max(...layoutRegions.map(r => r.gridPosition.col));
+  const maxRow = Math.max(...layoutRegions.map(r => r.gridPosition.row));
+  const totalCols = maxCol + 1;
+  const totalRows = maxRow + 1;
+  const mapWidth = totalCols * REGION_SIZE_TILES;
+  const mapHeight = totalRows * REGION_SIZE_TILES;
+
+  // Create regions
+  const regions: MapRegion[] = layoutRegions.map(region => ({
+    id: region.regionId,
+    name: `Region ${region.gridPosition.row}-${region.gridPosition.col}`,
+    bounds: region.bounds,
+    centerX: region.bounds.x + region.bounds.width / 2,
+    centerY: region.bounds.y + region.bounds.height / 2,
+    nodeIds: region.nodes.map(n => n.id),
+  }));
+
+  return {
+    width: mapWidth,
+    height: mapHeight,
+    tiles: [],
+    nodes: locationNodes,
+    paths,
+    regions,
+    name: 'Auto Layout Map',
+  };
+}
+
+/**
+ * Convert generic nodes to single-region OverworldMap
+ * Uses manual positioning (kept for backward compatibility)
+ */
+function nodesToOverworldMapOld(
   nodes: GenericNode[],
   options: GenericMapperOptions = {}
 ): OverworldMap {

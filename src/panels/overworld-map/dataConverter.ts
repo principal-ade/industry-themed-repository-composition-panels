@@ -77,16 +77,18 @@ function packageToGenericNode(
   const depCount = dependencies.length + devDependencies.length;
   const calculatedImportance = Math.min(100, depCount * 10);
 
-  // Use provided importance/size/aging from pkg if available (e.g., from GitProject)
+  // Use provided importance/size/aging/language from pkg if available (e.g., from GitProject)
   const importance = pkg.importance ?? calculatedImportance;
   const size = pkg.size; // Size multiplier from repository metrics
   const aging = pkg.aging; // Aging metrics for weathering
+  const language = (pkg as any).language; // Language from GitProject
 
   return {
     id: pkg.id,
     name: pkg.packageData.name,
     isRoot: pkg.packageData.isMonorepoRoot,
     category: pkg.type, // 'node', 'python', 'cargo', 'go', etc.
+    language, // Pass through language for color-based visualization
     importance,
     size, // Pass through size for metrics-based scaling
     aging, // Pass through aging for weathering effects

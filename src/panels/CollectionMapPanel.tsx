@@ -162,6 +162,12 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           category = repo.theme || 'git-repo';
         }
 
+        // Extract primary language from github metadata
+        let language: string | undefined;
+        if (repo.github) {
+          language = (repo as any).github?.language || (repo as any).github?.primaryLanguage;
+        }
+
         // Get importance from metadata (pinned items have higher importance)
         const importance = membership.metadata?.pinned ? 95 : 75;
 
@@ -176,6 +182,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           name: repo.name,
           path: repo.name, // Could derive from clones in future
           category,
+          language, // Pass language for color-based visualization
           importance,
           size,
           aging, // Pass aging metrics for visual weathering
