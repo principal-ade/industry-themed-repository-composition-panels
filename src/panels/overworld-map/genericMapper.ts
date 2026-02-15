@@ -412,14 +412,8 @@ function nodesToOverworldMapOldManual(
       ? customColorMapper(node)
       : getCategoryColor(node.category, isRoot);
 
-    // Generate sprite key with size tier for types that have window variation
-    let spriteKey: string;
-    if ((nodeType === 'git-repo' || nodeType === 'monorepo') && node.size) {
-      const sizeTier = roundToNearestTier(node.size);
-      spriteKey = `location-${nodeType}-${theme}-${sizeTier}x`;
-    } else {
-      spriteKey = `location-${nodeType}-${theme}`;
-    }
+    // Generate sprite key for building sprites: building-{size}-{color}
+    const spriteKey = `building-${size.toFixed(2)}-${color}`;
 
     // Validate packageType to ensure it's one of the allowed values
     const validPackageTypes: Array<'node' | 'python' | 'cargo' | 'go' | 'package'> = [
@@ -695,14 +689,8 @@ export function nodesToUnifiedOverworldMap(
       ? options.getNodeColor(node)
       : getCategoryColor(node.category || node.language, isRoot);
 
-    // Generate sprite key with size tier for types that have window variation
-    let spriteKey: string;
-    if ((nodeType === 'git-repo' || nodeType === 'monorepo') && node.size) {
-      const sizeTier = roundToNearestTier(node.size);
-      spriteKey = `location-${nodeType}-${theme}-${sizeTier}x`;
-    } else {
-      spriteKey = `location-${nodeType}-${theme}`;
-    }
+    // Generate sprite key for building sprites: building-{size}-{color}
+    const spriteKey = `building-${size.toFixed(2)}-${color}`;
 
     // Validate packageType
     const packageType = (['node', 'python', 'cargo', 'go', 'package'] as const).includes(

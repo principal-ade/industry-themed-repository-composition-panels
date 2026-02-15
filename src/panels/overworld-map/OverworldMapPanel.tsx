@@ -3,14 +3,14 @@
  */
 
 import React, { useEffect, useRef, useMemo, useState } from 'react';
-import { Application, Container, Graphics, Sprite, Text, Texture, TilingSprite } from 'pixi.js';
+import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PackageLayer } from '../../types/composition';
 import type { PackagesSliceData } from '../../types/dependencies';
 import type { PanelComponentProps } from '../../types';
 import type { OverworldMap } from './types';
 import { packagesToUnifiedOverworldMap } from './dataConverter';
-import { generateSpriteAtlas } from './spriteGenerator';
+import { generateBuildingSprite } from './components/buildingSpriteGenerator';
 import { gridToScreen, screenToGrid, getIsometricZIndex, ISO_TILE_WIDTH, ISO_TILE_HEIGHT } from './isometricUtils';
 import type { RegionLayout } from './genericMapper';
 
@@ -107,42 +107,33 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       canvasRef.current?.appendChild(app.canvas as HTMLCanvasElement);
       appRef.current = app;
 
-      // Build custom sprite mapping from location nodes
-      const customSprites: Record<string, string> = {};
-      for (const location of mapData.nodes) {
-        if (location.customSpritePath) {
-          // Map custom sprite path to the sprite key used by this location
-          customSprites[location.sprite] = location.customSpritePath;
-        }
+      // Generate building sprite textures for each unique size+color combination
+      const textures: Record<string, Texture> = {};
+      const uniqueCombos = new Set<string>();
+
+      for (const node of mapData.nodes) {
+        const key = `${node.size.toFixed(2)}-${node.color}`;
+        uniqueCombos.add(key);
       }
 
-      // Generate sprite atlas (async to support custom sprites)
-      const atlas = await generateSpriteAtlas(customSprites);
+      // Generate textures for each combination
+      for (const combo of uniqueCombos) {
+        const [sizeStr, colorHex] = combo.split('-');
+        const size = parseFloat(sizeStr);
+        const color = parseInt(colorHex.replace('#', ''), 16);
 
-      // Convert canvas sprites to PixiJS textures
-      const textures: Record<string, Texture> = {};
-      for (const [key, canvas] of Object.entries(atlas)) {
-        textures[key] = Texture.from(canvas);
+        const buildingGraphics = generateBuildingSprite({ size, color });
+        textures[`building-${combo}`] = app.renderer.generateTexture({
+          target: buildingGraphics,
+          resolution: 2,
+        });
+        buildingGraphics.destroy();
       }
 
       // Create main container for the world
       const worldContainer = new Container();
       app.stage.addChild(worldContainer);
       worldContainerRef.current = worldContainer;
-
-      // Add tiling grass background
-      const bgTexture = textures['bg-grass'];
-      if (bgTexture) {
-        const backgroundTiling = new TilingSprite({
-          texture: bgTexture,
-          width: mapData.width * ISO_TILE_WIDTH * 2, // Make background larger than map
-          height: mapData.height * ISO_TILE_HEIGHT * 2,
-        });
-        // Center the background
-        backgroundTiling.x = -(mapData.width * ISO_TILE_WIDTH * 2) / 4;
-        backgroundTiling.y = -(mapData.height * ISO_TILE_HEIGHT * 2) / 4;
-        worldContainer.addChild(backgroundTiling);
-      }
 
       // Function to detect which region is currently in view
       const updateCurrentRegion = () => {
