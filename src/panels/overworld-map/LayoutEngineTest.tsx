@@ -11,8 +11,32 @@ import { generateBuildingSprite } from './components/buildingSpriteGenerator';
 import { layoutSpritesMultiRegion } from './spriteLayoutEngine';
 import type { OverworldMap } from './types';
 
+/**
+ * Language-to-color mapping (from genericMapper.ts)
+ */
+const LANGUAGE_COLORS: Record<string, string> = {
+  node: '#06b6d4',       // cyan
+  javascript: '#06b6d4',
+  typescript: '#06b6d4',
+  python: '#fbbf24',     // yellow
+  rust: '#ef4444',       // red
+  cargo: '#ef4444',
+  go: '#22c55e',         // green
+  java: '#f97316',       // orange
+  default: '#94a3b8',    // gray
+};
+
+export interface SpriteConfig {
+  size: number;
+  language?: string;
+  count: number;
+}
+
 export interface LayoutEngineTestProps {
-  /** Distribution of sprite sizes (count per size) */
+  /** Distribution of sprite sizes and languages */
+  sprites?: SpriteConfig[];
+
+  /** Legacy: Distribution of sprite sizes (count per size) */
   sizeDistribution?: {
     size1_0?: number; // 1.0x sprites
     size1_5?: number; // 1.5x sprites
@@ -23,6 +47,7 @@ export interface LayoutEngineTestProps {
 }
 
 export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
+  sprites,
   sizeDistribution = {
     size1_0: 5,
     size1_5: 4,
@@ -49,29 +74,43 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
       const width = window.innerWidth;
       const height = window.innerHeight;
 
-      // 1. Create sprites using the size distribution
-      const inputNodes: Array<{ id: string; size: number }> = [];
+      // 1. Create sprites using either sprites prop or size distribution
+      const inputNodes: Array<{ id: string; size: number; language?: string }> = [];
       let nodeId = 0;
 
-      // Add 1.0x sprites
-      for (let i = 0; i < (sizeDistribution.size1_0 || 0); i++) {
-        inputNodes.push({ id: `sprite-${nodeId++}`, size: 1.0 });
-      }
-      // Add 1.5x sprites
-      for (let i = 0; i < (sizeDistribution.size1_5 || 0); i++) {
-        inputNodes.push({ id: `sprite-${nodeId++}`, size: 1.5 });
-      }
-      // Add 2.0x sprites
-      for (let i = 0; i < (sizeDistribution.size2_0 || 0); i++) {
-        inputNodes.push({ id: `sprite-${nodeId++}`, size: 2.0 });
-      }
-      // Add 2.5x sprites
-      for (let i = 0; i < (sizeDistribution.size2_5 || 0); i++) {
-        inputNodes.push({ id: `sprite-${nodeId++}`, size: 2.5 });
-      }
-      // Add 3.0x sprites
-      for (let i = 0; i < (sizeDistribution.size3_0 || 0); i++) {
-        inputNodes.push({ id: `sprite-${nodeId++}`, size: 3.0 });
+      if (sprites) {
+        // Use new sprites prop with language support
+        for (const sprite of sprites) {
+          for (let i = 0; i < sprite.count; i++) {
+            inputNodes.push({
+              id: `sprite-${nodeId++}`,
+              size: sprite.size,
+              language: sprite.language,
+            });
+          }
+        }
+      } else {
+        // Fall back to legacy sizeDistribution prop
+        // Add 1.0x sprites
+        for (let i = 0; i < (sizeDistribution.size1_0 || 0); i++) {
+          inputNodes.push({ id: `sprite-${nodeId++}`, size: 1.0 });
+        }
+        // Add 1.5x sprites
+        for (let i = 0; i < (sizeDistribution.size1_5 || 0); i++) {
+          inputNodes.push({ id: `sprite-${nodeId++}`, size: 1.5 });
+        }
+        // Add 2.0x sprites
+        for (let i = 0; i < (sizeDistribution.size2_0 || 0); i++) {
+          inputNodes.push({ id: `sprite-${nodeId++}`, size: 2.0 });
+        }
+        // Add 2.5x sprites
+        for (let i = 0; i < (sizeDistribution.size2_5 || 0); i++) {
+          inputNodes.push({ id: `sprite-${nodeId++}`, size: 2.5 });
+        }
+        // Add 3.0x sprites
+        for (let i = 0; i < (sizeDistribution.size3_0 || 0); i++) {
+          inputNodes.push({ id: `sprite-${nodeId++}`, size: 3.0 });
+        }
       }
 
       // 2. Use layout engine to position sprites across multiple regions
@@ -145,19 +184,27 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
       }
 
       // 5. Create map data with laid out sprites from all regions
-      const nodes = allNodes.map((node) => ({
-        id: node.id,
-        gridX: node.gridX,
-        gridY: node.gridY,
-        type: 'house' as const,
-        sprite: `building-${node.size.toFixed(2)}`,
-        size: node.size,
-        theme: 'grass' as const,
-        label: `${node.size.toFixed(1)}x`,
-        packageType: 'node' as const,
-        isRoot: false,
-        color: '#d2691e',
-      }));
+      const nodes = allNodes.map((node) => {
+        const language = node.language || 'default';
+        const color = LANGUAGE_COLORS[language.toLowerCase()] || LANGUAGE_COLORS.default;
+        const label = node.language
+          ? `${node.size.toFixed(1)}x ${node.language}`
+          : `${node.size.toFixed(1)}x`;
+
+        return {
+          id: node.id,
+          gridX: node.gridX,
+          gridY: node.gridY,
+          type: 'house' as const,
+          sprite: `building-${node.size.toFixed(2)}`,
+          size: node.size,
+          theme: 'grass' as const,
+          label,
+          packageType: 'node' as const,
+          isRoot: false,
+          color,
+        };
+      });
 
       const mapData: OverworldMap = {
         width: gridWidth,
@@ -265,7 +312,7 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
       rendererRef.current?.destroy();
       canvasRef.current?.destroy();
     };
-  }, [sizeDistribution]);
+  }, [sprites, sizeDistribution]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>

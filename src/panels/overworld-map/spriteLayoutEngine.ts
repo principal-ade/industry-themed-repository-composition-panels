@@ -8,6 +8,7 @@ export interface LayoutNode {
   gridX: number;
   gridY: number;
   size: number; // Size multiplier for boundary calculations
+  language?: string; // Package language (e.g., 'typescript', 'python', 'rust')
 }
 
 export interface RegionBounds {
@@ -118,17 +119,17 @@ function findValidPosition(
  * @returns Array of nodes with assigned positions, and array of nodes that didn't fit
  */
 export function layoutSpritesInRegion(
-  nodes: Array<{ id: string; size: number }>,
+  nodes: Array<{ id: string; size: number; language?: string }>,
   bounds: RegionBounds,
   options: LayoutOptions = {}
-): { placed: LayoutNode[]; overflow: Array<{ id: string; size: number }> } {
+): { placed: LayoutNode[]; overflow: Array<{ id: string; size: number; language?: string }> } {
   const { spacing = 0.5 } = options;
 
   // Sort by size descending (largest first for better packing)
   const sortedNodes = [...nodes].sort((a, b) => b.size - a.size);
 
   const placedNodes: LayoutNode[] = [];
-  const overflow: Array<{ id: string; size: number }> = [];
+  const overflow: Array<{ id: string; size: number; language?: string }> = [];
 
   for (const node of sortedNodes) {
     const position = findValidPosition(node.size, placedNodes, bounds, spacing);
@@ -139,6 +140,7 @@ export function layoutSpritesInRegion(
         gridX: position.gridX,
         gridY: position.gridY,
         size: node.size,
+        language: node.language,
       });
     } else {
       // Sprite doesn't fit - add to overflow
@@ -206,7 +208,7 @@ export interface LayoutRegion {
  * @returns Array of regions with positioned nodes
  */
 export function layoutSpritesMultiRegion(
-  nodes: Array<{ id: string; size: number }>,
+  nodes: Array<{ id: string; size: number; language?: string }>,
   regionSize: number = 25,
   options: LayoutOptions = {}
 ): LayoutRegion[] {

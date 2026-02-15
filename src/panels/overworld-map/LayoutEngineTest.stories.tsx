@@ -96,3 +96,37 @@ export const OverflowTest: Story = {
     },
   },
 };
+
+/**
+ * Language Colors: Different languages with their colors
+ * Demonstrates language-based sprite coloring
+ */
+export const LanguageColors: Story = {
+  args: {
+    sprites: [
+      { size: 2.0, language: 'typescript', count: 3 },  // cyan
+      { size: 2.0, language: 'python', count: 3 },      // yellow
+      { size: 2.0, language: 'rust', count: 3 },        // red
+      { size: 2.0, language: 'go', count: 3 },          // green
+      { size: 1.5, language: 'javascript', count: 2 },  // cyan
+      { size: 1.5, language: 'java', count: 2 },        // orange
+    ],
+  },
+};
+
+/**
+ * Mixed Languages: Different sizes and languages
+ * Realistic distribution with multiple languages
+ */
+export const MixedLanguages: Story = {
+  args: {
+    sprites: [
+      { size: 3.0, language: 'typescript', count: 2 },  // Large TypeScript
+      { size: 2.5, language: 'python', count: 2 },      // Medium Python
+      { size: 2.0, language: 'rust', count: 3 },        // Medium Rust
+      { size: 2.0, language: 'go', count: 3 },          // Medium Go
+      { size: 1.5, language: 'javascript', count: 4 },  // Small JS
+      { size: 1.0, language: 'typescript', count: 5 },  // Tiny TS
+    ],
+  },
+};
