@@ -84,7 +84,7 @@ export class IsometricRenderer {
 
     // Render grid if enabled
     if (showGrid) {
-      const grid = this.renderGrid(mapData.width, mapData.height, 25);
+      const grid = this.renderGrid(mapData.width, mapData.height, mapData.regions);
       background.addChild(grid);
     }
 
@@ -129,21 +129,53 @@ export class IsometricRenderer {
 
   /**
    * Render isometric grid with region boundaries
-   * Extracted from IsometricGridTest.tsx lines 56-128
+   * Only draws grid cells for existing regions (not the entire world)
    */
-  renderGrid(gridWidth: number, gridHeight: number, regionSize: number): Graphics {
+  renderGrid(gridWidth: number, gridHeight: number, regions: OverworldMap['regions']): Graphics {
     const grid = new Graphics();
+
+    // Helper to check if a grid coordinate is inside any existing region
+    const isInsideRegion = (x: number, y: number): boolean => {
+      for (const region of regions) {
+        const { x: rx, y: ry, width: rw, height: rh } = region.bounds;
+        if (x >= rx && x < rx + rw && y >= ry && y < ry + rh) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // Helper to check if a grid coordinate is on the boundary of an existing region
+    const isOnRegionBoundary = (x: number, y: number): boolean => {
+      for (const region of regions) {
+        const { x: rx, y: ry, width: rw, height: rh } = region.bounds;
+
+        // Check if on left or right edge of this region
+        if ((x === rx || x === rx + rw - 1) && y >= ry && y < ry + rh) {
+          return true;
+        }
+
+        // Check if on top or bottom edge of this region
+        if ((y === ry || y === ry + rh - 1) && x >= rx && x < rx + rw) {
+          return true;
+        }
+      }
+      return false;
+    };
 
     for (let y = 0; y < gridHeight; y++) {
       for (let x = 0; x < gridWidth; x++) {
+        // Only draw grid cells that are inside an existing region
+        if (!isInsideRegion(x, y)) {
+          continue;
+        }
+
         // Convert grid coordinates to isometric screen position
         const screenX = (x - y) * (this.tileWidth / 2);
         const screenY = (x + y) * (this.tileHeight / 2);
 
-        // Determine if this is a region boundary
-        const isRegionBoundaryX = x % regionSize === 0;
-        const isRegionBoundaryY = y % regionSize === 0;
-        const isRegionBoundary = isRegionBoundaryX || isRegionBoundaryY;
+        // Determine if this is a region boundary (only for existing regions)
+        const isRegionBoundary = isOnRegionBoundary(x, y);
 
         // Draw isometric diamond tile
         grid.strokeStyle = {

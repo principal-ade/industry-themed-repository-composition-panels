@@ -39,6 +39,24 @@ export interface OverworldMapPanelProps {
 
   /** Loading state */
   isLoading?: boolean;
+
+  /** Callback when a node is moved (for persisting manual positions) */
+  onProjectMoved?: (nodeId: string, gridX: number, gridY: number) => void;
+
+  /** Whether regions are being edited */
+  isEditingRegions?: boolean;
+
+  /** Custom regions defined in collection */
+  customRegions?: any[];
+
+  /** Callback to add a new region at a specific grid position */
+  onAddRegion?: (position: { row: number; col: number }) => void;
+
+  /** Callback to rename a region */
+  onRenameRegion?: (id: string, name: string) => void;
+
+  /** Callback to delete a region */
+  onDeleteRegion?: (id: string) => void;
 }
 
 /**
@@ -53,6 +71,12 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   width,
   height,
   isLoading = false,
+  onProjectMoved,
+  isEditingRegions = false,
+  customRegions = [],
+  onAddRegion,
+  onRenameRegion,
+  onDeleteRegion,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
@@ -64,6 +88,12 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const [isRendering, setIsRendering] = useState(true);
   const [isResizing, setIsResizing] = useState(false);
   const dimensionsRef = useRef({ width: width || 800, height: height || 600 });
+  const placeholdersRef = useRef<Container | null>(null);
+  const sceneContainersRef = useRef<{ background: Container; tiles: Container; bridges: Container; paths: Container; nodes: Container } | null>(null);
+  const offsetRef = useRef<{ offsetX: number; offsetY: number }>({ offsetX: 0, offsetY: 0 });
+  const renderPlaceholdersRef = useRef<(() => void) | null>(null);
+  const mapDataRef = useRef<OverworldMap | null>(null);
+  const isEditingRegionsRef = useRef(isEditingRegions);
 
   // Region navigation state
   const [currentRegionIndex, setCurrentRegionIndex] = useState(0);
@@ -74,11 +104,13 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
   // Convert packages to unified overworld map
   const mapData = useMemo<OverworldMap>(() => {
-    return packagesToUnifiedOverworldMap(packages, {
+    const map = packagesToUnifiedOverworldMap(packages, {
       includeDevDependencies,
       includePeerDependencies,
       regionLayout,
     });
+    mapDataRef.current = map; // Store for placeholder rendering
+    return map;
   }, [packages, includeDevDependencies, includePeerDependencies, regionLayout]);
 
   // Get current region
@@ -182,6 +214,15 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       // Enable sorting for proper z-ordering
       scene.nodes.sortableChildren = true;
 
+      // Store scene containers and offset for region editing
+      sceneContainersRef.current = scene;
+      offsetRef.current = { offsetX: 0, offsetY: 0 }; // Scene containers are already positioned
+
+      // Create placeholders container for region editing
+      const placeholdersContainer = new Container();
+      viewport.addChild(placeholdersContainer);
+      placeholdersRef.current = placeholdersContainer;
+
       // Function to detect which region is currently in view
       const updateCurrentRegion = () => {
         if (mapData.regions.length <= 1) return;
@@ -270,6 +311,8 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
               node.gridX = gridX;
               node.gridY = gridY;
             }
+            // Notify parent component for persistence
+            onProjectMoved?.(nodeId, gridX, gridY);
           },
         }
       );
@@ -292,6 +335,184 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           gridToScreen(firstRegion.centerX, firstRegion.centerY).screenY
         );
       }
+
+      // Region placeholder rendering for edit mode
+      const findAdjacentEmptyPositions = (regions: typeof mapData.regions): Array<{ row: number; col: number }> => {
+        const regionSize = regions[0]?.bounds.width || 25; // Assume uniform region size
+
+        const occupied = new Set<string>();
+        regions.forEach(r => {
+          const row = r.bounds.y / regionSize;
+          const col = r.bounds.x / regionSize;
+          occupied.add(`${row}-${col}`);
+        });
+
+        const adjacent: Array<{ row: number; col: number }> = [];
+        const checked = new Set<string>();
+
+        regions.forEach(r => {
+          const row = r.bounds.y / regionSize;
+          const col = r.bounds.x / regionSize;
+
+          // Check 4 directions
+          const directions = [
+            { row: row - 1, col }, // up
+            { row: row + 1, col }, // down
+            { row, col: col - 1 }, // left
+            { row, col: col + 1 }, // right
+          ];
+
+          directions.forEach(pos => {
+            const key = `${pos.row}-${pos.col}`;
+            if (!occupied.has(key) && !checked.has(key) && pos.row >= 0 && pos.col >= 0) {
+              adjacent.push(pos);
+              checked.add(key);
+            }
+          });
+        });
+
+        return adjacent;
+      };
+
+      const renderPlaceholders = () => {
+        if (!placeholdersRef.current || !mapDataRef.current) return;
+
+        placeholdersRef.current.removeChildren();
+
+        if (!isEditingRegionsRef.current || !onAddRegion) return;
+
+        const adjacentPositions = findAdjacentEmptyPositions(mapDataRef.current.regions);
+        const regionSize = mapDataRef.current.regions[0]?.bounds.width || 25;
+        const placeholderColor = 0x22c55e; // Green
+
+        adjacentPositions.forEach(pos => {
+          const placeholder = new Graphics();
+
+          // Calculate the four corner points of the region in screen space
+          const topLeft = gridToScreen(pos.col * regionSize, pos.row * regionSize);
+          const topRight = gridToScreen(pos.col * regionSize + regionSize, pos.row * regionSize);
+          const bottomLeft = gridToScreen(pos.col * regionSize, pos.row * regionSize + regionSize);
+          const bottomRight = gridToScreen(pos.col * regionSize + regionSize, pos.row * regionSize + regionSize);
+
+          // Draw the diamond outline with transparent fill for clickability
+          placeholder.setStrokeStyle({
+            width: 2,
+            color: placeholderColor,
+            alpha: 0.6,
+          });
+          placeholder.setFillStyle({
+            color: placeholderColor,
+            alpha: 0.1, // Very transparent so it's barely visible but still clickable
+          });
+
+          placeholder.moveTo(topLeft.screenX, topLeft.screenY);
+          placeholder.lineTo(topRight.screenX, topRight.screenY);
+          placeholder.lineTo(bottomRight.screenX, bottomRight.screenY);
+          placeholder.lineTo(bottomLeft.screenX, bottomLeft.screenY);
+          placeholder.lineTo(topLeft.screenX, topLeft.screenY);
+          placeholder.fill();
+          placeholder.stroke();
+
+          // Draw "+" icon in center
+          const centerX = pos.col * regionSize + regionSize / 2;
+          const centerY = pos.row * regionSize + regionSize / 2;
+          const centerScreen = gridToScreen(centerX, centerY);
+
+          const iconSize = 40;
+          placeholder.setStrokeStyle({
+            width: 4,
+            color: placeholderColor,
+            alpha: 0.8,
+          });
+          placeholder.moveTo(centerScreen.screenX - iconSize / 2, centerScreen.screenY);
+          placeholder.lineTo(centerScreen.screenX + iconSize / 2, centerScreen.screenY);
+          placeholder.moveTo(centerScreen.screenX, centerScreen.screenY - iconSize / 2);
+          placeholder.lineTo(centerScreen.screenX, centerScreen.screenY + iconSize / 2);
+          placeholder.stroke();
+
+          placeholder.eventMode = 'static';
+          placeholder.cursor = 'pointer';
+
+          // Hover effect - redraw with higher opacity
+          placeholder.on('pointerenter', () => {
+            placeholder.clear();
+            placeholder.setStrokeStyle({
+              width: 2,
+              color: placeholderColor,
+              alpha: 1.0,
+            });
+            placeholder.setFillStyle({
+              color: placeholderColor,
+              alpha: 0.2, // More visible on hover
+            });
+            placeholder.moveTo(topLeft.screenX, topLeft.screenY);
+            placeholder.lineTo(topRight.screenX, topRight.screenY);
+            placeholder.lineTo(bottomRight.screenX, bottomRight.screenY);
+            placeholder.lineTo(bottomLeft.screenX, bottomLeft.screenY);
+            placeholder.lineTo(topLeft.screenX, topLeft.screenY);
+            placeholder.fill();
+            placeholder.stroke();
+
+            // Redraw icon
+            const iconSize = 40;
+            placeholder.setStrokeStyle({
+              width: 4,
+              color: placeholderColor,
+              alpha: 1.0,
+            });
+            placeholder.moveTo(centerScreen.screenX - iconSize / 2, centerScreen.screenY);
+            placeholder.lineTo(centerScreen.screenX + iconSize / 2, centerScreen.screenY);
+            placeholder.moveTo(centerScreen.screenX, centerScreen.screenY - iconSize / 2);
+            placeholder.lineTo(centerScreen.screenX, centerScreen.screenY + iconSize / 2);
+            placeholder.stroke();
+          });
+
+          placeholder.on('pointerleave', () => {
+            placeholder.clear();
+            placeholder.setStrokeStyle({
+              width: 2,
+              color: placeholderColor,
+              alpha: 0.6,
+            });
+            placeholder.setFillStyle({
+              color: placeholderColor,
+              alpha: 0.1,
+            });
+            placeholder.moveTo(topLeft.screenX, topLeft.screenY);
+            placeholder.lineTo(topRight.screenX, topRight.screenY);
+            placeholder.lineTo(bottomRight.screenX, bottomRight.screenY);
+            placeholder.lineTo(bottomLeft.screenX, bottomLeft.screenY);
+            placeholder.lineTo(topLeft.screenX, topLeft.screenY);
+            placeholder.fill();
+            placeholder.stroke();
+
+            // Redraw icon
+            const iconSize = 40;
+            placeholder.setStrokeStyle({
+              width: 4,
+              color: placeholderColor,
+              alpha: 0.8,
+            });
+            placeholder.moveTo(centerScreen.screenX - iconSize / 2, centerScreen.screenY);
+            placeholder.lineTo(centerScreen.screenX + iconSize / 2, centerScreen.screenY);
+            placeholder.moveTo(centerScreen.screenX, centerScreen.screenY - iconSize / 2);
+            placeholder.lineTo(centerScreen.screenX, centerScreen.screenY + iconSize / 2);
+            placeholder.stroke();
+          });
+
+          placeholder.on('pointerdown', () => {
+            onAddRegion(pos);
+          });
+
+          placeholdersRef.current!.addChild(placeholder);
+        });
+      };
+
+      // Store function in ref for later use
+      renderPlaceholdersRef.current = renderPlaceholders;
+
+      // Initial render of placeholders if in edit mode
+      renderPlaceholders();
 
       // Animation ticker for smooth camera movement
       const easeOutCubic = (t: number): number => {
@@ -423,6 +644,14 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     };
   }, [currentRegionIndex, currentRegion, isRendering]);
 
+  // Update ref and re-render placeholders when edit mode changes
+  useEffect(() => {
+    isEditingRegionsRef.current = isEditingRegions;
+    if (renderPlaceholdersRef.current) {
+      renderPlaceholdersRef.current();
+    }
+  }, [isEditingRegions]);
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       {(isLoading || isRendering) && (
@@ -512,6 +741,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
             borderRadius: 6,
             border: '2px solid #fbbf24',
             boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+            pointerEvents: 'auto',
           }}
         >
           <button
@@ -532,8 +762,67 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           </button>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <div style={{ fontSize: 16, fontWeight: 'bold', color: '#fbbf24' }}>
+            <div style={{ fontSize: 16, fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '8px' }}>
               {currentRegion.name}
+
+              {/* Edit mode controls */}
+              {isEditingRegions && (
+                <>
+                  <button
+                    onClick={() => {
+                      const newName = prompt('Rename region:', currentRegion.name);
+                      if (newName && newName.trim() && newName !== currentRegion.name) {
+                        // Find the matching customRegion by name (since regions from layout engine may not have IDs)
+                        const matchingRegion = customRegions.find(r => r.name === currentRegion.name);
+                        if (matchingRegion && onRenameRegion) {
+                          onRenameRegion(matchingRegion.id, newName.trim());
+                        }
+                      }
+                    }}
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      border: '1px solid #3b82f6',
+                      borderRadius: 3,
+                      padding: '2px 6px',
+                      cursor: 'pointer',
+                      fontSize: 10,
+                      color: '#3b82f6',
+                      fontWeight: 'normal',
+                    }}
+                    title="Rename region"
+                  >
+                    ✏️
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (confirm(`Delete region "${currentRegion.name}"? Repositories will be unassigned.`)) {
+                        const matchingRegion = customRegions.find(r => r.name === currentRegion.name);
+                        if (matchingRegion && onDeleteRegion) {
+                          onDeleteRegion(matchingRegion.id);
+                          // Navigate to previous region if we deleted the current one
+                          if (currentRegionIndex > 0) {
+                            setCurrentRegionIndex(prev => prev - 1);
+                          }
+                        }
+                      }
+                    }}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.2)',
+                      border: '1px solid #ef4444',
+                      borderRadius: 3,
+                      padding: '2px 6px',
+                      cursor: 'pointer',
+                      fontSize: 10,
+                      color: '#ef4444',
+                      fontWeight: 'normal',
+                    }}
+                    title="Delete region"
+                  >
+                    🗑️
+                  </button>
+                </>
+              )}
             </div>
             <div style={{ fontSize: 10, color: '#94a3b8' }}>
               Region {currentRegionIndex + 1} of {mapData.regions.length} | {currentRegion.nodeIds.length} packages
@@ -574,7 +863,11 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           pointerEvents: 'none',
         }}
       >
-        <div>Click on packages to view details</div>
+        {isEditingRegions ? (
+          <div>Click green placeholders to add new regions</div>
+        ) : (
+          <div>Click on packages to view details</div>
+        )}
       </div>
     </div>
   );

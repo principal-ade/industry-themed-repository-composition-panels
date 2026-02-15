@@ -12,6 +12,32 @@ import { calculateRepositorySize } from '../utils/repositoryScaling';
 import { calculateAgingMetrics, type AgingMetrics } from '../utils/repositoryAging';
 
 /**
+ * Custom region definition for manual layout
+ */
+export interface CustomRegion {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string; // Optional theme color (hex)
+  order: number; // Display order (0-based)
+  createdAt: number;
+}
+
+/**
+ * Collection metadata for manual regions
+ */
+export interface CollectionMetadata {
+  /** Custom regions defined by the user */
+  customRegions?: CustomRegion[];
+
+  /** Layout mode: 'auto' = age-based, 'manual' = user-defined regions */
+  layoutMode?: 'auto' | 'manual';
+
+  /** Allow additional metadata */
+  [key: string]: unknown;
+}
+
+/**
  * Alexandria Collections types (from @principal-ai/alexandria-collections)
  */
 export interface Collection {
@@ -23,7 +49,7 @@ export interface Collection {
   isDefault?: boolean;
   createdAt: number;
   updatedAt: number;
-  metadata?: Record<string, unknown>;
+  metadata?: CollectionMetadata;
 }
 
 /**
@@ -42,15 +68,119 @@ export interface AlexandriaEntryWithMetrics extends AlexandriaEntry {
   };
 }
 
+/**
+ * Manual layout position data
+ */
+export interface RepositoryLayoutData {
+  gridX: number;
+  gridY: number;
+  isManuallyPositioned: boolean;
+}
+
+/**
+ * Collection membership metadata
+ */
+export interface CollectionMembershipMetadata {
+  /** Which custom region this repository belongs to */
+  regionId?: string;
+
+  /** Manual position override (for manual layout mode) */
+  layout?: RepositoryLayoutData;
+
+  /** Whether this repository is pinned (affects importance) */
+  pinned?: boolean;
+
+  /** User notes about this repository */
+  notes?: string;
+
+  /** Allow additional metadata */
+  [key: string]: unknown;
+}
+
 export interface CollectionMembership {
   repositoryId: string;
   collectionId: string;
   addedAt: number;
-  metadata?: {
-    pinned?: boolean;
-    notes?: string;
-    [key: string]: unknown;
+  metadata?: CollectionMembershipMetadata;
+}
+
+/**
+ * Generate a unique region ID
+ */
+function generateRegionId(): string {
+  return `region-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/**
+ * Create a default region for a new collection
+ */
+export function createDefaultRegion(name: string = 'Main'): CustomRegion {
+  return {
+    id: generateRegionId(),
+    name,
+    order: 0,
+    createdAt: Date.now(),
   };
+}
+
+/**
+ * Create default age-based regions for auto-layout
+ */
+export function createDefaultAgeRegions(): CustomRegion[] {
+  return [
+    {
+      id: generateRegionId(),
+      name: 'Last Month',
+      description: 'Repositories edited in the last 30 days',
+      order: 0,
+      createdAt: Date.now(),
+    },
+    {
+      id: generateRegionId(),
+      name: 'Last 3 Months',
+      description: 'Repositories edited in the last 90 days',
+      order: 1,
+      createdAt: Date.now(),
+    },
+    {
+      id: generateRegionId(),
+      name: 'Last Year',
+      description: 'Repositories edited in the last 365 days',
+      order: 2,
+      createdAt: Date.now(),
+    },
+    {
+      id: generateRegionId(),
+      name: 'Older',
+      description: 'Repositories not edited in over a year',
+      order: 3,
+      createdAt: Date.now(),
+    },
+  ];
+}
+
+
+/**
+ * Callbacks for region management
+ */
+export interface RegionCallbacks {
+  /** Create a new custom region */
+  onRegionCreated?: (collectionId: string, region: Omit<CustomRegion, 'id' | 'createdAt'>) => Promise<CustomRegion>;
+
+  /** Update an existing region */
+  onRegionUpdated?: (collectionId: string, regionId: string, updates: Partial<CustomRegion>) => Promise<void>;
+
+  /** Delete a region */
+  onRegionDeleted?: (collectionId: string, regionId: string) => Promise<void>;
+
+  /** Assign a repository to a region */
+  onRepositoryAssigned?: (collectionId: string, repositoryId: string, regionId: string) => Promise<void>;
+
+  /** Initialize default age-based regions */
+  onInitializeDefaultRegions?: (collectionId: string, regions: CustomRegion[]) => Promise<void>;
+
+  /** Switch collection layout mode */
+  onSwitchLayoutMode?: (collectionId: string, mode: 'auto' | 'manual') => Promise<void>;
 }
 
 export interface CollectionMapPanelProps {
@@ -83,6 +213,9 @@ export interface CollectionMapPanelProps {
 
   /** Callback when a project is dropped to add to collection */
   onProjectAdded?: (repositoryPath: string, repositoryMetadata: any) => void;
+
+  /** Callbacks for region management operations */
+  regionCallbacks?: RegionCallbacks;
 }
 
 /**
@@ -100,10 +233,62 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   isLoading = false,
   onProjectMoved,
   onProjectAdded,
+  regionCallbacks,
 }) => {
 
+  // Determine layout mode
+  const layoutMode = collection.metadata?.layoutMode || 'auto';
+  const customRegions = collection.metadata?.customRegions || [];
+
+  // Region editing state
+  const [isEditingRegions, setIsEditingRegions] = React.useState(false);
+
+  // Initialize default age-based regions if none exist
+  React.useEffect(() => {
+    if (customRegions.length === 0 && regionCallbacks?.onInitializeDefaultRegions) {
+      const defaultRegions = createDefaultAgeRegions();
+      regionCallbacks.onInitializeDefaultRegions(collection.id, defaultRegions);
+    }
+  }, [collection.id, customRegions.length, regionCallbacks]);
+
+  // Helper to switch to manual mode (when user makes any change)
+  const switchToManualMode = useCallback(async () => {
+    if (layoutMode === 'auto' && regionCallbacks?.onSwitchLayoutMode) {
+      await regionCallbacks.onSwitchLayoutMode(collection.id, 'manual');
+    }
+  }, [layoutMode, collection.id, regionCallbacks]);
+
+
+  // Handle renaming a region
+  const handleRenameRegion = useCallback(async (regionId: string, name: string) => {
+    if (!regionCallbacks?.onRegionUpdated) {
+      console.warn('No onRegionUpdated callback provided');
+      return;
+    }
+
+    // Switch to manual mode on user change
+    await switchToManualMode();
+
+    await regionCallbacks.onRegionUpdated(collection.id, regionId, { name });
+    console.log('Renamed region:', regionId, name);
+  }, [regionCallbacks, collection.id, switchToManualMode]);
+
+  // Handle deleting a region
+  const handleDeleteRegion = useCallback(async (regionId: string) => {
+    if (!regionCallbacks?.onRegionDeleted) {
+      console.warn('No onRegionDeleted callback provided');
+      return;
+    }
+
+    // Switch to manual mode on user change
+    await switchToManualMode();
+
+    await regionCallbacks.onRegionDeleted(collection.id, regionId);
+    console.log('Deleted region:', regionId);
+  }, [regionCallbacks, collection.id, switchToManualMode]);
+
   // Handle dropped projects
-  const handleProjectDrop = useCallback((data: PanelDragData, event: React.DragEvent) => {
+  const handleProjectDrop = useCallback(async (data: PanelDragData, event: React.DragEvent) => {
     if (!onProjectAdded) {
       console.warn('No onProjectAdded callback provided - cannot add project to collection');
       return;
@@ -118,10 +303,43 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       metadata: repositoryMetadata,
       collectionId: collection.id,
       sourcePanel: data.sourcePanel,
+      layoutMode,
     });
 
-    onProjectAdded(repositoryPath, repositoryMetadata);
-  }, [collection.id, onProjectAdded]);
+    // In manual mode, assign to first region or create default if none exist
+    if (layoutMode === 'manual') {
+      let targetRegionId: string;
+
+      // If no regions exist, create a default one
+      if (customRegions.length === 0 && regionCallbacks?.onRegionCreated) {
+        console.log('No regions exist - creating default region');
+        const defaultRegion = await regionCallbacks.onRegionCreated(collection.id, {
+          name: 'Main',
+          order: 0,
+        });
+        targetRegionId = defaultRegion.id;
+      } else {
+        // Assign to first region by default (could be enhanced with UI selection)
+        targetRegionId = customRegions[0]?.id;
+      }
+
+      // Assign repository to region
+      if (targetRegionId && regionCallbacks?.onRepositoryAssigned) {
+        // First add the repository to the collection
+        onProjectAdded(repositoryPath, repositoryMetadata);
+
+        // Then assign it to the region
+        // Note: We use repositoryPath as the repositoryId for now
+        await regionCallbacks.onRepositoryAssigned(collection.id, repositoryPath, targetRegionId);
+      } else {
+        console.warn('No region available to assign repository to');
+        onProjectAdded(repositoryPath, repositoryMetadata);
+      }
+    } else {
+      // Auto mode - just add the project
+      onProjectAdded(repositoryPath, repositoryMetadata);
+    }
+  }, [collection.id, onProjectAdded, layoutMode, customRegions, regionCallbacks]);
 
   // Set up drop zone
   const { isDragOver, ...dropZoneProps } = useDropZone({
@@ -228,14 +446,68 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         {collection.icon && <span style={{ marginRight: 8 }}>{collection.icon}</span>}
         {collection.name}
         {isDragOver && <span style={{ marginLeft: 8 }}>+ Drop to add</span>}
+        {layoutMode === 'manual' && (
+          <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.8 }}>
+            ({customRegions.length} region{customRegions.length !== 1 ? 's' : ''})
+          </span>
+        )}
       </div>
 
-      {/* Overworld map */}
+      {/* Edit Regions button */}
+      <button
+        onClick={() => setIsEditingRegions(!isEditingRegions)}
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          zIndex: 100,
+          backgroundColor: isEditingRegions ? 'rgba(251, 191, 36, 0.9)' : 'rgba(0, 0, 0, 0.7)',
+          border: isEditingRegions ? '2px solid #fbbf24' : '2px solid #4b5563',
+          padding: '8px 16px',
+          borderRadius: 8,
+          color: 'white',
+          fontFamily: 'monospace',
+          fontSize: 14,
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          pointerEvents: 'auto',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = isEditingRegions ? 'rgba(251, 191, 36, 1)' : 'rgba(75, 85, 99, 0.9)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = isEditingRegions ? 'rgba(251, 191, 36, 0.9)' : 'rgba(0, 0, 0, 0.7)';
+        }}
+      >
+        {isEditingRegions ? '✓ Done Editing' : '⚙️ Edit Regions'}
+      </button>
+
+      {/* Overworld map (always visible) */}
       <GitProjectsMapPanelContent
         projects={projects}
         regionLayout={regionLayout}
         isLoading={isLoading}
+        isEditingRegions={isEditingRegions}
+        customRegions={customRegions}
+        onAddRegion={async (position: { row: number; col: number }) => {
+          // Switch to manual mode on user change
+          await switchToManualMode();
+
+          // Calculate order from grid position (row-major order)
+          const order = position.row * 10 + position.col; // Assume max 10 columns
+
+          // Generate region name
+          const name = `Region ${customRegions.length + 1}`;
+
+          if (regionCallbacks?.onRegionCreated) {
+            await regionCallbacks.onRegionCreated(collection.id, { name, order });
+          }
+        }}
+        onRenameRegion={handleRenameRegion}
+        onDeleteRegion={handleDeleteRegion}
       />
+
     </div>
   );
 };
@@ -289,6 +561,69 @@ export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context, act
     }
   }, [actions, selectedCollectionId]);
 
+  // Create region management callbacks (must be before early return)
+  const regionCallbacks: RegionCallbacks = useMemo(() => ({
+    onInitializeDefaultRegions: async (collectionId: string, regions: CustomRegion[]) => {
+      console.log('Initializing default age regions:', { collectionId, regions });
+      if ((actions as any)?.initializeDefaultRegions) {
+        await (actions as any).initializeDefaultRegions(collectionId, regions);
+      } else {
+        console.warn('Actions does not support initializeDefaultRegions - region management requires context integration');
+      }
+    },
+
+    onSwitchLayoutMode: async (collectionId: string, mode: 'auto' | 'manual') => {
+      console.log('Switching layout mode:', { collectionId, mode });
+      if ((actions as any)?.switchLayoutMode) {
+        await (actions as any).switchLayoutMode(collectionId, mode);
+      } else {
+        console.warn('Actions does not support switchLayoutMode - region management requires context integration');
+      }
+    },
+
+    onRegionCreated: async (collectionId: string, region: Omit<CustomRegion, 'id' | 'createdAt'>) => {
+      // This would be implemented by the host application
+      // For now, we'll just log it
+      console.log('Region created:', { collectionId, region });
+
+      const newRegion: CustomRegion = {
+        ...region,
+        id: generateRegionId(),
+        createdAt: Date.now(),
+      };
+
+      // Call the actions method if available
+      if ((actions as any)?.createRegion) {
+        await (actions as any).createRegion(collectionId, newRegion);
+      } else {
+        console.warn('Actions does not support createRegion - region management requires context integration');
+      }
+
+      return newRegion;
+    },
+
+    onRegionUpdated: async (collectionId: string, regionId: string, updates: Partial<CustomRegion>) => {
+      console.log('Region updated:', { collectionId, regionId, updates });
+      if ((actions as any)?.updateRegion) {
+        await (actions as any).updateRegion(collectionId, regionId, updates);
+      }
+    },
+
+    onRegionDeleted: async (collectionId: string, regionId: string) => {
+      console.log('Region deleted:', { collectionId, regionId });
+      if ((actions as any)?.deleteRegion) {
+        await (actions as any).deleteRegion(collectionId, regionId);
+      }
+    },
+
+    onRepositoryAssigned: async (collectionId: string, repositoryId: string, regionId: string) => {
+      console.log('Repository assigned to region:', { collectionId, repositoryId, regionId });
+      if ((actions as any)?.assignRepositoryToRegion) {
+        await (actions as any).assignRepositoryToRegion(collectionId, repositoryId, regionId);
+      }
+    },
+  }), [actions]);
+
   // If no collection is selected, show a placeholder
   if (!selectedCollection) {
     return (
@@ -331,6 +666,7 @@ export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context, act
         dependencies={dependencies}
         isLoading={isLoading}
         onProjectAdded={handleProjectAdded}
+        regionCallbacks={regionCallbacks}
       />
     </div>
   );

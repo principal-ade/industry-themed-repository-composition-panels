@@ -62,6 +62,24 @@ export interface GitProjectsMapPanelProps {
 
   /** Loading state */
   isLoading?: boolean;
+
+  /** Callback when a project is moved (for persisting manual positions) */
+  onProjectMoved?: (projectId: string, gridX: number, gridY: number) => void;
+
+  /** Whether regions are being edited */
+  isEditingRegions?: boolean;
+
+  /** Custom regions defined in collection */
+  customRegions?: any[];
+
+  /** Callback to add a new region at a specific grid position */
+  onAddRegion?: (position: { row: number; col: number }) => void;
+
+  /** Callback to rename a region */
+  onRenameRegion?: (id: string, name: string) => void;
+
+  /** Callback to delete a region */
+  onDeleteRegion?: (id: string) => void;
 }
 
 /**
@@ -74,6 +92,12 @@ export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
   width,
   height,
   isLoading = false,
+  onProjectMoved,
+  isEditingRegions = false,
+  customRegions = [],
+  onAddRegion,
+  onRenameRegion,
+  onDeleteRegion,
 }) => {
   // Convert projects to package-like structure for compatibility
   // We use a type assertion here because the exact PackageLayer structure is complex,
@@ -117,6 +141,12 @@ export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
       isLoading={isLoading}
       includeDevDependencies={false}
       includePeerDependencies={false}
+      onProjectMoved={onProjectMoved}
+      isEditingRegions={isEditingRegions}
+      customRegions={customRegions}
+      onAddRegion={onAddRegion}
+      onRenameRegion={onRenameRegion}
+      onDeleteRegion={onDeleteRegion}
     />
   );
 };
