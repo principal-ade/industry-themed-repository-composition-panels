@@ -653,14 +653,27 @@ export function nodesToUnifiedOverworldMap(
   nodes: GenericNode[],
   options: GenericMapperOptions = {}
 ): OverworldMap {
+  // Calculate consistent size for each node (used by both layout and rendering)
+  // CRITICAL: Layout engine and renderer must use the same size value
+  const nodeWithSizes = nodes.map(node => {
+    const isRoot = node.isRoot || false;
+    const nodeType = options.getNodeType
+      ? options.getNodeType(node)
+      : determineNodeType(node, isRoot);
+    // Use node.size if provided, otherwise fall back to type-based size
+    const size = node.size ?? getNodeSize(nodeType);
+    return { ...node, size };
+  });
+
   // Use automatic layout engine for positioning
-  const layoutNodes: Array<{ id: string; size: number; language?: string }> = nodes.map(node => ({
+  const layoutNodes: Array<{ id: string; size: number; language?: string; lastEditedAt?: string }> = nodeWithSizes.map(node => ({
     id: node.id,
-    size: node.size || 1.0,
+    size: node.size, // Now guaranteed to have a size
     language: node.language,
+    lastEditedAt: node.aging?.lastEditedAt, // Pass through for age-based grouping
   }));
 
-  // Layout nodes across regions using circle packing
+  // Layout nodes across regions using circle packing with age-based grouping
   const layoutRegions = layoutSpritesMultiRegion(layoutNodes, REGION_SIZE_TILES, { spacing: 0.5 });
 
   // Create node position lookup
@@ -677,14 +690,14 @@ export function nodesToUnifiedOverworldMap(
   }
 
   // Convert to LocationNodes
-  const locationNodes: LocationNode[] = nodes.map((node) => {
-    const pos = nodePositions.get(node.id) || { gridX: 0, gridY: 0, size: 1.0 };
+  const locationNodes: LocationNode[] = nodeWithSizes.map((node) => {
+    const pos = nodePositions.get(node.id) || { gridX: 0, gridY: 0, size: node.size };
     const isRoot = node.isRoot || false;
     const theme = getCategoryTheme(node.category, options.getCategoryTheme);
     const nodeType = options.getNodeType
       ? options.getNodeType(node)
       : determineNodeType(node, isRoot);
-    const size = node.size ?? getNodeSize(nodeType);
+    const size = node.size; // Already computed above to match layout engine
     const color = options.getNodeColor
       ? options.getNodeColor(node)
       : getCategoryColor(node.category || node.language, isRoot);
@@ -718,7 +731,7 @@ export function nodesToUnifiedOverworldMap(
   // Create paths between nodes
   const paths: PathConnection[] = [];
   let pathId = 0;
-  for (const node of nodes) {
+  for (const node of nodeWithSizes) {
     const fromPos = nodePositions.get(node.id);
     if (!fromPos) continue;
 
@@ -773,10 +786,10 @@ export function nodesToUnifiedOverworldMap(
   const mapWidth = totalCols * REGION_SIZE_TILES;
   const mapHeight = totalRows * REGION_SIZE_TILES;
 
-  // Create regions
+  // Create regions with age bucket names if available
   const regions: MapRegion[] = layoutRegions.map(region => ({
     id: region.regionId,
-    name: `Region ${region.gridPosition.row}-${region.gridPosition.col}`,
+    name: region.name || `Region ${region.gridPosition.row}-${region.gridPosition.col}`,
     bounds: region.bounds,
     centerX: region.bounds.x + region.bounds.width / 2,
     centerY: region.bounds.y + region.bounds.height / 2,

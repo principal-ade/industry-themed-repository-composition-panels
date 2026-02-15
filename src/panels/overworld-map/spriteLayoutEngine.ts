@@ -9,6 +9,7 @@ export interface LayoutNode {
   gridY: number;
   size: number; // Size multiplier for boundary calculations
   language?: string; // Package language (e.g., 'typescript', 'python', 'rust')
+  lastEditedAt?: string; // ISO timestamp of last edit (for age-based grouping)
 }
 
 export interface RegionBounds {
@@ -33,8 +34,10 @@ function wouldCollide(
   spacing: number = 0
 ): boolean {
   // Boundary radius is 2 × size (boundary extends 2 × size in each direction)
-  const radius1 = 2 * pos1.size + spacing / 2;
-  const radius2 = 2 * pos2.size + spacing / 2;
+  // Add small buffer (0.3 tiles) to account for grid quantization (step = 0.5)
+  const gridBuffer = 0.3;
+  const radius1 = 2 * pos1.size + spacing / 2 + gridBuffer;
+  const radius2 = 2 * pos2.size + spacing / 2 + gridBuffer;
 
   const distance = Math.sqrt(
     Math.pow(pos1.gridX - pos2.gridX, 2) +
@@ -101,7 +104,8 @@ function findValidPosition(
       }
 
       if (!hasCollision) {
-        return { gridX: x, gridY: y };
+        // Snap to whole tiles so boundaries always cover full squares
+        return { gridX: Math.round(x), gridY: Math.round(y) };
       }
     }
   }
@@ -194,13 +198,68 @@ export interface LayoutRegion {
   regionId: string;
   gridPosition: { row: number; col: number }; // Position in region grid
   bounds: { x: number; y: number; width: number; height: number }; // Bounds in world tiles
-  nodes: LayoutNode[]; // Nodes in this region (with local coordinates)
+  nodes: LayoutNode[]; // Nodes in this region (with world coordinates)
   capacity: RegionCapacity;
+  ageBucket?: AgeBucket; // Age bucket this region belongs to
+  name?: string; // Human-readable name (e.g., "Last Month")
+}
+
+/**
+ * Age bucket definitions for region grouping
+ */
+export enum AgeBucket {
+  LAST_MONTH = 'last-month',
+  LAST_3_MONTHS = 'last-3-months',
+  LAST_YEAR = 'last-year',
+  OLDER = 'older',
+}
+
+/**
+ * Get age bucket for a node based on lastEditedAt
+ */
+function getAgeBucket(lastEditedAt?: string): AgeBucket {
+  if (!lastEditedAt) return AgeBucket.OLDER;
+
+  const now = Date.now();
+  const editTime = new Date(lastEditedAt).getTime();
+  const daysAgo = (now - editTime) / (1000 * 60 * 60 * 24);
+
+  if (daysAgo <= 30) return AgeBucket.LAST_MONTH;
+  if (daysAgo <= 90) return AgeBucket.LAST_3_MONTHS;
+  if (daysAgo <= 365) return AgeBucket.LAST_YEAR;
+  return AgeBucket.OLDER;
+}
+
+/**
+ * Group nodes by age bucket
+ */
+function groupNodesByAge(
+  nodes: Array<{ id: string; size: number; language?: string; lastEditedAt?: string }>
+): Map<AgeBucket, Array<{ id: string; size: number; language?: string; lastEditedAt?: string }>> {
+  const groups = new Map<AgeBucket, Array<{ id: string; size: number; language?: string; lastEditedAt?: string }>>();
+
+  // Initialize all buckets
+  groups.set(AgeBucket.LAST_MONTH, []);
+  groups.set(AgeBucket.LAST_3_MONTHS, []);
+  groups.set(AgeBucket.LAST_YEAR, []);
+  groups.set(AgeBucket.OLDER, []);
+
+  // Group nodes
+  for (const node of nodes) {
+    const bucket = getAgeBucket(node.lastEditedAt);
+    groups.get(bucket)!.push(node);
+  }
+
+  return groups;
 }
 
 /**
  * Layout sprites across multiple regions if needed
- * Automatically creates new regions when overflow occurs
+ * Groups nodes by age (last edited) before packing:
+ * - Last month → First region(s)
+ * - Last 3 months → Next region(s)
+ * - Last year → Next region(s)
+ * - Older → Final region(s)
  *
  * @param nodes - Nodes to layout
  * @param regionSize - Size of each region in tiles (default: 25)
@@ -208,12 +267,11 @@ export interface LayoutRegion {
  * @returns Array of regions with positioned nodes
  */
 export function layoutSpritesMultiRegion(
-  nodes: Array<{ id: string; size: number; language?: string }>,
+  nodes: Array<{ id: string; size: number; language?: string; lastEditedAt?: string }>,
   regionSize: number = 25,
   options: LayoutOptions = {}
 ): LayoutRegion[] {
   const regions: LayoutRegion[] = [];
-  let remainingNodes = [...nodes];
   let regionRow = 0;
   let regionCol = 0;
 
@@ -222,53 +280,81 @@ export function layoutSpritesMultiRegion(
   const estimatedRegions = Math.ceil(nodes.length / 10); // Assume ~10 sprites per region
   const gridSize = Math.max(2, Math.ceil(Math.sqrt(estimatedRegions))); // Square root for balanced grid, min 2x2
 
-  while (remainingNodes.length > 0) {
-    const regionId = `region-${regionRow}-${regionCol}`;
-    const regionBounds: RegionBounds = { width: regionSize, height: regionSize };
+  // Group nodes by age
+  const ageGroups = groupNodesByAge(nodes);
 
-    // Try to place nodes in this region
-    const layoutResult = layoutSpritesInRegion(remainingNodes, regionBounds, options);
+  // Process each age bucket in order (most recent first)
+  const bucketOrder = [
+    AgeBucket.LAST_MONTH,
+    AgeBucket.LAST_3_MONTHS,
+    AgeBucket.LAST_YEAR,
+    AgeBucket.OLDER,
+  ];
 
-    // Convert local coordinates to world coordinates
-    const offsetX = regionCol * regionSize;
-    const offsetY = regionRow * regionSize;
+  for (const bucket of bucketOrder) {
+    const bucketNodes = ageGroups.get(bucket)!;
+    if (bucketNodes.length === 0) continue;
 
-    const worldNodes = layoutResult.placed.map((node) => ({
-      ...node,
-      gridX: node.gridX + offsetX,
-      gridY: node.gridY + offsetY,
-    }));
+    let remainingNodes = [...bucketNodes];
 
-    // Create region
-    const capacity = calculateRegionCapacity(layoutResult.placed, regionBounds);
-    regions.push({
-      regionId,
-      gridPosition: { row: regionRow, col: regionCol },
-      bounds: {
-        x: offsetX,
-        y: offsetY,
-        width: regionSize,
-        height: regionSize,
-      },
-      nodes: worldNodes,
-      capacity,
-    });
+    // Pack this age group into regions
+    while (remainingNodes.length > 0) {
+      const regionId = `region-${regionRow}-${regionCol}`;
+      const regionBounds: RegionBounds = { width: regionSize, height: regionSize };
 
-    // Update remaining nodes
-    remainingNodes = layoutResult.overflow;
+      // Try to place nodes in this region
+      const layoutResult = layoutSpritesInRegion(remainingNodes, regionBounds, options);
 
-    // Move to next region (fill left-to-right, then down)
-    regionCol++;
-    if (regionCol >= gridSize) {
-      // Wrap to next row after gridSize columns
-      regionCol = 0;
-      regionRow++;
-    }
+      // Convert local coordinates to world coordinates
+      const offsetX = regionCol * regionSize;
+      const offsetY = regionRow * regionSize;
 
-    // Safety check - prevent infinite loop
-    if (regions.length > 20) {
-      console.error('Too many regions created - stopping to prevent infinite loop');
-      break;
+      const worldNodes = layoutResult.placed.map((node) => ({
+        ...node,
+        gridX: node.gridX + offsetX,
+        gridY: node.gridY + offsetY,
+      }));
+
+      // Create region with age bucket label
+      const bucketLabels = {
+        [AgeBucket.LAST_MONTH]: 'Last Month',
+        [AgeBucket.LAST_3_MONTHS]: 'Last 3 Months',
+        [AgeBucket.LAST_YEAR]: 'Last Year',
+        [AgeBucket.OLDER]: 'Older',
+      };
+
+      const capacity = calculateRegionCapacity(layoutResult.placed, regionBounds);
+      regions.push({
+        regionId,
+        gridPosition: { row: regionRow, col: regionCol },
+        bounds: {
+          x: offsetX,
+          y: offsetY,
+          width: regionSize,
+          height: regionSize,
+        },
+        nodes: worldNodes,
+        capacity,
+        ageBucket: bucket,
+        name: bucketLabels[bucket],
+      });
+
+      // Update remaining nodes
+      remainingNodes = layoutResult.overflow;
+
+      // Move to next region (fill left-to-right, then down)
+      regionCol++;
+      if (regionCol >= gridSize) {
+        // Wrap to next row after gridSize columns
+        regionCol = 0;
+        regionRow++;
+      }
+
+      // Safety check - prevent infinite loop
+      if (regions.length > 20) {
+        console.error('Too many regions created - stopping to prevent infinite loop');
+        break;
+      }
     }
   }
 

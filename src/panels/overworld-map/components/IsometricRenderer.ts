@@ -331,7 +331,7 @@ export class IsometricRenderer {
 
       // Create highlight boundary (4 × size formula)
       const highlight = this.createHighlight(node.gridX, node.gridY, sizeMultiplier);
-      highlight.visible = true; // Visible by default for testing (interaction manager will control)
+      highlight.visible = false; // Hidden by default, shown on hover by interaction manager
       highlight.zIndex = sprite.zIndex;
 
       // Create weathering overlay if needed

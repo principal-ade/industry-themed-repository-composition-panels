@@ -234,8 +234,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       <GitProjectsMapPanelContent
         projects={projects}
         regionLayout={regionLayout}
-        width={width}
-        height={height}
         isLoading={isLoading}
       />
     </div>

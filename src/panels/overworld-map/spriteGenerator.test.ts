@@ -342,13 +342,13 @@ describe('spriteGenerator', () => {
     test('atlas contains expected number of entries', () => {
       const atlas = generateSpriteAtlasSync();
 
-      // 5 grass tiles (one per biome) + 1 path tile = 6 terrain tiles
+      // 5 grass tiles (one per biome) + 1 path tile + 2 water tiles = 8 terrain tiles
       // 7 location types * 5 themes = 35 location sprites
       // 4 decorative sprites
-      // Total: 6 + 35 + 4 = 45
+      // Total: 8 + 35 + 4 = 47
 
       const keys = Object.keys(atlas);
-      expect(keys.length).toBe(45);
+      expect(keys.length).toBe(47);
     });
   });
 

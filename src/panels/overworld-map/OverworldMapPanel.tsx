@@ -62,6 +62,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const interactionRef = useRef<IsometricInteractionManager | null>(null);
   const pathManagerRef = useRef<IsometricPathManager | null>(null);
   const [isRendering, setIsRendering] = useState(true);
+  const [isResizing, setIsResizing] = useState(false);
   const dimensionsRef = useRef({ width: width || 800, height: height || 600 });
 
   // Region navigation state
@@ -103,6 +104,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         height: containerHeight,
         backgroundColor: 0x1a1a1a, // Dark gray background (matches LayoutEngineTest)
         antialias: false, // Pixel-perfect rendering
+        preserveDrawingBuffer: true, // Prevents flash during resize
       });
 
       if (cleanup) {
@@ -317,6 +319,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     };
 
     let resizeObserver: ResizeObserver | null = null;
+    let resizeTimeout: number | null = null;
 
     const initAndSetupResize = async () => {
       await initPixi();
@@ -324,6 +327,14 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       if (canvasRef.current && appRef.current) {
         resizeObserver = new ResizeObserver((entries) => {
           if (!appRef.current || !viewportRef.current) return;
+
+          // Set resizing flag
+          setIsResizing(true);
+
+          // Clear existing timeout
+          if (resizeTimeout) {
+            clearTimeout(resizeTimeout);
+          }
 
           for (const entry of entries) {
             const { width: newWidth, height: newHeight } = entry.contentRect;
@@ -340,6 +351,11 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
             // Update hit area for the new size
             appRef.current.stage.hitArea = appRef.current.screen;
           }
+
+          // Clear resizing flag after a short delay
+          resizeTimeout = window.setTimeout(() => {
+            setIsResizing(false);
+          }, 100);
         });
 
         resizeObserver.observe(canvasRef.current);
@@ -350,6 +366,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
     return () => {
       cleanup = true;
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
@@ -404,24 +423,6 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     };
   }, [currentRegionIndex, currentRegion, isRendering]);
 
-  if (packages.length === 0) {
-    return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'monospace',
-          color: '#64748b',
-        }}
-      >
-        No packages found
-      </div>
-    );
-  }
-
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       {(isLoading || isRendering) && (
@@ -445,6 +446,39 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         </div>
       )}
 
+      {/* Empty state overlay - shows when no packages */}
+      {!isLoading && !isRendering && packages.length === 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '24px 32px',
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            color: '#ffffff',
+            fontFamily: 'monospace',
+            borderRadius: 8,
+            border: '2px solid #fbbf24',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+            zIndex: 5,
+            pointerEvents: 'none',
+          }}
+        >
+          <div style={{ fontSize: '32px' }}>🗺️</div>
+          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fbbf24' }}>
+            Empty Collection
+          </div>
+          <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
+            Drag repositories here to start building your map
+          </div>
+        </div>
+      )}
+
       <div
         ref={canvasRef}
         style={{
@@ -453,6 +487,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           imageRendering: 'pixelated',
           border: '2px solid #1f2937',
           boxSizing: 'border-box',
+          backgroundColor: '#1a1a1a', // Match Pixi background to prevent flash
+          opacity: isResizing ? 0.95 : 1,
+          transition: 'opacity 0.1s ease-out',
         }}
       />
 

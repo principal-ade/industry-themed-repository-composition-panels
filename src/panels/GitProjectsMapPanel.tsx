@@ -108,24 +108,6 @@ export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
     })) as unknown as PackageLayer[];
   }, [projects]);
 
-  if (projects.length === 0) {
-    return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'monospace',
-          color: '#64748b',
-        }}
-      >
-        No git projects found
-      </div>
-    );
-  }
-
   return (
     <OverworldMapPanelContent
       packages={packages}

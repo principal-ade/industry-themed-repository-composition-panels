@@ -47,6 +47,7 @@ interface DragState {
   isDragging: boolean;
   dragStartPos: { x: number; y: number };
   spriteStartPos: { gridX: number; gridY: number };
+  nearbySprites: Set<string>; // Track which sprites have visible highlights due to proximity
 }
 
 export class IsometricInteractionManager {
@@ -137,6 +138,7 @@ export class IsometricInteractionManager {
       isDragging: true,
       dragStartPos: { x: event.global.x, y: event.global.y },
       spriteStartPos: { gridX: instance.gridPosition.gridX, gridY: instance.gridPosition.gridY },
+      nearbySprites: new Set(),
     };
 
     instance.sprite.cursor = 'grabbing';
@@ -235,6 +237,9 @@ export class IsometricInteractionManager {
     // Update sprite position
     this.dragState.instance.update(newGridX, newGridY);
 
+    // Update nearby sprite highlights
+    this.updateNearbyHighlights(this.dragState.nodeId, { gridX: newGridX, gridY: newGridY });
+
     // Emit drag move event
     this.events.onDragMove?.(this.dragState.nodeId, newGridX, newGridY);
   };
@@ -263,12 +268,51 @@ export class IsometricInteractionManager {
   };
 
   /**
+   * Update highlights for sprites near the dragged sprite
+   * Shows highlights for sprites within 1 tile of the dragged sprite's boundary
+   */
+  private updateNearbyHighlights(draggedId: string, position: GridPoint): void {
+    if (!this.dragState) return;
+
+    const draggedInstance = this.sprites.get(draggedId);
+    if (!draggedInstance) return;
+
+    const draggedRadius = 2 * draggedInstance.size;
+    const proximityThreshold = 1; // Show highlights within 1 tile of boundary
+
+    const currentNearby = new Set<string>();
+
+    for (const [id, instance] of this.sprites.entries()) {
+      if (id === draggedId) continue;
+
+      const otherRadius = 2 * instance.size;
+      const distance = Math.sqrt(
+        Math.pow(position.gridX - instance.gridPosition.gridX, 2) +
+          Math.pow(position.gridY - instance.gridPosition.gridY, 2)
+      );
+
+      // Show highlight if within 1 tile of boundaries touching
+      if (distance < draggedRadius + otherRadius + proximityThreshold) {
+        currentNearby.add(id);
+        instance.highlight.visible = true;
+      } else {
+        // Hide if it was previously shown as nearby (but not if it's being hovered)
+        if (this.dragState.nearbySprites.has(id) && this.hoveredNodeId !== id) {
+          instance.highlight.visible = false;
+        }
+      }
+    }
+
+    this.dragState.nearbySprites = currentNearby;
+  }
+
+  /**
    * Finish dragging - snap to grid and cleanup
    */
   private finishDrag(): void {
     if (!this.dragState) return;
 
-    const { nodeId, instance } = this.dragState;
+    const { nodeId, instance, nearbySprites } = this.dragState;
 
     // Snap to grid
     let snappedGridX = Math.round(instance.gridPosition.gridX);
@@ -295,6 +339,14 @@ export class IsometricInteractionManager {
     // Hide highlight (unless hovering)
     if (this.hoveredNodeId !== nodeId) {
       instance.highlight.visible = false;
+    }
+
+    // Hide nearby sprite highlights (unless hovering)
+    for (const nearbyId of nearbySprites) {
+      const nearbyInstance = this.sprites.get(nearbyId);
+      if (nearbyInstance && this.hoveredNodeId !== nearbyId) {
+        nearbyInstance.highlight.visible = false;
+      }
     }
 
     // Resume viewport dragging (if using pixi-viewport)

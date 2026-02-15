@@ -10,6 +10,7 @@ export interface AgingMetrics {
   monthsSinceEdit: number;
   weatheringLevel: number; // 0.0 (pristine) to 1.0 (heavily weathered)
   colorFade: number; // 0.0 (no fade) to 1.0 (maximum fade/desaturation)
+  lastEditedAt?: string; // ISO timestamp of last edit (stored for region grouping)
 }
 
 /**
@@ -65,6 +66,7 @@ export function calculateAgingMetrics(lastEditedAt?: string): AgingMetrics {
     monthsSinceEdit,
     weatheringLevel: Math.min(weatheringLevel, 1.0),
     colorFade: Math.min(colorFade, 0.7), // Cap at 70% fade
+    lastEditedAt, // Store for region grouping
   };
 }
 
