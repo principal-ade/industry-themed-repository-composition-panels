@@ -16,7 +16,7 @@ import type { SpriteInstance } from './IsometricRenderer';
 import type { GridPoint, MapRegion } from '../types';
 
 export interface IsometricInteractionConfig {
-  viewport: Viewport;
+  viewport: Viewport | null; // Optional - if null, uses worldContainer for events
   worldContainer: Container;
   tileWidth?: number;
   tileHeight?: number;
@@ -50,7 +50,7 @@ interface DragState {
 }
 
 export class IsometricInteractionManager {
-  private viewport: Viewport;
+  private viewport: Viewport | null;
   private worldContainer: Container;
   private config: IsometricInteractionConfig;
   private events: IsometricInteractionEvents;
@@ -145,16 +145,20 @@ export class IsometricInteractionManager {
     // Show highlight
     instance.highlight.visible = true;
 
-    // Pause viewport dragging while sprite is being dragged
-    this.viewport.plugins.pause('drag');
+    // Pause viewport dragging while sprite is being dragged (if using pixi-viewport)
+    if (this.viewport) {
+      this.viewport.plugins.pause('drag');
+    }
 
     // Emit drag start event
     this.events.onDragStart?.(nodeId);
 
     // Set up global move and up handlers
-    this.viewport.on('globalpointermove', this.onGlobalPointerMove);
-    this.viewport.on('pointerup', this.onPointerUp);
-    this.viewport.on('pointerupoutside', this.onPointerUpOutside);
+    // Use viewport if available, otherwise use worldContainer
+    const eventTarget = this.viewport || this.worldContainer;
+    eventTarget.on('globalpointermove', this.onGlobalPointerMove);
+    eventTarget.on('pointerup', this.onPointerUp);
+    eventTarget.on('pointerupoutside', this.onPointerUpOutside);
   }
 
   /**
@@ -192,11 +196,13 @@ export class IsometricInteractionManager {
     event.stopPropagation();
 
     // Convert screen coordinates to world coordinates (relative to worldContainer)
-    const worldPos = this.viewport.toWorld(event.global.x, event.global.y);
-    const worldStartPos = this.viewport.toWorld(
-      this.dragState.dragStartPos.x,
-      this.dragState.dragStartPos.y
-    );
+    // Use viewport.toWorld() if available, otherwise use worldContainer.toLocal()
+    const worldPos = this.viewport
+      ? this.viewport.toWorld(event.global.x, event.global.y)
+      : this.worldContainer.toLocal(event.global);
+    const worldStartPos = this.viewport
+      ? this.viewport.toWorld(this.dragState.dragStartPos.x, this.dragState.dragStartPos.y)
+      : this.worldContainer.toLocal(this.dragState.dragStartPos);
 
     // Account for worldContainer offset
     const containerOffsetX = this.worldContainer.x || 0;
@@ -291,16 +297,19 @@ export class IsometricInteractionManager {
       instance.highlight.visible = false;
     }
 
-    // Resume viewport dragging
-    this.viewport.plugins.resume('drag');
+    // Resume viewport dragging (if using pixi-viewport)
+    if (this.viewport) {
+      this.viewport.plugins.resume('drag');
+    }
 
     // Emit drag end event
     this.events.onDragEnd?.(nodeId, snappedGridX, snappedGridY);
 
     // Remove global handlers
-    this.viewport.off('globalpointermove', this.onGlobalPointerMove);
-    this.viewport.off('pointerup', this.onPointerUp);
-    this.viewport.off('pointerupoutside', this.onPointerUpOutside);
+    const eventTarget = this.viewport || this.worldContainer;
+    eventTarget.off('globalpointermove', this.onGlobalPointerMove);
+    eventTarget.off('pointerup', this.onPointerUp);
+    eventTarget.off('pointerupoutside', this.onPointerUpOutside);
 
     // Clear drag state
     this.dragState = null;
@@ -433,10 +442,13 @@ export class IsometricInteractionManager {
 
     // Clear drag state if active
     if (this.dragState) {
-      this.viewport.plugins.resume('drag');
-      this.viewport.off('globalpointermove', this.onGlobalPointerMove);
-      this.viewport.off('pointerup', this.onPointerUp);
-      this.viewport.off('pointerupoutside', this.onPointerUpOutside);
+      if (this.viewport) {
+        this.viewport.plugins.resume('drag');
+      }
+      const eventTarget = this.viewport || this.worldContainer;
+      eventTarget.off('globalpointermove', this.onGlobalPointerMove);
+      eventTarget.off('pointerup', this.onPointerUp);
+      eventTarget.off('pointerupoutside', this.onPointerUpOutside);
       this.dragState = null;
     }
   }

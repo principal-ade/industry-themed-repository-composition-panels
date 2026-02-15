@@ -4,6 +4,7 @@
 
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
+import { Viewport } from 'pixi-viewport';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PackageLayer } from '../../types/composition';
 import type { PackagesSliceData } from '../../types/dependencies';
@@ -11,6 +12,9 @@ import type { PanelComponentProps } from '../../types';
 import type { OverworldMap } from './types';
 import { packagesToUnifiedOverworldMap } from './dataConverter';
 import { generateBuildingSprite } from './components/buildingSpriteGenerator';
+import { IsometricRenderer } from './components/IsometricRenderer';
+import { IsometricInteractionManager } from './components/IsometricInteractionManager';
+import { IsometricPathManager } from './components/IsometricPathManager';
 import { gridToScreen, screenToGrid, getIsometricZIndex, ISO_TILE_WIDTH, ISO_TILE_HEIGHT } from './isometricUtils';
 import type { RegionLayout } from './genericMapper';
 
@@ -52,8 +56,11 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
+  const viewportRef = useRef<Viewport | null>(null);
   const worldContainerRef = useRef<Container | null>(null);
   const scaleRef = useRef<number>(1);
+  const interactionRef = useRef<IsometricInteractionManager | null>(null);
+  const pathManagerRef = useRef<IsometricPathManager | null>(null);
   const [isRendering, setIsRendering] = useState(true);
   const dimensionsRef = useRef({ width: width || 800, height: height || 600 });
 
@@ -94,7 +101,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       await app.init({
         width: containerWidth,
         height: containerHeight,
-        backgroundColor: 0x3d5a27, // Dark grass green (matches background texture)
+        backgroundColor: 0x1a1a1a, // Dark gray background (matches LayoutEngineTest)
         antialias: false, // Pixel-perfect rendering
       });
 
@@ -130,25 +137,61 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         buildingGraphics.destroy();
       }
 
-      // Create main container for the world
-      const worldContainer = new Container();
-      app.stage.addChild(worldContainer);
-      worldContainerRef.current = worldContainer;
+      // Create viewport for pan/zoom (like LayoutEngineTest)
+      const worldWidth = mapData.width * ISO_TILE_WIDTH;
+      const worldHeight = mapData.height * ISO_TILE_HEIGHT;
+
+      const viewport = new Viewport({
+        screenWidth: containerWidth,
+        screenHeight: containerHeight,
+        worldWidth,
+        worldHeight,
+        events: app.renderer.events,
+      })
+        .drag()
+        .pinch()
+        .wheel()
+        .decelerate();
+
+      app.stage.addChild(viewport);
+      viewportRef.current = viewport;
+      worldContainerRef.current = viewport; // Viewport is also the world container
+
+      // Render grid with region boundaries using IsometricRenderer (like LayoutEngineTest)
+      const renderer = new IsometricRenderer({
+        viewport,
+        atlas: textures,
+        tileWidth: ISO_TILE_WIDTH,
+        tileHeight: ISO_TILE_HEIGHT,
+        gridColor: 0x333333,
+        regionColor: 0xff6600,
+      });
+
+      // Render scene using IsometricRenderer (like LayoutEngineTest)
+      const scene = renderer.renderScene(mapData, true);
+
+      // Add scene containers to viewport (layer order)
+      viewport.addChild(scene.background); // Grid
+      viewport.addChild(scene.tiles);      // Terrain (empty for now)
+      viewport.addChild(scene.bridges);    // Bridges (empty for now)
+      viewport.addChild(scene.paths);      // Paths between nodes
+      viewport.addChild(scene.nodes);      // Sprites with highlights and labels
+
+      // Enable sorting for proper z-ordering
+      scene.nodes.sortableChildren = true;
 
       // Function to detect which region is currently in view
       const updateCurrentRegion = () => {
         if (mapData.regions.length <= 1) return;
 
-        // Calculate viewport center in screen space
-        const viewportCenterX = dimensionsRef.current.width / 2;
-        const viewportCenterY = dimensionsRef.current.height / 2;
-
-        // Convert to world coordinates (subtract world container offset)
-        const worldX = viewportCenterX - worldContainer.x;
-        const worldY = viewportCenterY - worldContainer.y;
+        // Get viewport center in world coordinates
+        const worldPos = viewport.toWorld(
+          dimensionsRef.current.width / 2,
+          dimensionsRef.current.height / 2
+        );
 
         // Convert to grid coordinates
-        const gridPos = screenToGrid(worldX, worldY);
+        const gridPos = screenToGrid(worldPos.x, worldPos.y);
 
         // Find which region contains this grid position
         for (let i = 0; i < mapData.regions.length; i++) {
@@ -172,626 +215,81 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         }
       };
 
-      // Add drag-to-pan functionality
-      let isDragging = false;
-      let dragStart = { x: 0, y: 0 };
-      let worldStart = { x: 0, y: 0 };
+      // NOTE: Pan/zoom is handled by pixi-viewport automatically (drag, wheel, pinch plugins)
 
-      app.stage.eventMode = 'static';
-      app.stage.hitArea = app.screen;
-      app.stage.cursor = 'grab';
+      // NOTE: Paths and sprites are now rendered by renderer.renderScene() above
+      // No need for inline rendering code
 
-      app.stage.on('pointerdown', (event) => {
-        isDragging = true;
-        dragStart = { x: event.globalX, y: event.globalY };
-        worldStart = { x: worldContainer.x, y: worldContainer.y };
-        app.stage.cursor = 'grabbing';
+      // Create path manager for dynamic path updates during drag
+      const pathConnections = Array.from(scene.pathGraphics.entries()).map(([id, graphics]) => {
+        // Extract path data from mapData
+        const pathData = mapData.paths.find(p => `${p.from}-${p.to}` === id);
+        return {
+          id,
+          fromNodeId: pathData?.from || '',
+          toNodeId: pathData?.to || '',
+          graphics,
+        };
       });
 
-      app.stage.on('pointermove', (event) => {
-        if (isDragging) {
-          const dx = event.globalX - dragStart.x;
-          const dy = event.globalY - dragStart.y;
-          worldContainer.x = worldStart.x + dx;
-          worldContainer.y = worldStart.y + dy;
+      const nodePositions = new Map(
+        mapData.nodes.map(n => [n.id, { gridX: n.gridX, gridY: n.gridY }])
+      );
 
-          // Update current region based on viewport position
-          updateCurrentRegion();
+      const pathManager = new IsometricPathManager(pathConnections, nodePositions, renderer);
+
+      // Create interaction manager for drag-and-drop
+      const interaction = new IsometricInteractionManager(
+        {
+          viewport,
+          worldContainer: viewport,
+          tileWidth: ISO_TILE_WIDTH,
+          tileHeight: ISO_TILE_HEIGHT,
+          mapBounds: {
+            minX: 0,
+            minY: 0,
+            maxX: mapData.width,
+            maxY: mapData.height,
+          },
+        },
+        {
+          onDragStart: (nodeId) => {
+            console.log('Drag start:', nodeId);
+          },
+          onDragMove: (nodeId, gridX, gridY) => {
+            // Update paths in real-time during drag
+            pathManager.updateNodePosition(nodeId, gridX, gridY);
+          },
+          onDragEnd: (nodeId, gridX, gridY) => {
+            console.log('Drag end:', nodeId, 'at', gridX, gridY);
+            // Update the node data
+            const node = mapData.nodes.find(n => n.id === nodeId);
+            if (node) {
+              node.gridX = gridX;
+              node.gridY = gridY;
+            }
+          },
         }
-      });
+      );
 
-      app.stage.on('pointerup', () => {
-        isDragging = false;
-        app.stage.cursor = 'default';
-      });
-
-      app.stage.on('pointerupoutside', () => {
-        isDragging = false;
-        app.stage.cursor = 'default';
-      });
-
-      // Render terrain tiles
-      const tileContainer = new Container();
-      worldContainer.addChild(tileContainer);
-
-      for (const tile of mapData.tiles) {
-        const { screenX, screenY } = gridToScreen(tile.x, tile.y);
-        const spriteKey = `tile-grass-${tile.biome}`;
-        const texture = textures[spriteKey] || textures['tile-grass-grass'];
-
-        if (texture) {
-          const sprite = new Sprite(texture);
-          sprite.x = screenX;
-          sprite.y = screenY;
-          sprite.anchor.set(0.5, 0.5);
-          tileContainer.addChild(sprite);
-        }
+      // Register all sprites with interaction manager
+      for (const [id, instance] of scene.spriteInstances) {
+        interaction.registerSprite(id, instance);
       }
 
-      // Render bridge sprites on top of water tiles
-      const bridgeContainer = new Container();
-      worldContainer.addChild(bridgeContainer);
+      // Store refs for cleanup
+      interactionRef.current = interaction;
+      pathManagerRef.current = pathManager;
 
-      for (const tile of mapData.tiles) {
-        // Only render bridges on water tiles
-        if (tile.type === 'water') {
-          const { screenX, screenY } = gridToScreen(tile.x, tile.y);
-          const bridgeTexture = textures['tile-bridge'];
-
-          if (bridgeTexture) {
-            const bridgeSprite = new Sprite(bridgeTexture);
-            bridgeSprite.x = screenX;
-            bridgeSprite.y = screenY;
-            bridgeSprite.anchor.set(0.5, 0.5);
-            bridgeContainer.addChild(bridgeSprite);
-          }
-        }
+      // Fit viewport to show the first region
+      // (viewport handles scaling automatically)
+      if (mapData.regions.length > 0) {
+        const firstRegion = mapData.regions[0];
+        viewport.moveCenter(
+          gridToScreen(firstRegion.centerX, firstRegion.centerY).screenX,
+          gridToScreen(firstRegion.centerX, firstRegion.centerY).screenY
+        );
       }
-
-      // Render paths
-      const pathContainer = new Container();
-      worldContainer.addChild(pathContainer);
-
-      // Store path graphics for dynamic updates
-      const pathGraphics: Array<{ path: typeof mapData.paths[0]; graphics: Graphics }> = [];
-
-      // Function to redraw all paths based on current node positions
-      const redrawPaths = () => {
-        for (const { path, graphics } of pathGraphics) {
-          // Find source and target nodes by ID
-          const fromNode = mapData.nodes.find((n) => n.id === path.from);
-          const toNode = mapData.nodes.find((n) => n.id === path.to);
-
-          if (!fromNode || !toNode) continue;
-
-          // Clear previous drawing
-          graphics.clear();
-
-          // Get screen positions
-          const fromScreen = gridToScreen(fromNode.gridX, fromNode.gridY);
-          const toScreen = gridToScreen(toNode.gridX, toNode.gridY);
-
-          // Road styling based on dependency type
-          const isDev = path.type === 'dev-dependency';
-          const roadWidth = isDev ? 8 : 12; // Dev dependencies are narrower roads
-          const borderWidth = roadWidth + 4; // Border is 2px wider on each side
-
-          // Colors: dev dependencies are gray dirt roads, regular are tan paved roads
-          const roadColor = isDev ? 0x8b7355 : 0xd2b48c; // Gray-brown vs tan
-          const borderColor = isDev ? 0x5c4a3a : 0x8b6f47; // Darker borders
-          const alpha = isDev ? 0.7 : 1.0;
-
-          // Draw road border (wider, darker)
-          graphics.setStrokeStyle({
-            width: borderWidth,
-            color: borderColor,
-            alpha: alpha,
-          });
-          graphics.moveTo(fromScreen.screenX, fromScreen.screenY);
-          graphics.lineTo(toScreen.screenX, toScreen.screenY);
-          graphics.stroke();
-
-          // Draw road surface (thinner, lighter) on top
-          graphics.setStrokeStyle({
-            width: roadWidth,
-            color: roadColor,
-            alpha: alpha,
-          });
-          graphics.moveTo(fromScreen.screenX, fromScreen.screenY);
-          graphics.lineTo(toScreen.screenX, toScreen.screenY);
-          graphics.stroke();
-
-          // Add subtle directional arrows to show one-way flow
-          const dx = toScreen.screenX - fromScreen.screenX;
-          const dy = toScreen.screenY - fromScreen.screenY;
-          const length = Math.sqrt(dx * dx + dy * dy);
-
-          // Calculate angle of the road
-          const angle = Math.atan2(dy, dx);
-
-          // Subtle arrow styling - fewer, smaller, more transparent
-          const arrowSize = isDev ? 5 : 6;
-          const arrowSpacing = 60; // More space between arrows
-          const numArrows = Math.max(1, Math.floor(length / arrowSpacing));
-
-          graphics.setFillStyle({
-            color: isDev ? 0x6b5d52 : 0xa08968, // Lighter colors
-            alpha: isDev ? 0.4 : 0.5, // More transparent
-          });
-
-          // Draw arrows along the road pointing from source to target
-          for (let i = 1; i <= numArrows; i++) {
-            const t = i / (numArrows + 1); // Distribute arrows evenly
-            const x = fromScreen.screenX + dx * t;
-            const y = fromScreen.screenY + dy * t;
-
-            // Draw small arrow chevron pointing in the direction of flow
-            const x1 = x + Math.cos(angle) * arrowSize;
-            const y1 = y + Math.sin(angle) * arrowSize;
-            const x2 = x + Math.cos(angle + Math.PI * 2.5 / 3) * arrowSize;
-            const y2 = y + Math.sin(angle + Math.PI * 2.5 / 3) * arrowSize;
-            const x3 = x + Math.cos(angle - Math.PI * 2.5 / 3) * arrowSize;
-            const y3 = y + Math.sin(angle - Math.PI * 2.5 / 3) * arrowSize;
-
-            graphics.moveTo(x1, y1);
-            graphics.lineTo(x2, y2);
-            graphics.lineTo(x3, y3);
-            graphics.lineTo(x1, y1);
-            graphics.fill();
-          }
-
-          // Add dashed center line for regular dependencies (like highways)
-          if (!isDev) {
-            const dashLength = 8;
-            const gapLength = 8;
-            const segmentLength = dashLength + gapLength;
-            const numSegments = Math.floor(length / segmentLength);
-
-            graphics.setStrokeStyle({
-              width: 2,
-              color: 0xffffff,
-              alpha: 0.4,
-            });
-
-            for (let i = 0; i < numSegments; i++) {
-              const t1 = (i * segmentLength) / length;
-              const t2 = (i * segmentLength + dashLength) / length;
-
-              const x1 = fromScreen.screenX + dx * t1;
-              const y1 = fromScreen.screenY + dy * t1;
-              const x2 = fromScreen.screenX + dx * t2;
-              const y2 = fromScreen.screenY + dy * t2;
-
-              graphics.moveTo(x1, y1);
-              graphics.lineTo(x2, y2);
-              graphics.stroke();
-            }
-          }
-        }
-      };
-
-      // Initialize path graphics
-      for (const path of mapData.paths) {
-        const graphics = new Graphics();
-        pathGraphics.push({ path, graphics });
-        pathContainer.addChild(graphics);
-      }
-
-      // Draw paths initially
-      redrawPaths();
-
-      // Render location nodes
-      const nodeContainer = new Container();
-      worldContainer.addChild(nodeContainer);
-
-      // Store highlights and positions for intersection detection
-      const buildingData: Array<{
-        node: typeof mapData.nodes[0];
-        sprite: Sprite;
-        highlight: Graphics;
-        label: Text;
-      }> = [];
-
-      // Sort nodes by z-index for proper isometric rendering
-      const sortedNodes = [...mapData.nodes].sort((a, b) => {
-        const zA = getIsometricZIndex(a.gridX, a.gridY);
-        const zB = getIsometricZIndex(b.gridX, b.gridY);
-        return zA - zB;
-      });
-
-      for (const node of sortedNodes) {
-        const { screenX, screenY } = gridToScreen(node.gridX, node.gridY);
-        const texture = textures[node.sprite];
-
-        if (texture) {
-          // Scale highlight based on node size (from repository metrics)
-          const sizeMultiplier = node.size || 1.0;
-
-          // Create highlight for hover - scaled by repository size
-          const highlight = new Graphics();
-          const HOVER_SIZE = 4 * sizeMultiplier; // Base 4x4 tiles scaled by metrics
-          const tileSize = ISO_TILE_WIDTH * HOVER_SIZE;
-          const tileHeight = ISO_TILE_HEIGHT * HOVER_SIZE;
-
-          // Draw diamond shape centered at (0,0)
-          highlight.beginFill(0xffff00, 0.4); // Yellow with transparency (default)
-          highlight.moveTo(0, -tileHeight / 2);
-          highlight.lineTo(tileSize / 2, 0);
-          highlight.lineTo(0, tileHeight / 2);
-          highlight.lineTo(-tileSize / 2, 0);
-          highlight.closePath();
-          highlight.endFill();
-
-          // Store original tint
-          (highlight as any).isIntersecting = false;
-
-          // Position highlight centered on sprite - no base diamond to worry about
-          highlight.x = screenX;
-          highlight.y = screenY;
-          highlight.visible = false; // Hidden by default
-          nodeContainer.addChild(highlight);
-
-          const sprite = new Sprite(texture);
-
-          // Calculate final sprite scale
-          // 1. Scale down if sprite is too large (max 256x256)
-          const MAX_SPRITE_SIZE = 256;
-          let baseScale = 1.0;
-          if (sprite.width > MAX_SPRITE_SIZE || sprite.height > MAX_SPRITE_SIZE) {
-            const scaleX = MAX_SPRITE_SIZE / sprite.width;
-            const scaleY = MAX_SPRITE_SIZE / sprite.height;
-            baseScale = Math.min(scaleX, scaleY); // Preserve aspect ratio
-          }
-
-          // 2. Apply repository size multiplier from metrics (1.5x - 4.0x)
-          // sizeMultiplier already declared above for highlight
-          const finalScale = baseScale * sizeMultiplier;
-          sprite.scale.set(finalScale, finalScale);
-
-          sprite.x = screenX;
-          sprite.y = screenY;
-          // Anchor adjusted to match visual center
-          // X: isometric side shifts building right → 0.61
-          // Y: leave space below for label → 0.45
-          sprite.anchor.set(0.61, 0.45);
-
-          // Apply aging effects (color fade + weathering) based on lastEditedAt
-          if (node.aging && node.aging.colorFade > 0) {
-            // Desaturate by tinting toward gray
-            // colorFade: 0.0 (no fade) to 0.7 (max fade)
-            const fadeAmount = node.aging.colorFade;
-            const gray = 0.6; // Target gray level
-            const tintValue = Math.floor((1 - fadeAmount + fadeAmount * gray) * 255);
-            sprite.tint = (tintValue << 16) | (tintValue << 8) | tintValue;
-          }
-
-          // Add weathering overlay for old buildings
-          if (node.aging && node.aging.weatheringLevel > 0.3) {
-            const weathering = new Graphics();
-            weathering.alpha = node.aging.weatheringLevel * 0.3; // Max 30% opacity
-
-            // Draw random dark spots/cracks for weathering effect
-            weathering.beginFill(0x3f3f3f); // Dark gray
-            const spotCount = Math.floor(node.aging.weatheringLevel * 8);
-            for (let i = 0; i < spotCount; i++) {
-              const offsetX = (Math.random() - 0.5) * sprite.width * 0.8;
-              const offsetY = (Math.random() - 0.5) * sprite.height * 0.8;
-              const size = 2 + Math.random() * 3;
-              weathering.drawCircle(offsetX, offsetY, size);
-            }
-            weathering.endFill();
-
-            // Position weathering overlay relative to sprite
-            weathering.x = sprite.x;
-            weathering.y = sprite.y;
-            // Graphics uses pivot instead of anchor
-            weathering.pivot.set(sprite.anchor.x * sprite.width, sprite.anchor.y * sprite.height);
-            nodeContainer.addChild(weathering);
-          }
-
-          // Make interactive and draggable
-          sprite.eventMode = 'static';
-          sprite.cursor = 'grab';
-
-          let isDraggingBuilding = false;
-          let dragOffset = { x: 0, y: 0 };
-
-          sprite.on('pointerdown', (event) => {
-            isDraggingBuilding = true;
-            sprite.cursor = 'grabbing';
-
-            // Calculate offset from sprite position to pointer
-            const globalPos = event.global;
-            const localPos = worldContainer.toLocal(globalPos);
-            dragOffset = {
-              x: localPos.x - sprite.x,
-              y: localPos.y - sprite.y,
-            };
-
-            // Stop event propagation to prevent map panning
-            event.stopPropagation();
-          });
-
-          sprite.on('pointerup', (event) => {
-            if (isDraggingBuilding) {
-              isDraggingBuilding = false;
-              sprite.cursor = 'grab';
-
-              // Convert screen position back to grid coordinates
-              const { gridX, gridY } = screenToGrid(sprite.x, sprite.y);
-
-              // Snap to nearest grid position
-              let snappedGridX = Math.round(gridX);
-              let snappedGridY = Math.round(gridY);
-
-              // Find which region this node belongs to
-              const nodeRegion = mapData.regions.find(r => r.nodeIds.includes(node.id));
-
-              // Constrain to region boundaries if region exists
-              // Account for highlight radius (the actual footprint)
-              if (nodeRegion) {
-                const bounds = nodeRegion.bounds;
-                // HOVER_SIZE is the highlight diameter in tiles (4 * sizeMultiplier)
-                // Radius is half of that, so we need that much clearance from edge
-                const highlightRadius = HOVER_SIZE / 2; // Half the highlight diameter
-                const minX = bounds.x + highlightRadius;
-                const maxX = bounds.x + bounds.width - highlightRadius;
-                const minY = bounds.y + highlightRadius;
-                const maxY = bounds.y + bounds.height - highlightRadius;
-
-                snappedGridX = Math.max(minX, Math.min(snappedGridX, maxX));
-                snappedGridY = Math.max(minY, Math.min(snappedGridY, maxY));
-              }
-
-              const snapped = gridToScreen(snappedGridX, snappedGridY);
-
-              // Update sprite, highlight, and label to snapped position
-              sprite.x = snapped.screenX;
-              sprite.y = snapped.screenY;
-              highlight.x = sprite.x;
-              highlight.y = sprite.y;
-              label.x = sprite.x;
-              label.y = sprite.y + labelOffset;
-
-              // Update node data
-              node.gridX = snappedGridX;
-              node.gridY = snappedGridY;
-
-              // Redraw all paths with updated positions
-              redrawPaths();
-
-              // Reset current highlight tint and hide
-              highlight.tint = 0xffff00; // Reset to yellow
-              highlight.visible = false;
-
-              // Hide all intersection highlights and reset tint
-              for (const other of buildingData) {
-                if (other !== currentBuildingData) {
-                  other.highlight.visible = false;
-                  other.highlight.tint = 0xffffff; // Reset to default yellow
-                  (other.highlight as any).isIntersecting = false;
-                }
-              }
-
-              // Log the moved building position for debugging
-              // console.log(`Moved ${node.label} to grid (${snappedGridX}, ${snappedGridY})`);
-
-              event.stopPropagation();
-            }
-          });
-
-          sprite.on('pointerupoutside', () => {
-            if (isDraggingBuilding) {
-              isDraggingBuilding = false;
-              sprite.cursor = 'grab';
-
-              // Convert screen position back to grid coordinates
-              const { gridX, gridY } = screenToGrid(sprite.x, sprite.y);
-
-              // Snap to nearest grid position
-              let snappedGridX = Math.round(gridX);
-              let snappedGridY = Math.round(gridY);
-
-              // Find which region this node belongs to
-              const nodeRegion = mapData.regions.find(r => r.nodeIds.includes(node.id));
-
-              // Constrain to region boundaries if region exists
-              // Account for highlight radius (the actual footprint)
-              if (nodeRegion) {
-                const bounds = nodeRegion.bounds;
-                const highlightRadius = HOVER_SIZE / 2;
-                const minX = bounds.x + highlightRadius;
-                const maxX = bounds.x + bounds.width - highlightRadius;
-                const minY = bounds.y + highlightRadius;
-                const maxY = bounds.y + bounds.height - highlightRadius;
-
-                snappedGridX = Math.max(minX, Math.min(snappedGridX, maxX));
-                snappedGridY = Math.max(minY, Math.min(snappedGridY, maxY));
-              }
-
-              const snapped = gridToScreen(snappedGridX, snappedGridY);
-
-              // Snap back to constrained position
-              sprite.x = snapped.screenX;
-              sprite.y = snapped.screenY;
-              highlight.x = sprite.x;
-              highlight.y = sprite.y;
-              label.x = sprite.x;
-              label.y = sprite.y + labelOffset;
-
-              // Update node data
-              node.gridX = snappedGridX;
-              node.gridY = snappedGridY;
-
-              // Redraw paths with final position
-              redrawPaths();
-
-              // Reset current highlight tint and hide
-              highlight.tint = 0xffff00; // Reset to yellow
-              highlight.visible = false;
-
-              // Hide all intersection highlights and reset tint
-              for (const other of buildingData) {
-                if (other !== currentBuildingData) {
-                  other.highlight.visible = false;
-                  other.highlight.tint = 0xffffff; // Reset to default yellow
-                  (other.highlight as any).isIntersecting = false;
-                }
-              }
-            }
-          });
-
-          sprite.on('pointerover', () => {
-            if (!isDraggingBuilding) {
-              highlight.visible = true; // Show base highlight
-              highlight.tint = 0xffffff; // Yellow (default)
-            }
-          });
-
-          sprite.on('pointerout', () => {
-            if (!(highlight as any).isIntersecting) {
-              highlight.visible = false; // Hide base highlight
-            }
-          });
-
-          nodeContainer.addChild(sprite);
-
-          // Add label text just below the base center
-          // Scale label offset based on sprite size for better positioning
-          const baseLabelOffset = 25;
-          const labelOffset = baseLabelOffset * sizeMultiplier;
-
-          const label = new Text({
-            text: node.label,
-            style: {
-              fontFamily: 'monospace',
-              fontSize: 16,
-              fill: 0xffffff,
-              stroke: { color: 0x000000, width: 4 },
-              fontWeight: 'bold',
-            },
-          });
-          label.x = screenX;
-          label.y = screenY + labelOffset;
-          label.anchor.set(0.5, 0);
-          nodeContainer.addChild(label);
-
-          // Store building data for intersection detection
-          const currentBuildingData = { node, sprite, highlight, label };
-          buildingData.push(currentBuildingData);
-
-          // Now add pointermove handler with access to label
-          sprite.on('pointermove', (event) => {
-            if (isDraggingBuilding) {
-              const globalPos = event.global;
-              const localPos = worldContainer.toLocal(globalPos);
-
-              // Update sprite position
-              sprite.x = localPos.x - dragOffset.x;
-              sprite.y = localPos.y - dragOffset.y;
-
-              // Update highlight and label positions
-              highlight.x = sprite.x;
-              highlight.y = sprite.y;
-              label.x = sprite.x;
-              label.y = sprite.y + labelOffset;
-
-              // Update node position temporarily for path rendering
-              const { gridX: tempGridX, gridY: tempGridY } = screenToGrid(sprite.x, sprite.y);
-              node.gridX = tempGridX;
-              node.gridY = tempGridY;
-
-              // Check if position is within region boundaries
-              // Account for highlight radius (the actual footprint)
-              const nodeRegion = mapData.regions.find(r => r.nodeIds.includes(node.id));
-              if (nodeRegion) {
-                const bounds = nodeRegion.bounds;
-                const highlightRadius = HOVER_SIZE / 2;
-                const minX = bounds.x + highlightRadius;
-                const maxX = bounds.x + bounds.width - highlightRadius;
-                const minY = bounds.y + highlightRadius;
-                const maxY = bounds.y + bounds.height - highlightRadius;
-
-                const isOutsideRegion =
-                  tempGridX < minX ||
-                  tempGridX > maxX ||
-                  tempGridY < minY ||
-                  tempGridY > maxY;
-
-                // Visual feedback: red highlight when outside region
-                if (isOutsideRegion && !(highlight as any).isIntersecting) {
-                  highlight.tint = 0xff0000; // Red = outside region
-                } else if (!(highlight as any).isIntersecting) {
-                  highlight.tint = 0xffff00; // Yellow = valid position
-                }
-              }
-
-              // Redraw paths in real-time while dragging
-              redrawPaths();
-
-              // Check for intersections with other buildings
-              const HIGHLIGHT_RADIUS = (ISO_TILE_WIDTH * HOVER_SIZE) / 2; // Half the highlight width (128px)
-              const INTERSECTION_THRESHOLD = HIGHLIGHT_RADIUS * 2; // Both radii combined (256px)
-
-              for (const other of buildingData) {
-                if (other === currentBuildingData) continue;
-
-                // Calculate distance between dragged building and other building
-                const dx = sprite.x - other.sprite.x;
-                const dy = sprite.y - other.sprite.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                // Show highlight if highlights are intersecting (distance < sum of both radii)
-                if (distance < INTERSECTION_THRESHOLD) {
-                  other.highlight.visible = true;
-                  // Tint red for intersection warning
-                  other.highlight.tint = 0xff6b6b; // Red
-                  (other.highlight as any).isIntersecting = true;
-                } else if (!(other.highlight as any).isIntersecting) {
-                  // Only hide if not being hovered by mouse
-                  other.highlight.visible = false;
-                }
-              }
-
-              event.stopPropagation();
-            }
-          });
-        }
-      }
-
-      // Function to calculate and update scale based on container dimensions
-      const updateScale = () => {
-        // Find the largest region dimensions in screen space
-        let maxRegionWidth = 0;
-        let maxRegionHeight = 0;
-
-        for (const region of mapData.regions) {
-          const topLeft = gridToScreen(region.bounds.x, region.bounds.y);
-          const bottomRight = gridToScreen(
-            region.bounds.x + region.bounds.width,
-            region.bounds.y + region.bounds.height
-          );
-          const regionWidth = Math.abs(bottomRight.screenX - topLeft.screenX);
-          const regionHeight = Math.abs(bottomRight.screenY - topLeft.screenY);
-
-          maxRegionWidth = Math.max(maxRegionWidth, regionWidth);
-          maxRegionHeight = Math.max(maxRegionHeight, regionHeight);
-        }
-
-        const padding = 40;
-        const availableWidth = dimensionsRef.current.width - padding * 2;
-        const availableHeight = dimensionsRef.current.height - padding * 2;
-
-        const scaleX = availableWidth / maxRegionWidth;
-        const scaleY = availableHeight / maxRegionHeight;
-        const scale = Math.min(scaleX, scaleY, 1.0);
-
-        worldContainer.scale.set(scale, scale);
-        scaleRef.current = scale;
-      };
-
-      // Calculate initial scale
-      updateScale();
 
       // Animation ticker for smooth camera movement
       const easeOutCubic = (t: number): number => {
@@ -806,8 +304,8 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         const progress = Math.min(elapsed / animationDuration, 1);
         const eased = easeOutCubic(progress);
 
-        worldContainer.x = animationRef.current.startX + (animationRef.current.targetX - animationRef.current.startX) * eased;
-        worldContainer.y = animationRef.current.startY + (animationRef.current.targetY - animationRef.current.startY) * eased;
+        viewport.x = animationRef.current.startX + (animationRef.current.targetX - animationRef.current.startX) * eased;
+        viewport.y = animationRef.current.startY + (animationRef.current.targetY - animationRef.current.startY) * eased;
 
         if (progress >= 1) {
           animationRef.current = null;
@@ -825,7 +323,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       // Store reference to resize observer for cleanup
       if (canvasRef.current && appRef.current) {
         resizeObserver = new ResizeObserver((entries) => {
-          if (!appRef.current || !worldContainerRef.current) return;
+          if (!appRef.current || !viewportRef.current) return;
 
           for (const entry of entries) {
             const { width: newWidth, height: newHeight } = entry.contentRect;
@@ -836,36 +334,8 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
             // Resize the PixiJS renderer
             appRef.current.renderer.resize(newWidth, newHeight);
 
-            // Recalculate scale for the new dimensions
-            const worldContainer = worldContainerRef.current;
-
-            // Find the largest region dimensions in screen space
-            let maxRegionWidth = 0;
-            let maxRegionHeight = 0;
-
-            for (const region of mapData.regions) {
-              const topLeft = gridToScreen(region.bounds.x, region.bounds.y);
-              const bottomRight = gridToScreen(
-                region.bounds.x + region.bounds.width,
-                region.bounds.y + region.bounds.height
-              );
-              const regionWidth = Math.abs(bottomRight.screenX - topLeft.screenX);
-              const regionHeight = Math.abs(bottomRight.screenY - topLeft.screenY);
-
-              maxRegionWidth = Math.max(maxRegionWidth, regionWidth);
-              maxRegionHeight = Math.max(maxRegionHeight, regionHeight);
-            }
-
-            const padding = 40;
-            const availableWidth = dimensionsRef.current.width - padding * 2;
-            const availableHeight = dimensionsRef.current.height - padding * 2;
-
-            const scaleX = availableWidth / maxRegionWidth;
-            const scaleY = availableHeight / maxRegionHeight;
-            const scale = Math.min(scaleX, scaleY, 1.0);
-
-            worldContainer.scale.set(scale, scale);
-            scaleRef.current = scale;
+            // Resize the viewport
+            viewportRef.current.resize(newWidth, newHeight);
 
             // Update hit area for the new size
             appRef.current.stage.hitArea = appRef.current.screen;
@@ -883,10 +353,19 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
+      if (interactionRef.current) {
+        interactionRef.current.destroy();
+        interactionRef.current = null;
+      }
+      if (pathManagerRef.current) {
+        pathManagerRef.current.destroy();
+        pathManagerRef.current = null;
+      }
       if (appRef.current) {
         appRef.current.destroy(true);
         appRef.current = null;
       }
+      viewportRef.current = null;
       worldContainerRef.current = null;
       animationRef.current = null;
     };
@@ -894,18 +373,14 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
   // Handle region changes with animation
   useEffect(() => {
-    if (!worldContainerRef.current || !currentRegion || isRendering) return;
+    if (!viewportRef.current || !currentRegion || isRendering) return;
 
+    const viewport = viewportRef.current;
     const regionCenter = gridToScreen(currentRegion.centerX, currentRegion.centerY);
-    const worldContainer = worldContainerRef.current;
-    const scale = scaleRef.current;
-    const targetX = dimensionsRef.current.width / 2 - regionCenter.screenX * scale;
-    const targetY = dimensionsRef.current.height / 2 - regionCenter.screenY * scale;
 
     // On initial load, snap to position without animation
     if (!hasInitializedCamera.current) {
-      worldContainer.x = targetX;
-      worldContainer.y = targetY;
+      viewport.moveCenter(regionCenter.screenX, regionCenter.screenY);
       hasInitializedCamera.current = true;
       return;
     }
@@ -918,10 +393,12 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
     // Subsequent changes: animate smoothly (from arrow button clicks)
     setIsAnimating(true);
+    const targetX = dimensionsRef.current.width / 2 - regionCenter.screenX;
+    const targetY = dimensionsRef.current.height / 2 - regionCenter.screenY;
     animationRef.current = {
       startTime: performance.now(),
-      startX: worldContainer.x,
-      startY: worldContainer.y,
+      startX: viewport.x,
+      startY: viewport.y,
       targetX,
       targetY,
     };
