@@ -169,14 +169,27 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
         console.warn(`⚠️ ${totalOverflow} sprites didn't fit!`);
       }
 
-      // 4. Create sprite textures for each unique size
+      // 4. Create sprite textures for each unique size+language combination
       const atlas: Record<string, Texture> = {};
       const allNodes = regions.flatMap(r => r.nodes);
-      const uniqueSizes = new Set(allNodes.map(n => n.size));
 
-      for (const size of uniqueSizes) {
-        const buildingGraphics = generateBuildingSprite({ size });
-        atlas[`building-${size.toFixed(2)}`] = app.renderer.generateTexture({
+      // Create set of unique size+language combinations
+      const uniqueCombos = new Set<string>();
+      for (const node of allNodes) {
+        const language = node.language || 'default';
+        const key = `${node.size.toFixed(2)}-${language}`;
+        uniqueCombos.add(key);
+      }
+
+      // Generate textures for each combination
+      for (const combo of uniqueCombos) {
+        const [sizeStr, language] = combo.split('-');
+        const size = parseFloat(sizeStr);
+        const colorHex = LANGUAGE_COLORS[language.toLowerCase()] || LANGUAGE_COLORS.default;
+        const color = parseInt(colorHex.replace('#', ''), 16);
+
+        const buildingGraphics = generateBuildingSprite({ size, color });
+        atlas[`building-${combo}`] = app.renderer.generateTexture({
           target: buildingGraphics,
           resolution: 2,
         });
@@ -191,12 +204,15 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
           ? `${node.size.toFixed(1)}x ${node.language}`
           : `${node.size.toFixed(1)}x`;
 
+        // Sprite key includes both size and language for color differentiation
+        const spriteKey = `building-${node.size.toFixed(2)}-${language}`;
+
         return {
           id: node.id,
           gridX: node.gridX,
           gridY: node.gridY,
           type: 'house' as const,
-          sprite: `building-${node.size.toFixed(2)}`,
+          sprite: spriteKey,
           size: node.size,
           theme: 'grass' as const,
           label,
@@ -312,7 +328,8 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
       rendererRef.current?.destroy();
       canvasRef.current?.destroy();
     };
-  }, [sprites, sizeDistribution]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - component will remount when story changes via key prop
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
