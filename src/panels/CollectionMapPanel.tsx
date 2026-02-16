@@ -48,29 +48,26 @@ function generateRegionId(): string {
  */
 export interface RegionCallbacks {
   /** Create a new custom region */
-  onRegionCreated?: (collectionId: string, region: Omit<CustomRegion, 'id' | 'createdAt'>) => Promise<CustomRegion>;
+  onRegionCreated: (collectionId: string, region: Omit<CustomRegion, 'id' | 'createdAt'>) => Promise<CustomRegion>;
 
   /** Update an existing region */
-  onRegionUpdated?: (collectionId: string, regionId: string, updates: Partial<CustomRegion>) => Promise<void>;
+  onRegionUpdated: (collectionId: string, regionId: string, updates: Partial<CustomRegion>) => Promise<void>;
 
   /** Delete a region */
-  onRegionDeleted?: (collectionId: string, regionId: string) => Promise<void>;
+  onRegionDeleted: (collectionId: string, regionId: string) => Promise<void>;
 
-  /** Assign a repository to a region */
-  onRepositoryAssigned?: (collectionId: string, repositoryId: string, regionId: string) => Promise<void>;
+  /** Assign a repository to a region (used when manually adding repos) */
+  onRepositoryAssigned: (collectionId: string, repositoryId: string, regionId: string) => Promise<void>;
 
-  /** Update a repository's manual position */
-  onRepositoryPositionUpdated?: (collectionId: string, repositoryId: string, layout: RepositoryLayoutData) => Promise<void>;
-
-  /** Initialize default age-based regions */
-  onInitializeDefaultRegions?: (collectionId: string, regions: CustomRegion[]) => Promise<void>;
+  /** Update a repository's manual position (used when dragging sprites) */
+  onRepositoryPositionUpdated: (collectionId: string, repositoryId: string, layout: RepositoryLayoutData) => Promise<void>;
 
   /**
    * Batch initialize layout (regions + assignments + positions)
-   * This is more efficient than calling individual callbacks for each item
+   * Called once when collection loads to compute initial layout
    * Reduces re-renders from N to 1
    */
-  onBatchLayoutInitialized?: (
+  onBatchLayoutInitialized: (
     collectionId: string,
     updates: {
       regions?: CustomRegion[];
@@ -111,8 +108,8 @@ export interface CollectionMapPanelProps {
   /** Callback when a project is dropped to add to collection */
   onProjectAdded?: (repositoryPath: string, repositoryMetadata: any) => void;
 
-  /** Callbacks for region management operations */
-  regionCallbacks?: RegionCallbacks;
+  /** Callbacks for region management operations (REQUIRED) */
+  regionCallbacks: RegionCallbacks;
 }
 
 /**
@@ -144,21 +141,11 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
   // Handle renaming a region
   const handleRenameRegion = useCallback(async (regionId: string, name: string) => {
-    if (!regionCallbacks?.onRegionUpdated) {
-      console.warn('No onRegionUpdated callback provided');
-      return;
-    }
-
     await regionCallbacks.onRegionUpdated(collection.id, regionId, { name });
   }, [regionCallbacks, collection.id]);
 
   // Handle deleting a region
   const handleDeleteRegion = useCallback(async (regionId: string) => {
-    if (!regionCallbacks?.onRegionDeleted) {
-      console.warn('No onRegionDeleted callback provided');
-      return;
-    }
-
     // Prevent deleting the last region - always keep at least one
     if (customRegions.length <= 1) {
       console.warn('Cannot delete the last region - at least one region must exist');
@@ -171,11 +158,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
   // Handle project moved (save position to metadata)
   const handleProjectMoved = useCallback(async (projectId: string, gridX: number, gridY: number) => {
-    if (!regionCallbacks?.onRepositoryPositionUpdated) {
-      console.warn('No onRepositoryPositionUpdated callback provided');
-      return;
-    }
-
     const layout: RepositoryLayoutData = {
       gridX,
       gridY,
@@ -199,7 +181,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     onProjectAdded(repositoryPath, repositoryMetadata);
 
     // If regions exist, assign to appropriate region
-    if (customRegions.length > 0 && regionCallbacks?.onRepositoryAssigned) {
+    if (customRegions.length > 0) {
       // Determine target region based on repository age if available
       let targetRegionId = customRegions[0]?.id;
 
@@ -307,7 +289,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   useEffect(() => {
     // Only run once per collection
     if (hasComputedLayout.current) return;
-    if (!regionCallbacks?.onRepositoryPositionUpdated) return;
     if (nodes.length === 0) return;
 
     // Check if we need to initialize anything
@@ -328,96 +309,50 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     });
 
     (async () => {
-      // Prefer batched callback for efficiency (1 update instead of N)
-      if (regionCallbacks.onBatchLayoutInitialized) {
-        const updates: {
-          regions?: CustomRegion[];
-          assignments?: Array<{ repositoryId: string; regionId: string }>;
-          positions?: Array<{ repositoryId: string; layout: RepositoryLayoutData }>;
-        } = {};
+      const updates: {
+        regions?: CustomRegion[];
+        assignments?: Array<{ repositoryId: string; regionId: string }>;
+        positions?: Array<{ repositoryId: string; layout: RepositoryLayoutData }>;
+      } = {};
 
-        // Prepare regions if needed
-        if (needsRegions && map.regions.length > 0) {
-          updates.regions = map.regions.map((region, index) => ({
-            id: region.id,
-            name: region.name,
-            order: index,
-            createdAt: Date.now(),
-          }));
+      // Prepare regions if needed
+      if (needsRegions && map.regions.length > 0) {
+        updates.regions = map.regions.map((region, index) => ({
+          id: region.id,
+          name: region.name,
+          order: index,
+          createdAt: Date.now(),
+        }));
 
-          // Prepare assignments
-          updates.assignments = [];
-          for (const region of map.regions) {
-            for (const nodeId of region.nodeIds) {
-              updates.assignments.push({
-                repositoryId: nodeId,
-                regionId: region.id,
-              });
-            }
+        // Prepare assignments
+        updates.assignments = [];
+        for (const region of map.regions) {
+          for (const nodeId of region.nodeIds) {
+            updates.assignments.push({
+              repositoryId: nodeId,
+              regionId: region.id,
+            });
           }
         }
-
-        // Prepare positions for nodes that need them
-        updates.positions = map.nodes
-          .filter(node => {
-            const originalNode = nodes.find(n => n.id === node.id);
-            return !originalNode?.layout || originalNode.layout.gridX === undefined || originalNode.layout.gridY === undefined;
-          })
-          .map(node => ({
-            repositoryId: node.id,
-            layout: {
-              gridX: node.gridX,
-              gridY: node.gridY,
-            },
-          }));
-
-        // Single batched update - 1 re-render!
-        await regionCallbacks.onBatchLayoutInitialized(collection.id, updates);
-        hasComputedLayout.current = true;
-      } else {
-        // Fallback to individual callbacks (legacy behavior)
-        // Step 1: Initialize regions (1 update)
-        if (needsRegions && map.regions.length > 0 && regionCallbacks.onInitializeDefaultRegions) {
-          const regionsToSave: CustomRegion[] = map.regions.map((region, index) => ({
-            id: region.id,
-            name: region.name,
-            order: index,
-            createdAt: Date.now(),
-          }));
-
-          await regionCallbacks.onInitializeDefaultRegions(collection.id, regionsToSave);
-
-          // Step 2: Assign nodes to regions (N updates)
-          if (regionCallbacks.onRepositoryAssigned) {
-            const assignmentPromises = [];
-            for (const region of map.regions) {
-              for (const nodeId of region.nodeIds) {
-                assignmentPromises.push(
-                  regionCallbacks.onRepositoryAssigned(collection.id, nodeId, region.id)
-                );
-              }
-            }
-            await Promise.all(assignmentPromises);
-          }
-        }
-
-        // Step 3: Save positions (N updates)
-        const positionPromises = map.nodes
-          .filter(node => {
-            const originalNode = nodes.find(n => n.id === node.id);
-            return !originalNode?.layout || originalNode.layout.gridX === undefined || originalNode.layout.gridY === undefined;
-          })
-          .map(node => {
-            const layout: RepositoryLayoutData = {
-              gridX: node.gridX,
-              gridY: node.gridY,
-            };
-            return regionCallbacks.onRepositoryPositionUpdated?.(collection.id, node.id, layout) ?? Promise.resolve();
-          });
-
-        await Promise.all(positionPromises);
-        hasComputedLayout.current = true;
       }
+
+      // Prepare positions for nodes that need them
+      updates.positions = map.nodes
+        .filter(node => {
+          const originalNode = nodes.find(n => n.id === node.id);
+          return !originalNode?.layout || originalNode.layout.gridX === undefined || originalNode.layout.gridY === undefined;
+        })
+        .map(node => ({
+          repositoryId: node.id,
+          layout: {
+            gridX: node.gridX,
+            gridY: node.gridY,
+          },
+        }));
+
+      // Single batched update - 1 re-render!
+      await regionCallbacks.onBatchLayoutInitialized(collection.id, updates);
+      hasComputedLayout.current = true;
     })();
   }, [collection.id, nodes, regionLayout, customRegions, regionCallbacks]);
 
@@ -485,9 +420,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           // Generate region name
           const name = `Region ${customRegions.length + 1}`;
 
-          if (regionCallbacks?.onRegionCreated) {
-            await regionCallbacks.onRegionCreated(collection.id, { name, order });
-          }
+          await regionCallbacks.onRegionCreated(collection.id, { name, order });
         }}
         onRenameRegion={handleRenameRegion}
         onDeleteRegion={handleDeleteRegion}
@@ -548,60 +481,39 @@ export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context, act
 
   // Create region management callbacks (must be before early return)
   const regionCallbacks: RegionCallbacks = useMemo(() => ({
-    onInitializeDefaultRegions: async (collectionId: string, regions: CustomRegion[]) => {
-      if ((actions as any)?.onInitializeDefaultRegions) {
-        await (actions as any).onInitializeDefaultRegions(collectionId, regions);
-      } else {
-        console.warn('Actions does not support onInitializeDefaultRegions - region management requires context integration');
-      }
-    },
-
     onRegionCreated: async (collectionId: string, region: Omit<CustomRegion, 'id' | 'createdAt'>) => {
-      // Call the actions method if available
-      if ((actions as any)?.onRegionCreated) {
-        return await (actions as any).onRegionCreated(collectionId, region);
-      } else {
-        console.warn('Actions does not support onRegionCreated - region management requires context integration');
-        // Fallback: generate region locally
-        const newRegion: CustomRegion = {
-          ...region,
-          id: generateRegionId(),
-          createdAt: Date.now(),
-        };
-        return newRegion;
+      if (!(actions as any)?.onRegionCreated) {
+        throw new Error('Actions must implement onRegionCreated for CollectionMapPanel');
       }
+      return await (actions as any).onRegionCreated(collectionId, region);
     },
 
     onRegionUpdated: async (collectionId: string, regionId: string, updates: Partial<CustomRegion>) => {
-      if ((actions as any)?.onRegionUpdated) {
-        await (actions as any).onRegionUpdated(collectionId, regionId, updates);
-      } else {
-        console.warn('Actions does not support onRegionUpdated - region management requires context integration');
+      if (!(actions as any)?.onRegionUpdated) {
+        throw new Error('Actions must implement onRegionUpdated for CollectionMapPanel');
       }
+      await (actions as any).onRegionUpdated(collectionId, regionId, updates);
     },
 
     onRegionDeleted: async (collectionId: string, regionId: string) => {
-      if ((actions as any)?.onRegionDeleted) {
-        await (actions as any).onRegionDeleted(collectionId, regionId);
-      } else {
-        console.warn('Actions does not support onRegionDeleted - region management requires context integration');
+      if (!(actions as any)?.onRegionDeleted) {
+        throw new Error('Actions must implement onRegionDeleted for CollectionMapPanel');
       }
+      await (actions as any).onRegionDeleted(collectionId, regionId);
     },
 
     onRepositoryAssigned: async (collectionId: string, repositoryId: string, regionId: string) => {
-      if ((actions as any)?.onRepositoryAssigned) {
-        await (actions as any).onRepositoryAssigned(collectionId, repositoryId, regionId);
-      } else {
-        console.warn('Actions does not support onRepositoryAssigned - region management requires context integration');
+      if (!(actions as any)?.onRepositoryAssigned) {
+        throw new Error('Actions must implement onRepositoryAssigned for CollectionMapPanel');
       }
+      await (actions as any).onRepositoryAssigned(collectionId, repositoryId, regionId);
     },
 
     onRepositoryPositionUpdated: async (collectionId: string, repositoryId: string, layout: RepositoryLayoutData) => {
-      if ((actions as any)?.onRepositoryPositionUpdated) {
-        await (actions as any).onRepositoryPositionUpdated(collectionId, repositoryId, layout);
-      } else {
-        console.warn('Actions does not support onRepositoryPositionUpdated - region management requires context integration');
+      if (!(actions as any)?.onRepositoryPositionUpdated) {
+        throw new Error('Actions must implement onRepositoryPositionUpdated for CollectionMapPanel');
       }
+      await (actions as any).onRepositoryPositionUpdated(collectionId, repositoryId, layout);
     },
 
     onBatchLayoutInitialized: async (
@@ -612,12 +524,10 @@ export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context, act
         positions?: Array<{ repositoryId: string; layout: RepositoryLayoutData }>;
       }
     ) => {
-      if ((actions as any)?.onBatchLayoutInitialized) {
-        await (actions as any).onBatchLayoutInitialized(collectionId, updates);
-      } else {
-        console.warn('Actions does not support onBatchLayoutInitialized - falling back to individual callbacks');
-        // Note: The layout effect will use the fallback path with individual callbacks
+      if (!(actions as any)?.onBatchLayoutInitialized) {
+        throw new Error('Actions must implement onBatchLayoutInitialized for CollectionMapPanel');
       }
+      await (actions as any).onBatchLayoutInitialized(collectionId, updates);
     },
   }), [actions]);
 
