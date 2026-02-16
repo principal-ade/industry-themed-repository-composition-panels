@@ -2,8 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { CollectionMapPanel } from './CollectionMapPanel';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
-import type { Collection, CollectionMembership } from '@principal-ai/alexandria-collections';
-import type { CustomRegion } from './overworld-map/types';
+import type { Collection, CollectionMembership, CustomRegion } from '@principal-ai/alexandria-collections';
 
 // Browser-compatible EventEmitter
 class SimpleEventEmitter {
@@ -195,6 +194,50 @@ const IntegrationHarness: React.FC<{
     logEvent(`Position saved: ${repositoryId} at (${layout.gridX}, ${layout.gridY})`);
   }, [logEvent, eventEmitter]);
 
+  const onBatchLayoutInitialized = useCallback(async (
+    collectionId: string,
+    updates: {
+      regions?: CustomRegion[];
+      assignments?: Array<{ repositoryId: string; regionId: string }>;
+      positions?: Array<{ repositoryId: string; layout: any }>;
+    }
+  ) => {
+    logEvent(`Batch layout initialized: ${updates.regions?.length || 0} regions, ${updates.assignments?.length || 0} assignments, ${updates.positions?.length || 0} positions`);
+
+    // Update collection with regions (if provided)
+    if (updates.regions && updates.regions.length > 0) {
+      setCollection((prev) => ({
+        ...prev,
+        metadata: {
+          ...prev.metadata,
+          customRegions: [...(prev.metadata?.customRegions || []), ...updates.regions!],
+        },
+      }));
+    }
+
+    // Update memberships with assignments and positions in ONE setState
+    setMemberships((prev) =>
+      prev.map((m) => {
+        const assignment = updates.assignments?.find((a) => a.repositoryId === m.repositoryId);
+        const position = updates.positions?.find((p) => p.repositoryId === m.repositoryId);
+
+        if (!assignment && !position) return m; // No changes for this membership
+
+        return {
+          ...m,
+          metadata: {
+            ...m.metadata,
+            ...(assignment && { regionId: assignment.regionId }),
+            ...(position && { layout: position.layout }),
+          },
+        };
+      })
+    );
+
+    eventEmitter.emit('industry-theme.user-collections:collection:batch-layout-initialized', { collectionId, updates });
+    logEvent(`Batch layout complete`);
+  }, [logEvent, eventEmitter]);
+
   const onInitializeDefaultRegions = useCallback(async (collectionId: string, regions: CustomRegion[]) => {
     logEvent(`Initializing ${regions.length} default regions`);
 
@@ -208,21 +251,6 @@ const IntegrationHarness: React.FC<{
 
     eventEmitter.emit('industry-theme.user-collections:collection:updated', { collectionId, regions });
     logEvent(`Default regions initialized`);
-  }, [logEvent, eventEmitter]);
-
-  const onSwitchLayoutMode = useCallback(async (collectionId: string, mode: 'auto' | 'manual') => {
-    logEvent(`Switching layout mode to: ${mode}`);
-
-    setCollection((prev) => ({
-      ...prev,
-      metadata: {
-        ...prev.metadata,
-        layoutMode: mode,
-      },
-    }));
-
-    eventEmitter.emit('industry-theme.user-collections:collection:updated', { collectionId, layoutMode: mode });
-    logEvent(`Layout mode switched to: ${mode}`);
   }, [logEvent, eventEmitter]);
 
   // Mock context, actions, and events
@@ -268,7 +296,7 @@ const IntegrationHarness: React.FC<{
         onRepositoryAssigned,
         onRepositoryPositionUpdated,
         onInitializeDefaultRegions,
-        onSwitchLayoutMode,
+        onBatchLayoutInitialized,
         openRepository: async (entry: any) => {
           logEvent(`Opening repository: ${entry.name}`);
         },
@@ -288,7 +316,7 @@ const IntegrationHarness: React.FC<{
       onRepositoryAssigned,
       onRepositoryPositionUpdated,
       onInitializeDefaultRegions,
-      onSwitchLayoutMode,
+      onBatchLayoutInitialized,
       eventEmitter,
     ]
   );
@@ -320,35 +348,94 @@ const IntegrationHarness: React.FC<{
   );
 };
 
-// Story: Active Projects with Auto Layout
-export const ActiveProjectsAutoMode: Story = {
+// Story: Active Projects (age-based regions with pre-assigned repos)
+// Repos are already assigned to regions - you can drag them around
+export const ActiveProjects: Story = {
+  render: () => {
+    // Create default age-based regions
+    const ageRegions: CustomRegion[] = [
+      { id: 'region-last-month', name: 'Last Month', order: 0, createdAt: Date.now() },
+      { id: 'region-last-3-months', name: 'Last 3 Months', order: 1, createdAt: Date.now() },
+      { id: 'region-last-year', name: 'Last Year', order: 2, createdAt: Date.now() },
+      { id: 'region-older', name: 'Older', order: 3, createdAt: Date.now() },
+    ];
+
+    // Assign repositories to regions based on lastEditedAt
+    const getRegionIdByAge = (daysAgo: number): string => {
+      if (daysAgo <= 30) return 'region-last-month';
+      if (daysAgo <= 90) return 'region-last-3-months';
+      if (daysAgo <= 365) return 'region-last-year';
+      return 'region-older';
+    };
+
+    return (
+      <IntegrationHarness
+        initialCollection={{
+          id: 'col-active',
+          name: 'Active Projects',
+          description: 'Currently active development projects',
+          theme: 'industry',
+          icon: 'Zap',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          metadata: {
+            customRegions: ageRegions,
+          },
+        }}
+        initialMemberships={mockRepositories.slice(0, 10).map((repo, idx) => {
+          // Extract days ago from repo (it was created with daysAgo parameter)
+          const daysAgo = (Date.now() - new Date(repo.lastEditedAt).getTime()) / (1000 * 60 * 60 * 24);
+          return {
+            id: `mem-${idx}`,
+            repositoryId: repo.name,
+            collectionId: 'col-active',
+            addedAt: Date.now(),
+            metadata: {
+              regionId: getRegionIdByAge(daysAgo),
+            },
+          };
+        })}
+      />
+    );
+  },
+};
+
+// Story: Auto Assignment Test (tests automatic region creation and assignment)
+// NO customRegions defined, NO regionId in memberships
+// The CollectionMapPanel should automatically:
+// 1. Create age-based regions on first render
+// 2. Assign all repos to regions based on lastEditedAt
+// 3. Persist regions and assignments via callbacks
+export const AutoAssignmentTest: Story = {
   render: () => (
     <IntegrationHarness
       initialCollection={{
-        id: 'col-active',
-        name: 'Active Projects',
-        description: 'Currently active development projects',
+        id: 'col-auto',
+        name: 'Auto Assignment Test',
+        description: 'Tests automatic region creation and assignment',
         theme: 'industry',
-        icon: 'Zap',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        icon: 'Sparkles',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         metadata: {
-          layoutMode: 'auto',
+          // NO customRegions - should auto-create age-based regions
         },
       }}
       initialMemberships={mockRepositories.slice(0, 10).map((repo, idx) => ({
         id: `mem-${idx}`,
         repositoryId: repo.name,
-        collectionId: 'col-active',
-        addedAt: new Date().toISOString(),
-        metadata: {},
+        collectionId: 'col-auto',
+        addedAt: Date.now(),
+        metadata: {
+          // NO regionId - should auto-assign based on age
+        },
       }))}
     />
   ),
 };
 
-// Story: Manual Layout with Custom Regions
-export const ManualLayoutWithRegions: Story = {
+// Story: Collection with Custom Regions (user-defined organizational structure)
+export const CustomRegionsOrganized: Story = {
   render: () => (
     <IntegrationHarness
       initialCollection={{
@@ -357,75 +444,77 @@ export const ManualLayoutWithRegions: Story = {
         description: 'Projects organized into custom regions',
         theme: 'industry',
         icon: 'FolderTree',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         metadata: {
-          layoutMode: 'manual',
           customRegions: [
             {
               id: 'region-frontend',
               name: 'Frontend',
+              description: 'Frontend applications and design systems',
               color: '#3b82f6',
-              position: { x: 0, y: 0 },
-              size: { width: 1, height: 1 },
+              order: 0,
+              createdAt: Date.now(),
             },
             {
               id: 'region-backend',
               name: 'Backend Services',
+              description: 'API services and backend infrastructure',
               color: '#10b981',
-              position: { x: 1, y: 0 },
-              size: { width: 1, height: 1 },
+              order: 1,
+              createdAt: Date.now(),
             },
             {
               id: 'region-mobile',
               name: 'Mobile',
+              description: 'Mobile applications',
               color: '#f59e0b',
-              position: { x: 0, y: 1 },
-              size: { width: 1, height: 1 },
+              order: 2,
+              createdAt: Date.now(),
             },
             {
               id: 'region-infrastructure',
               name: 'Infrastructure',
+              description: 'DevOps and infrastructure code',
               color: '#8b5cf6',
-              position: { x: 1, y: 1 },
-              size: { width: 1, height: 1 },
+              order: 3,
+              createdAt: Date.now(),
             },
           ],
         },
       }}
       initialMemberships={[
         // Frontend
-        { id: 'm1', repositoryId: 'active-frontend', collectionId: 'col-manual', addedAt: new Date().toISOString(), metadata: { regionId: 'region-frontend' } },
-        { id: 'm2', repositoryId: 'old-frontend', collectionId: 'col-manual', addedAt: new Date().toISOString(), metadata: { regionId: 'region-frontend' } },
-        { id: 'm3', repositoryId: 'design-system', collectionId: 'col-manual', addedAt: new Date().toISOString(), metadata: { regionId: 'region-frontend' } },
+        { id: 'm1', repositoryId: 'active-frontend', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
+        { id: 'm2', repositoryId: 'old-frontend', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
+        { id: 'm3', repositoryId: 'design-system', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
         // Backend
-        { id: 'm4', repositoryId: 'api-service', collectionId: 'col-manual', addedAt: new Date().toISOString(), metadata: { regionId: 'region-backend' } },
-        { id: 'm5', repositoryId: 'auth-service', collectionId: 'col-manual', addedAt: new Date().toISOString(), metadata: { regionId: 'region-backend' } },
-        { id: 'm6', repositoryId: 'notification-service', collectionId: 'col-manual', addedAt: new Date().toISOString(), metadata: { regionId: 'region-backend' } },
+        { id: 'm4', repositoryId: 'api-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
+        { id: 'm5', repositoryId: 'auth-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
+        { id: 'm6', repositoryId: 'notification-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
         // Mobile
-        { id: 'm7', repositoryId: 'mobile-app', collectionId: 'col-manual', addedAt: new Date().toISOString(), metadata: { regionId: 'region-mobile' } },
+        { id: 'm7', repositoryId: 'mobile-app', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-mobile' } },
         // Infrastructure
-        { id: 'm8', repositoryId: 'data-pipeline', collectionId: 'col-manual', addedAt: new Date().toISOString(), metadata: { regionId: 'region-infrastructure' } },
-        { id: 'm9', repositoryId: 'deployment-scripts', collectionId: 'col-manual', addedAt: new Date().toISOString(), metadata: { regionId: 'region-infrastructure' } },
+        { id: 'm8', repositoryId: 'data-pipeline', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-infrastructure' } },
+        { id: 'm9', repositoryId: 'deployment-scripts', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-infrastructure' } },
       ]}
     />
   ),
 };
 
-// Story: Empty Collection (will auto-initialize with one "Main" region)
-export const EmptyCollectionManualMode: Story = {
+// Story: Empty Collection (will create default region when first repo is added)
+export const EmptyCollection: Story = {
   render: () => (
     <IntegrationHarness
       initialCollection={{
         id: 'col-empty',
         name: 'New Collection',
-        description: 'Empty collection - will auto-create one region',
+        description: 'Empty collection - drag repos here to start',
         theme: 'industry',
         icon: 'Plus',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         metadata: {
-          layoutMode: 'manual',
           customRegions: [], // Will auto-initialize with one region
         },
       }}
@@ -434,8 +523,8 @@ export const EmptyCollectionManualMode: Story = {
   ),
 };
 
-// Story: Large Collection with Auto Layout
-export const LargeCollectionAutoMode: Story = {
+// Story: Large Collection (demonstrates age-based region creation with many repos)
+export const LargeCollection: Story = {
   render: () => (
     <IntegrationHarness
       initialCollection={{
@@ -444,44 +533,16 @@ export const LargeCollectionAutoMode: Story = {
         description: 'Complete repository collection',
         theme: 'industry',
         icon: 'Database',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         metadata: {
-          layoutMode: 'auto',
         },
       }}
       initialMemberships={mockRepositories.map((repo, idx) => ({
         id: `mem-${idx}`,
         repositoryId: repo.name,
         collectionId: 'col-large',
-        addedAt: new Date().toISOString(),
-        metadata: {},
-      }))}
-    />
-  ),
-};
-
-// Story: Migration from Auto to Manual
-export const MigrationScenario: Story = {
-  render: () => (
-    <IntegrationHarness
-      initialCollection={{
-        id: 'col-migrate',
-        name: 'Migration Test',
-        description: 'Test switching from auto to manual layout',
-        theme: 'industry',
-        icon: 'ArrowRightLeft',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        metadata: {
-          layoutMode: 'auto',
-        },
-      }}
-      initialMemberships={mockRepositories.slice(0, 8).map((repo, idx) => ({
-        id: `mem-${idx}`,
-        repositoryId: repo.name,
-        collectionId: 'col-migrate',
-        addedAt: new Date().toISOString(),
+        addedAt: Date.now(),
         metadata: {},
       }))}
     />
@@ -498,10 +559,9 @@ export const SingleRegionAddingTest: Story = {
         description: 'Start with one region, click Edit Regions to add more',
         theme: 'industry',
         icon: 'Grid',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         metadata: {
-          layoutMode: 'manual',
           customRegions: [
             {
               id: 'region-main',
@@ -516,7 +576,7 @@ export const SingleRegionAddingTest: Story = {
         id: `mem-${idx}`,
         repositoryId: repo.name,
         collectionId: 'col-single',
-        addedAt: new Date().toISOString(),
+        addedAt: Date.now(),
         metadata: { regionId: 'region-main' },
       }))}
     />
@@ -533,10 +593,9 @@ export const SavedPositionsTest: Story = {
         description: 'Repositories with pre-saved positions - drag to update positions',
         theme: 'industry',
         icon: 'Save',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         metadata: {
-          layoutMode: 'manual',
           customRegions: [
             {
               id: 'region-frontend',
@@ -559,13 +618,12 @@ export const SavedPositionsTest: Story = {
           id: 'mem-0',
           repositoryId: mockRepositories[0].name, // web-ade
           collectionId: 'col-saved',
-          addedAt: new Date().toISOString(),
+          addedAt: Date.now(),
           metadata: {
             regionId: 'region-frontend',
             layout: {
               gridX: 5,
               gridY: 5,
-              isManuallyPositioned: true,
             },
           },
         },
@@ -573,13 +631,12 @@ export const SavedPositionsTest: Story = {
           id: 'mem-1',
           repositoryId: mockRepositories[1].name, // shared-ui
           collectionId: 'col-saved',
-          addedAt: new Date().toISOString(),
+          addedAt: Date.now(),
           metadata: {
             regionId: 'region-frontend',
             layout: {
               gridX: 10,
               gridY: 8,
-              isManuallyPositioned: true,
             },
           },
         },
@@ -587,13 +644,12 @@ export const SavedPositionsTest: Story = {
           id: 'mem-2',
           repositoryId: mockRepositories[2].name, // api-client
           collectionId: 'col-saved',
-          addedAt: new Date().toISOString(),
+          addedAt: Date.now(),
           metadata: {
             regionId: 'region-frontend',
             layout: {
               gridX: 15,
               gridY: 5,
-              isManuallyPositioned: true,
             },
           },
         },
@@ -602,13 +658,12 @@ export const SavedPositionsTest: Story = {
           id: 'mem-3',
           repositoryId: mockRepositories[4].name, // backend-api
           collectionId: 'col-saved',
-          addedAt: new Date().toISOString(),
+          addedAt: Date.now(),
           metadata: {
             regionId: 'region-backend',
             layout: {
               gridX: 8,
               gridY: 6,
-              isManuallyPositioned: true,
             },
           },
         },
@@ -616,13 +671,12 @@ export const SavedPositionsTest: Story = {
           id: 'mem-4',
           repositoryId: mockRepositories[5].name, // database
           collectionId: 'col-saved',
-          addedAt: new Date().toISOString(),
+          addedAt: Date.now(),
           metadata: {
             regionId: 'region-backend',
             layout: {
               gridX: 12,
               gridY: 10,
-              isManuallyPositioned: true,
             },
           },
         },
@@ -631,7 +685,7 @@ export const SavedPositionsTest: Story = {
           id: 'mem-5',
           repositoryId: mockRepositories[9].name, // auth-service
           collectionId: 'col-saved',
-          addedAt: new Date().toISOString(),
+          addedAt: Date.now(),
           metadata: {
             regionId: 'region-backend',
             // No layout - will use circle packing

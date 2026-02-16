@@ -229,13 +229,9 @@ export type {
   SugiyamaLayoutOptions,
 } from './panels/dependency-graph';
 
-// Keep overworld map utilities for CollectionMapPanel
+// Overworld map visualization components and utilities
 export {
   OverworldMapPanelContent,
-  // Package-specific converters
-  packagesToOverworldMap,
-  packagesToUnifiedOverworldMap,
-  packagesToOverworldMapCollection,
   // Generic converters (use for repos, services, any nodes!)
   nodesToOverworldMap,
   nodesToUnifiedOverworldMap,
@@ -266,20 +262,9 @@ export type {
   PackageTelemetryCoverage,
 } from './panels/TelemetryCoveragePanel';
 
-// Keep GitProjectsMapPanelContent for CollectionMapPanel
-export {
-  GitProjectsMapPanelContent,
-} from './panels/GitProjectsMapPanel';
-export type {
-  GitProjectsMapPanelProps,
-  GitProject,
-} from './panels/GitProjectsMapPanel';
-
 export {
   CollectionMapPanel,
   CollectionMapPanelContent,
-  createDefaultRegion,
-  createDefaultAgeRegions,
 } from './panels/CollectionMapPanel';
 export type {
   CollectionMapPanelProps,

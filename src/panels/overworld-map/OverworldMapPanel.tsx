@@ -6,21 +6,18 @@ import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
 import { Viewport } from 'pixi-viewport';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { PackageLayer } from '../../types/composition';
-import type { PackagesSliceData } from '../../types/dependencies';
-import type { PanelComponentProps } from '../../types';
 import type { OverworldMap } from './types';
-import { packagesToUnifiedOverworldMap } from './dataConverter';
 import { generateBuildingSprite } from './components/buildingSpriteGenerator';
 import { IsometricRenderer } from './components/IsometricRenderer';
 import { IsometricInteractionManager } from './components/IsometricInteractionManager';
 import { IsometricPathManager } from './components/IsometricPathManager';
 import { gridToScreen, screenToGrid, getIsometricZIndex, ISO_TILE_WIDTH, ISO_TILE_HEIGHT } from './isometricUtils';
-import type { RegionLayout } from './genericMapper';
+import type { RegionLayout, GenericNode } from './genericMapper';
+import { nodesToUnifiedOverworldMap } from './genericMapper';
 
 export interface OverworldMapPanelProps {
-  /** Package data from the repository */
-  packages: PackageLayer[];
+  /** Generic nodes to visualize on the map */
+  nodes: GenericNode[];
 
   /** Include dev dependencies in the map */
   includeDevDependencies?: boolean;
@@ -67,7 +64,7 @@ export interface OverworldMapPanelProps {
  * Renders package dependencies as an 8-bit isometric overworld map
  */
 export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
-  packages,
+  nodes,
   includeDevDependencies = true,
   includePeerDependencies = false,
   regionLayout,
@@ -110,24 +107,23 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const savedCameraPosition = useRef<{ x: number; y: number; scale: number } | null>(null);
 
   // Create a stable collection key if not provided
-  // This prevents full PIXI re-renders when only regions change (not the actual packages)
+  // This prevents full PIXI re-renders when only regions change (not the actual nodes)
   const stableCollectionKey = useMemo(() => {
     if (collectionKey) return collectionKey;
-    // Fallback: create key from sorted package IDs
-    return packages.map(p => p.id).sort().join(',');
-  }, [collectionKey, packages]);
+    // Fallback: create key from sorted node IDs
+    return nodes.map(n => n.id).sort().join(',');
+  }, [collectionKey, nodes]);
 
-  // Convert packages to unified overworld map
+  // Convert nodes to unified overworld map
   const mapData = useMemo<OverworldMap>(() => {
-    const map = packagesToUnifiedOverworldMap(packages, {
+    const map = nodesToUnifiedOverworldMap(nodes, {
       includeDevDependencies,
-      includePeerDependencies,
       regionLayout,
       customRegions, // Pass through custom regions for manual layout
     });
     mapDataRef.current = map; // Store for placeholder rendering
     return map;
-  }, [packages, includeDevDependencies, includePeerDependencies, regionLayout, customRegions]);
+  }, [nodes, includeDevDependencies, regionLayout, customRegions]);
 
   // Get current region
   const currentRegion = mapData.regions[currentRegionIndex] || mapData.regions[0];
@@ -373,13 +369,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
             pathManager.updateNodePosition(nodeId, gridX, gridY);
           },
           onDragEnd: (nodeId, gridX, gridY) => {
-            // Update the node data
-            const node = mapData.nodes.find(n => n.id === nodeId);
-            if (node) {
-              node.gridX = gridX;
-              node.gridY = gridY;
-            }
             // Notify parent component for persistence
+            // The parent will update the state, which will flow back down as props
+            // and trigger mapData recomputation with the updated position
             onProjectMoved?.(nodeId, gridX, gridY);
           },
         }
@@ -888,7 +880,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
                     }}
                     title="Rename region"
                   >
-                    ✏️
+                    Rename
                   </button>
 
                   <button
@@ -916,7 +908,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
                     }}
                     title="Delete region"
                   >
-                    🗑️
+                    Delete
                   </button>
                 </>
               )}
@@ -945,27 +937,6 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         </div>
       )}
 
-      {/* Controls hint */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 8,
-          left: 8,
-          padding: '8px 12px',
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          color: '#94a3b8',
-          fontFamily: 'monospace',
-          fontSize: 10,
-          borderRadius: 4,
-          pointerEvents: 'none',
-        }}
-      >
-        {isEditingRegions ? (
-          <div>Click green placeholders to add new regions</div>
-        ) : (
-          <div>Click on packages to view details</div>
-        )}
-      </div>
     </div>
   );
 };
@@ -993,23 +964,3 @@ export const OverworldMapPanelPreview: React.FC = () => {
   );
 };
 
-/**
- * Main panel component that integrates with the panel framework
- * Extracts packages from context and passes to content component
- */
-export const OverworldMapPanel: React.FC<PanelComponentProps> = ({ context }) => {
-  // Get packages slice from context
-  const packagesSlice = context.getSlice<PackagesSliceData>('packages');
-
-  const packages = packagesSlice?.data?.packages ?? [];
-  const isLoading = packagesSlice?.loading || false;
-
-  return (
-    <OverworldMapPanelContent
-      packages={packages}
-      isLoading={isLoading}
-      includeDevDependencies={true}
-      includePeerDependencies={false}
-    />
-  );
-};

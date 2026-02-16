@@ -54,7 +54,6 @@ export interface GenericNode {
   layout?: {
     gridX?: number;
     gridY?: number;
-    isManuallyPositioned?: boolean;
   };
 }
 
@@ -746,25 +745,25 @@ export function nodesToUnifiedOverworldMap(
         continue;
       }
 
-      // Separate manually positioned nodes from auto-positioned nodes
-      const manuallyPositioned: typeof regionNodes = [];
-      const autoPositioned: typeof regionNodes = [];
+      // Separate nodes with saved positions from nodes without positions
+      const savedPositions: typeof regionNodes = [];
+      const needsPositioning: typeof regionNodes = [];
 
       for (const layoutNode of regionNodes) {
         const genericNode = nodeWithSizes.find(n => n.id === layoutNode.id);
-        if (genericNode?.layout?.isManuallyPositioned &&
-            genericNode.layout.gridX !== undefined &&
+        // Use saved position if it exists
+        if (genericNode?.layout?.gridX !== undefined &&
             genericNode.layout.gridY !== undefined) {
-          manuallyPositioned.push(layoutNode);
+          savedPositions.push(layoutNode);
         } else {
-          autoPositioned.push(layoutNode);
+          needsPositioning.push(layoutNode);
         }
       }
 
       const placedNodes: Array<{id: string, gridX: number, gridY: number, size: number, language?: string}> = [];
 
-      // Place manually positioned nodes using saved positions
-      for (const layoutNode of manuallyPositioned) {
+      // Place nodes with saved positions first
+      for (const layoutNode of savedPositions) {
         const genericNode = nodeWithSizes.find(n => n.id === layoutNode.id);
         if (genericNode?.layout?.gridX !== undefined && genericNode.layout.gridY !== undefined) {
           placedNodes.push({
@@ -777,9 +776,9 @@ export function nodesToUnifiedOverworldMap(
         }
       }
 
-      // Use circle packing for auto-positioned nodes only
-      if (autoPositioned.length > 0) {
-        const result = layoutSpritesInRegion(autoPositioned, {
+      // Use circle packing for nodes without saved positions
+      if (needsPositioning.length > 0) {
+        const result = layoutSpritesInRegion(needsPositioning, {
           width: REGION_SIZE_TILES,
           height: REGION_SIZE_TILES,
         }, { spacing: 0.5 });
@@ -801,22 +800,83 @@ export function nodesToUnifiedOverworldMap(
       region.nodes = placedNodes;
     }
 
-    // Place unassigned nodes in the first region
+    // Distribute unassigned nodes across regions by age
+    // This provides a sensible initial placement when repos don't have region assignments
     if (unassignedNodes.length > 0 && layoutRegions.length > 0) {
-      const firstRegion = layoutRegions[0];
-      const result = layoutSpritesInRegion(unassignedNodes, {
-        width: REGION_SIZE_TILES,
-        height: REGION_SIZE_TILES,
-      }, { spacing: 0.5 });
+      // Use age-based distribution if nodes have lastEditedAt data
+      const hasAgeData = unassignedNodes.some(n => {
+        const genericNode = nodeWithSizes.find(gn => gn.id === n.id);
+        return genericNode?.aging?.lastEditedAt;
+      });
 
-      // Append to first region's nodes
-      firstRegion.nodes.push(...result.placed.map(node => ({
-        id: node.id,
-        gridX: firstRegion.bounds.x + node.gridX,
-        gridY: firstRegion.bounds.y + node.gridY,
-        size: node.size,
-        language: node.language,
-      })));
+      if (hasAgeData && layoutRegions.length >= 2) {
+        // Distribute by age across available regions
+        // Map age buckets to regions (evenly distributed)
+        const regionMapping = new Map<string, typeof layoutRegions[0]>();
+        const ageBuckets = ['LAST_MONTH', 'LAST_3_MONTHS', 'LAST_YEAR', 'OLDER'];
+
+        ageBuckets.forEach((bucket, index) => {
+          const regionIndex = Math.floor((index / ageBuckets.length) * layoutRegions.length);
+          regionMapping.set(bucket, layoutRegions[Math.min(regionIndex, layoutRegions.length - 1)]);
+        });
+
+        // Helper to get age bucket
+        const getAgeBucket = (lastEditedAt?: string): string => {
+          if (!lastEditedAt) return 'OLDER';
+          const now = Date.now();
+          const editTime = new Date(lastEditedAt).getTime();
+          const daysAgo = (now - editTime) / (1000 * 60 * 60 * 24);
+          if (daysAgo <= 30) return 'LAST_MONTH';
+          if (daysAgo <= 90) return 'LAST_3_MONTHS';
+          if (daysAgo <= 365) return 'LAST_YEAR';
+          return 'OLDER';
+        };
+
+        // Group unassigned nodes by age
+        const nodesByAge = new Map<string, typeof unassignedNodes>();
+        for (const node of unassignedNodes) {
+          const genericNode = nodeWithSizes.find(n => n.id === node.id);
+          const bucket = getAgeBucket(genericNode?.aging?.lastEditedAt);
+          if (!nodesByAge.has(bucket)) {
+            nodesByAge.set(bucket, []);
+          }
+          nodesByAge.get(bucket)!.push(node);
+        }
+
+        // Place each age group in its corresponding region
+        for (const [bucket, nodes] of nodesByAge.entries()) {
+          const targetRegion = regionMapping.get(bucket) || layoutRegions[0];
+          const result = layoutSpritesInRegion(nodes, {
+            width: REGION_SIZE_TILES,
+            height: REGION_SIZE_TILES,
+          }, { spacing: 0.5 });
+
+          // Append to region's nodes
+          targetRegion.nodes.push(...result.placed.map(node => ({
+            id: node.id,
+            gridX: targetRegion.bounds.x + node.gridX,
+            gridY: targetRegion.bounds.y + node.gridY,
+            size: node.size,
+            language: node.language,
+          })));
+        }
+      } else {
+        // Fallback: Place all unassigned nodes in the first region
+        const firstRegion = layoutRegions[0];
+        const result = layoutSpritesInRegion(unassignedNodes, {
+          width: REGION_SIZE_TILES,
+          height: REGION_SIZE_TILES,
+        }, { spacing: 0.5 });
+
+        // Append to first region's nodes
+        firstRegion.nodes.push(...result.placed.map(node => ({
+          id: node.id,
+          gridX: firstRegion.bounds.x + node.gridX,
+          gridY: firstRegion.bounds.y + node.gridY,
+          size: node.size,
+          language: node.language,
+        })));
+      }
     }
   } else {
     // Use automatic age-based grouping

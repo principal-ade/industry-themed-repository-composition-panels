@@ -3,7 +3,6 @@
  */
 
 export {
-  OverworldMapPanel,
   OverworldMapPanelContent,
   OverworldMapPanelPreview,
 } from './OverworldMapPanel';
@@ -34,14 +33,6 @@ export {
   ISO_TILE_WIDTH,
   ISO_TILE_HEIGHT,
 } from './isometricUtils';
-
-// Export package-specific converters
-export {
-  packagesToOverworldMap,
-  packagesToUnifiedOverworldMap,
-  packagesToOverworldMapCollection,
-} from './dataConverter';
-export type { OverworldMapOptions } from './dataConverter';
 
 // Export generic mapper for custom use cases
 export {
