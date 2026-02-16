@@ -29,6 +29,7 @@ export interface OverworldMapOptions {
   includePeerDependencies?: boolean;
   mapPadding?: number; // Padding around the map in tiles
   regionLayout?: RegionLayout; // Layout configuration for multi-region maps
+  customRegions?: any[]; // Manual region definitions (bypasses automatic age-based grouping)
 }
 
 /**
@@ -82,6 +83,8 @@ function packageToGenericNode(
   const size = pkg.size; // Size multiplier from repository metrics
   const aging = pkg.aging; // Aging metrics for weathering
   const language = (pkg as any).language; // Language from GitProject
+  const regionId = (pkg as any).regionId; // Region assignment from membership
+  const layout = (pkg as any).layout; // Saved position data from membership
 
   return {
     id: pkg.id,
@@ -94,6 +97,8 @@ function packageToGenericNode(
     aging, // Pass through aging for weathering effects
     dependencies,
     devDependencies,
+    regionId, // Pass through region assignment
+    layout, // Pass through saved position data
   };
 }
 
@@ -155,6 +160,7 @@ export function packagesToUnifiedOverworldMap(
     includeDevDependencies: options.includeDevDependencies,
     mapPadding: options.mapPadding,
     regionLayout: options.regionLayout,
+    customRegions: options.customRegions,
   });
 
   return {

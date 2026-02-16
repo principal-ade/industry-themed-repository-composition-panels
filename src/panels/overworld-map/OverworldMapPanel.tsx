@@ -57,6 +57,9 @@ export interface OverworldMapPanelProps {
 
   /** Callback to delete a region */
   onDeleteRegion?: (id: string) => void;
+
+  /** Stable collection identifier - only recreate PIXI when this changes */
+  collectionKey?: string;
 }
 
 /**
@@ -77,6 +80,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   onAddRegion,
   onRenameRegion,
   onDeleteRegion,
+  collectionKey,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
@@ -85,6 +89,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const scaleRef = useRef<number>(1);
   const interactionRef = useRef<IsometricInteractionManager | null>(null);
   const pathManagerRef = useRef<IsometricPathManager | null>(null);
+  const rendererRef = useRef<IsometricRenderer | null>(null);
   const [isRendering, setIsRendering] = useState(true);
   const [isResizing, setIsResizing] = useState(false);
   const dimensionsRef = useRef({ width: width || 800, height: height || 600 });
@@ -101,6 +106,16 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const animationRef = useRef<{ startTime: number; startX: number; startY: number; targetX: number; targetY: number } | null>(null);
   const hasInitializedCamera = useRef(false);
   const skipNextAnimation = useRef(false); // Skip animation when region changes from dragging
+  const previousCollectionKeyRef = useRef<string | null>(null);
+  const savedCameraPosition = useRef<{ x: number; y: number; scale: number } | null>(null);
+
+  // Create a stable collection key if not provided
+  // This prevents full PIXI re-renders when only regions change (not the actual packages)
+  const stableCollectionKey = useMemo(() => {
+    if (collectionKey) return collectionKey;
+    // Fallback: create key from sorted package IDs
+    return packages.map(p => p.id).sort().join(',');
+  }, [collectionKey, packages]);
 
   // Convert packages to unified overworld map
   const mapData = useMemo<OverworldMap>(() => {
@@ -108,10 +123,11 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       includeDevDependencies,
       includePeerDependencies,
       regionLayout,
+      customRegions, // Pass through custom regions for manual layout
     });
     mapDataRef.current = map; // Store for placeholder rendering
     return map;
-  }, [packages, includeDevDependencies, includePeerDependencies, regionLayout]);
+  }, [packages, includeDevDependencies, includePeerDependencies, regionLayout, customRegions]);
 
   // Get current region
   const currentRegion = mapData.regions[currentRegionIndex] || mapData.regions[0];
@@ -120,10 +136,62 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   useEffect(() => {
     if (!canvasRef.current) return;
 
+    // Check if this is just a region update (not a collection change)
+    const isCollectionChange = previousCollectionKeyRef.current !== stableCollectionKey;
+    const isRegionOnlyUpdate = !isCollectionChange && previousCollectionKeyRef.current !== null;
+
+    previousCollectionKeyRef.current = stableCollectionKey;
+
+    // If it's only a region update, skip full PIXI recreate
+    // We'll update the scene incrementally instead
+    if (isRegionOnlyUpdate && viewportRef.current && rendererRef.current) {
+      // Re-render the scene with the new mapData
+      const renderer = rendererRef.current;
+      const viewport = viewportRef.current;
+
+      // Remove old scene
+      if (sceneContainersRef.current) {
+        viewport.removeChild(sceneContainersRef.current.background);
+        viewport.removeChild(sceneContainersRef.current.tiles);
+        viewport.removeChild(sceneContainersRef.current.bridges);
+        viewport.removeChild(sceneContainersRef.current.paths);
+        viewport.removeChild(sceneContainersRef.current.nodes);
+      }
+
+      // Render new scene
+      const scene = renderer.renderScene(mapData, true);
+
+      // Re-add scene containers
+      viewport.addChild(scene.background);
+      viewport.addChild(scene.tiles);
+      viewport.addChild(scene.bridges);
+      viewport.addChild(scene.paths);
+      viewport.addChild(scene.nodes);
+      scene.nodes.sortableChildren = true;
+
+      sceneContainersRef.current = scene;
+
+      // Re-render placeholders with new regions
+      if (renderPlaceholdersRef.current) {
+        renderPlaceholdersRef.current();
+      }
+
+      return; // Skip full PIXI recreate
+    }
+
     let app: Application;
     let cleanup = false;
 
     const initPixi = async () => {
+      // Save current camera position before destroying
+      if (viewportRef.current && hasInitializedCamera.current) {
+        savedCameraPosition.current = {
+          x: viewportRef.current.center.x,
+          y: viewportRef.current.center.y,
+          scale: viewportRef.current.scale.x,
+        };
+      }
+
       // Get initial dimensions from container
       const containerWidth = canvasRef.current?.clientWidth || width || 800;
       const containerHeight = canvasRef.current?.clientHeight || height || 600;
@@ -200,6 +268,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         gridColor: 0x333333,
         regionColor: 0xff6600,
       });
+      rendererRef.current = renderer; // Store for incremental updates
 
       // Render scene using IsometricRenderer (like LayoutEngineTest)
       const scene = renderer.renderScene(mapData, true);
@@ -297,14 +366,13 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         },
         {
           onDragStart: (nodeId) => {
-            console.log('Drag start:', nodeId);
+            // Drag started
           },
           onDragMove: (nodeId, gridX, gridY) => {
             // Update paths in real-time during drag
             pathManager.updateNodePosition(nodeId, gridX, gridY);
           },
           onDragEnd: (nodeId, gridX, gridY) => {
-            console.log('Drag end:', nodeId, 'at', gridX, gridY);
             // Update the node data
             const node = mapData.nodes.find(n => n.id === nodeId);
             if (node) {
@@ -326,14 +394,19 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       interactionRef.current = interaction;
       pathManagerRef.current = pathManager;
 
-      // Fit viewport to show the first region
-      // (viewport handles scaling automatically)
-      if (mapData.regions.length > 0) {
+      // Restore camera position or center on first region
+      if (savedCameraPosition.current) {
+        // Restore saved camera position from before the recreate
+        viewport.moveCenter(savedCameraPosition.current.x, savedCameraPosition.current.y);
+        viewport.setZoom(savedCameraPosition.current.scale);
+      } else if (mapData.regions.length > 0 && !hasInitializedCamera.current) {
+        // First initialization: center on first region
         const firstRegion = mapData.regions[0];
         viewport.moveCenter(
           gridToScreen(firstRegion.centerX, firstRegion.centerY).screenX,
           gridToScreen(firstRegion.centerX, firstRegion.centerY).screenY
         );
+        hasInitializedCamera.current = true;
       }
 
       // Region placeholder rendering for edit mode
@@ -608,15 +681,72 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       viewportRef.current = null;
       worldContainerRef.current = null;
       animationRef.current = null;
+      rendererRef.current = null;
     };
+  }, [stableCollectionKey, width, height]); // Only recreate PIXI when collection or size changes
+
+  // Separate effect to update scene when mapData changes (without recreating PIXI)
+  useEffect(() => {
+    if (!viewportRef.current || !rendererRef.current || !mapData) return;
+
+    const renderer = rendererRef.current;
+    const viewport = viewportRef.current;
+
+    // Remove and destroy old scene containers to prevent memory leaks
+    if (sceneContainersRef.current) {
+      viewport.removeChild(sceneContainersRef.current.background);
+      viewport.removeChild(sceneContainersRef.current.tiles);
+      viewport.removeChild(sceneContainersRef.current.bridges);
+      viewport.removeChild(sceneContainersRef.current.paths);
+      viewport.removeChild(sceneContainersRef.current.nodes);
+
+      // Destroy containers and their children to free GPU memory
+      sceneContainersRef.current.background.destroy({ children: true });
+      sceneContainersRef.current.tiles.destroy({ children: true });
+      sceneContainersRef.current.bridges.destroy({ children: true });
+      sceneContainersRef.current.paths.destroy({ children: true });
+      sceneContainersRef.current.nodes.destroy({ children: true });
+    }
+
+    // Render new scene with updated mapData
+    const scene = renderer.renderScene(mapData, true);
+
+    // Re-add scene containers
+    viewport.addChild(scene.background);
+    viewport.addChild(scene.tiles);
+    viewport.addChild(scene.bridges);
+    viewport.addChild(scene.paths);
+    viewport.addChild(scene.nodes);
+    scene.nodes.sortableChildren = true;
+
+    sceneContainersRef.current = scene;
+
+    // Re-register sprites with interaction manager after scene recreation
+    if (interactionRef.current) {
+      // Clear old sprite registrations
+      interactionRef.current.clearSprites();
+      // Register all new sprites
+      for (const [id, instance] of scene.spriteInstances) {
+        interactionRef.current.registerSprite(id, instance);
+      }
+    }
+
+    // Re-render placeholders with new regions
+    if (renderPlaceholdersRef.current) {
+      renderPlaceholdersRef.current();
+    }
   }, [mapData]);
 
-  // Handle region changes with animation
+  // Handle region changes with animation (only when user navigates, not when content updates)
   useEffect(() => {
-    if (!viewportRef.current || !currentRegion || isRendering) return;
+    if (!viewportRef.current || !mapData || isRendering) return;
+
+    // Recalculate region on demand to get fresh data
+    const region = mapData.regions[currentRegionIndex] || mapData.regions[0];
+    if (!region) return;
 
     const viewport = viewportRef.current;
-    const regionCenter = gridToScreen(currentRegion.centerX, currentRegion.centerY);
+    const regionCenter = gridToScreen(region.centerX, region.centerY);
 
     // On initial load, snap to position without animation
     if (!hasInitializedCamera.current) {
@@ -642,7 +772,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       targetX,
       targetY,
     };
-  }, [currentRegionIndex, currentRegion, isRendering]);
+  }, [currentRegionIndex, isRendering]); // Only depend on index, not the region object itself
 
   // Update ref and re-render placeholders when edit mode changes
   useEffect(() => {
@@ -672,39 +802,6 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           }}
         >
           Loading map...
-        </div>
-      )}
-
-      {/* Empty state overlay - shows when no packages */}
-      {!isLoading && !isRendering && packages.length === 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '24px 32px',
-            backgroundColor: 'rgba(0, 0, 0, 0.85)',
-            color: '#ffffff',
-            fontFamily: 'monospace',
-            borderRadius: 8,
-            border: '2px solid #fbbf24',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-            zIndex: 5,
-            pointerEvents: 'none',
-          }}
-        >
-          <div style={{ fontSize: '32px' }}>🗺️</div>
-          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fbbf24' }}>
-            Empty Collection
-          </div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
-            Drag repositories here to start building your map
-          </div>
         </div>
       )}
 

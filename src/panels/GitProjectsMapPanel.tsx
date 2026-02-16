@@ -45,6 +45,16 @@ export interface GitProject {
 
   /** Is this a monorepo containing multiple packages? */
   isMonorepo?: boolean;
+
+  /** Which custom region this project is assigned to (manual layout mode) */
+  regionId?: string;
+
+  /** Saved layout data (grid position, manual flag) */
+  layout?: {
+    gridX?: number;
+    gridY?: number;
+    isManuallyPositioned?: boolean;
+  };
 }
 
 export interface GitProjectsMapPanelProps {
@@ -80,6 +90,9 @@ export interface GitProjectsMapPanelProps {
 
   /** Callback to delete a region */
   onDeleteRegion?: (id: string) => void;
+
+  /** Stable collection identifier - prevents full PIXI recreate when only regions change */
+  collectionKey?: string;
 }
 
 /**
@@ -98,6 +111,7 @@ export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
   onAddRegion,
   onRenameRegion,
   onDeleteRegion,
+  collectionKey,
 }) => {
   // Convert projects to package-like structure for compatibility
   // We use a type assertion here because the exact PackageLayer structure is complex,
@@ -111,6 +125,8 @@ export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
       importance: project.importance, // Pass through importance
       aging: project.aging, // Pass through aging for weathering effects
       language: project.language, // Pass through language for color-based visualization
+      regionId: project.regionId, // Pass through region assignment
+      layout: project.layout, // Pass through saved position data
       packageData: {
         name: project.name,
         version: '1.0.0',
@@ -147,6 +163,7 @@ export const GitProjectsMapPanelContent: React.FC<GitProjectsMapPanelProps> = ({
       onAddRegion={onAddRegion}
       onRenameRegion={onRenameRegion}
       onDeleteRegion={onDeleteRegion}
+      collectionKey={collectionKey}
     />
   );
 };

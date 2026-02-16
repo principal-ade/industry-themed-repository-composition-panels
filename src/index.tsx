@@ -278,12 +278,19 @@ export type {
 export {
   CollectionMapPanel,
   CollectionMapPanelContent,
+  createDefaultRegion,
+  createDefaultAgeRegions,
 } from './panels/CollectionMapPanel';
 export type {
   CollectionMapPanelProps,
   Collection,
   AlexandriaEntryWithMetrics,
   CollectionMembership,
+  CustomRegion,
+  CollectionMetadata,
+  RegionCallbacks,
+  CollectionMembershipMetadata,
+  RepositoryLayoutData,
 } from './panels/CollectionMapPanel';
 
 // Re-export types

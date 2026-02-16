@@ -121,6 +121,16 @@ export class IsometricInteractionManager {
   }
 
   /**
+   * Clear all sprite registrations
+   * Used when scene is recreated but interaction manager persists
+   */
+  clearSprites(): void {
+    for (const id of Array.from(this.sprites.keys())) {
+      this.unregisterSprite(id);
+    }
+  }
+
+  /**
    * Handle pointer down - start dragging
    */
   private onPointerDown(

@@ -16,7 +16,7 @@ import type {
 } from './types';
 import { REGION_SIZE_TILES } from './types';
 import type { AgingMetrics } from '../../utils/repositoryAging';
-import { layoutSpritesMultiRegion, type LayoutNode } from './spriteLayoutEngine';
+import { layoutSpritesMultiRegion, layoutSpritesInRegion, type LayoutNode } from './spriteLayoutEngine';
 
 /**
  * Round size to nearest tier for sprite selection
@@ -46,6 +46,16 @@ export interface GenericNode {
   // Connections to other nodes
   dependencies?: string[];    // IDs of nodes this depends on
   devDependencies?: string[]; // IDs of dev/optional dependencies
+
+  // Region assignment
+  regionId?: string;          // Which custom region this node is assigned to
+
+  // Saved position data
+  layout?: {
+    gridX?: number;
+    gridY?: number;
+    isManuallyPositioned?: boolean;
+  };
 }
 
 /**
@@ -66,6 +76,7 @@ export interface RegionLayout {
 export interface GenericMapperOptions {
   includeDevDependencies?: boolean;
   mapPadding?: number;
+  customRegions?: any[]; // Manual region definitions for manual layout mode
 
   // Region layout configuration
   regionLayout?: RegionLayout;
@@ -673,8 +684,160 @@ export function nodesToUnifiedOverworldMap(
     lastEditedAt: node.aging?.lastEditedAt, // Pass through for age-based grouping
   }));
 
-  // Layout nodes across regions using circle packing with age-based grouping
-  const layoutRegions = layoutSpritesMultiRegion(layoutNodes, REGION_SIZE_TILES, { spacing: 0.5 });
+  // Layout nodes across regions
+  let layoutRegions: Array<{
+    regionId: string;
+    name: string;
+    gridPosition: { row: number; col: number };
+    bounds: { x: number; y: number; width: number; height: number };
+    nodes: Array<{ id: string; gridX: number; gridY: number; size: number; language?: string }>;
+  }>;
+
+  // If custom regions are provided (manual mode), create empty regions at their positions
+  if (options.customRegions && options.customRegions.length > 0) {
+    layoutRegions = options.customRegions.map((customRegion: any) => {
+      // Calculate grid position from order (row-major layout with 10 columns max)
+      const row = Math.floor(customRegion.order / 10);
+      const col = customRegion.order % 10;
+
+      return {
+        regionId: customRegion.id,
+        name: customRegion.name,
+        gridPosition: { row, col },
+        bounds: {
+          x: col * REGION_SIZE_TILES,
+          y: row * REGION_SIZE_TILES,
+          width: REGION_SIZE_TILES,
+          height: REGION_SIZE_TILES,
+        },
+        nodes: [], // Will be filled by layout engine below
+      };
+    });
+
+    // Distribute nodes across custom regions based on their regionId assignments
+    // Group nodes by their assigned regionId
+    const nodesByRegion = new Map<string, typeof layoutNodes>();
+    const unassignedNodes: typeof layoutNodes = [];
+
+    for (const layoutNode of layoutNodes) {
+      // Find the original GenericNode to get its regionId
+      const genericNode = nodeWithSizes.find(n => n.id === layoutNode.id);
+      const assignedRegionId = genericNode?.regionId;
+
+      if (assignedRegionId && layoutRegions.some(r => r.regionId === assignedRegionId)) {
+        // Node has a valid region assignment
+        if (!nodesByRegion.has(assignedRegionId)) {
+          nodesByRegion.set(assignedRegionId, []);
+        }
+        nodesByRegion.get(assignedRegionId)!.push(layoutNode);
+      } else {
+        // Node is unassigned or assigned to non-existent region
+        unassignedNodes.push(layoutNode);
+      }
+    }
+
+    // Place nodes in their assigned regions
+    for (const region of layoutRegions) {
+      const regionNodes = nodesByRegion.get(region.regionId) || [];
+
+      if (regionNodes.length === 0) {
+        // Empty region - leave it empty
+        region.nodes = [];
+        continue;
+      }
+
+      // Separate manually positioned nodes from auto-positioned nodes
+      const manuallyPositioned: typeof regionNodes = [];
+      const autoPositioned: typeof regionNodes = [];
+
+      for (const layoutNode of regionNodes) {
+        const genericNode = nodeWithSizes.find(n => n.id === layoutNode.id);
+        if (genericNode?.layout?.isManuallyPositioned &&
+            genericNode.layout.gridX !== undefined &&
+            genericNode.layout.gridY !== undefined) {
+          manuallyPositioned.push(layoutNode);
+        } else {
+          autoPositioned.push(layoutNode);
+        }
+      }
+
+      const placedNodes: Array<{id: string, gridX: number, gridY: number, size: number, language?: string}> = [];
+
+      // Place manually positioned nodes using saved positions
+      for (const layoutNode of manuallyPositioned) {
+        const genericNode = nodeWithSizes.find(n => n.id === layoutNode.id);
+        if (genericNode?.layout?.gridX !== undefined && genericNode.layout.gridY !== undefined) {
+          placedNodes.push({
+            id: layoutNode.id,
+            gridX: region.bounds.x + genericNode.layout.gridX,
+            gridY: region.bounds.y + genericNode.layout.gridY,
+            size: layoutNode.size,
+            language: layoutNode.language,
+          });
+        }
+      }
+
+      // Use circle packing for auto-positioned nodes only
+      if (autoPositioned.length > 0) {
+        const result = layoutSpritesInRegion(autoPositioned, {
+          x: 0,
+          y: 0,
+          width: REGION_SIZE_TILES,
+          height: REGION_SIZE_TILES,
+        }, { spacing: 0.5 });
+
+        // Add auto-positioned nodes to placed nodes
+        placedNodes.push(...result.placed.map(node => ({
+          id: node.id,
+          gridX: region.bounds.x + node.gridX,
+          gridY: region.bounds.y + node.gridY,
+          size: node.size,
+          language: node.language,
+        })));
+
+        if (result.overflow.length > 0) {
+          console.warn(`[nodesToUnifiedOverworldMap] ${result.overflow.length} nodes didn't fit in region ${region.name}`);
+        }
+      }
+
+      region.nodes = placedNodes;
+    }
+
+    // Place unassigned nodes in the first region
+    if (unassignedNodes.length > 0 && layoutRegions.length > 0) {
+      const firstRegion = layoutRegions[0];
+      const result = layoutSpritesInRegion(unassignedNodes, {
+        x: 0,
+        y: 0,
+        width: REGION_SIZE_TILES,
+        height: REGION_SIZE_TILES,
+      }, { spacing: 0.5 });
+
+      // Append to first region's nodes
+      firstRegion.nodes.push(...result.placed.map(node => ({
+        id: node.id,
+        gridX: firstRegion.bounds.x + node.gridX,
+        gridY: firstRegion.bounds.y + node.gridY,
+        size: node.size,
+        language: node.language,
+      })));
+    }
+  } else {
+    // Use automatic age-based grouping
+    layoutRegions = layoutSpritesMultiRegion(layoutNodes, REGION_SIZE_TILES, { spacing: 0.5 });
+
+    // If no layout regions were created (no nodes), create at least one empty region
+    // This ensures the map always has at least one region to render
+    if (layoutRegions.length === 0) {
+      layoutRegions.push({
+        regionId: 'region-0-0',
+        name: 'Main',
+        gridPosition: { row: 0, col: 0 },
+        bounds: { x: 0, y: 0, width: REGION_SIZE_TILES, height: REGION_SIZE_TILES },
+        nodes: [],
+      });
+    }
+  }
 
   // Create node position lookup
   const nodePositions = new Map<string, { gridX: number; gridY: number; size: number; language?: string }>();
