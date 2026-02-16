@@ -10,47 +10,14 @@ import type { RegionLayout } from './overworld-map/genericMapper';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library/types';
 import { calculateRepositorySize } from '../utils/repositoryScaling';
 import { calculateAgingMetrics, type AgingMetrics } from '../utils/repositoryAging';
-
-/**
- * Custom region definition for manual layout
- */
-export interface CustomRegion {
-  id: string;
-  name: string;
-  description?: string;
-  color?: string; // Optional theme color (hex)
-  order: number; // Display order (0-based)
-  createdAt: number;
-}
-
-/**
- * Collection metadata for manual regions
- */
-export interface CollectionMetadata {
-  /** Custom regions defined by the user */
-  customRegions?: CustomRegion[];
-
-  /** Layout mode: 'auto' = age-based, 'manual' = user-defined regions */
-  layoutMode?: 'auto' | 'manual';
-
-  /** Allow additional metadata */
-  [key: string]: unknown;
-}
-
-/**
- * Alexandria Collections types (from @principal-ai/alexandria-collections)
- */
-export interface Collection {
-  id: string;
-  name: string;
-  description?: string;
-  theme?: string;
-  icon?: string;
-  isDefault?: boolean;
-  createdAt: number;
-  updatedAt: number;
-  metadata?: CollectionMetadata;
-}
+import type {
+  CustomRegion,
+  CollectionMetadata,
+  RepositoryLayoutData,
+  CollectionMembershipMetadata,
+  Collection,
+  CollectionMembership,
+} from '@principal-ai/alexandria-collections';
 
 /**
  * Extended Alexandria Entry with metrics for visualization sizing
@@ -66,42 +33,6 @@ export interface AlexandriaEntryWithMetrics extends AlexandriaEntry {
     lastEditedAt?: string; // ISO timestamp of last edit (for aging/weathering)
     createdAt?: string; // ISO timestamp of creation (for future architectural style)
   };
-}
-
-/**
- * Manual layout position data
- */
-export interface RepositoryLayoutData {
-  gridX: number;
-  gridY: number;
-  isManuallyPositioned: boolean;
-}
-
-/**
- * Collection membership metadata
- */
-export interface CollectionMembershipMetadata {
-  /** Which custom region this repository belongs to */
-  regionId?: string;
-
-  /** Manual position override (for manual layout mode) */
-  layout?: RepositoryLayoutData;
-
-  /** Whether this repository is pinned (affects importance) */
-  pinned?: boolean;
-
-  /** User notes about this repository */
-  notes?: string;
-
-  /** Allow additional metadata */
-  [key: string]: unknown;
-}
-
-export interface CollectionMembership {
-  repositoryId: string;
-  collectionId: string;
-  addedAt: number;
-  metadata?: CollectionMembershipMetadata;
 }
 
 /**

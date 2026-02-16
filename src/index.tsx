@@ -283,15 +283,19 @@ export {
 } from './panels/CollectionMapPanel';
 export type {
   CollectionMapPanelProps,
-  Collection,
   AlexandriaEntryWithMetrics,
+  RegionCallbacks,
+} from './panels/CollectionMapPanel';
+
+// Re-export alexandria-collections types for backwards compatibility
+export type {
+  Collection,
   CollectionMembership,
   CustomRegion,
   CollectionMetadata,
-  RegionCallbacks,
   CollectionMembershipMetadata,
   RepositoryLayoutData,
-} from './panels/CollectionMapPanel';
+} from '@principal-ai/alexandria-collections';
 
 // Re-export types
 export type {
