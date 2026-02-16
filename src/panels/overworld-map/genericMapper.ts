@@ -780,8 +780,6 @@ export function nodesToUnifiedOverworldMap(
       // Use circle packing for auto-positioned nodes only
       if (autoPositioned.length > 0) {
         const result = layoutSpritesInRegion(autoPositioned, {
-          x: 0,
-          y: 0,
           width: REGION_SIZE_TILES,
           height: REGION_SIZE_TILES,
         }, { spacing: 0.5 });
@@ -807,8 +805,6 @@ export function nodesToUnifiedOverworldMap(
     if (unassignedNodes.length > 0 && layoutRegions.length > 0) {
       const firstRegion = layoutRegions[0];
       const result = layoutSpritesInRegion(unassignedNodes, {
-        x: 0,
-        y: 0,
         width: REGION_SIZE_TILES,
         height: REGION_SIZE_TILES,
       }, { spacing: 0.5 });
@@ -824,7 +820,16 @@ export function nodesToUnifiedOverworldMap(
     }
   } else {
     // Use automatic age-based grouping
-    layoutRegions = layoutSpritesMultiRegion(layoutNodes, REGION_SIZE_TILES, { spacing: 0.5 });
+    const autoLayoutRegions = layoutSpritesMultiRegion(layoutNodes, REGION_SIZE_TILES, { spacing: 0.5 });
+
+    // Convert to required format with guaranteed names
+    layoutRegions = autoLayoutRegions.map((region, index) => ({
+      regionId: region.regionId,
+      name: region.name || `Region ${index + 1}`,
+      gridPosition: region.gridPosition,
+      bounds: region.bounds,
+      nodes: region.nodes,
+    }));
 
     // If no layout regions were created (no nodes), create at least one empty region
     // This ensures the map always has at least one region to render
