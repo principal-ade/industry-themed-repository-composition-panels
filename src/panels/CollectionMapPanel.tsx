@@ -200,17 +200,22 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
   // Handle project moved (save position to metadata)
   const handleProjectMoved = useCallback(async (projectId: string, gridX: number, gridY: number) => {
-    // Find which region this repository belongs to
-    const membership = memberships.find(m => m.repositoryId === projectId);
-    const regionId = membership?.metadata?.regionId;
+    // Determine which region this position is in based on absolute coordinates
+    // Regions are laid out in a grid: region 0 at (0,0), region 1 at (20,0), etc.
+    const regionCol = Math.floor(gridX / REGION_SIZE_TILES);
+    const regionRow = Math.floor(gridY / REGION_SIZE_TILES);
+    const regionOrder = regionRow * 10 + regionCol;
 
-    // Find the region to get its bounds
-    const region = customRegions.find(r => r.id === regionId);
+    // Find the region at this position
+    const targetRegion = customRegions.find(r => r.order === regionOrder);
+    const newRegionId = targetRegion?.id;
 
-    // Calculate region bounds (same logic as in genericMapper.ts)
-    const regionOrder = region?.order ?? 0;
-    const regionRow = Math.floor(regionOrder / 10);
-    const regionCol = regionOrder % 10;
+    if (!newRegionId) {
+      console.warn('[CollectionMapPanel] ⚠️ Could not determine region for position:', { gridX, gridY, regionOrder });
+      return;
+    }
+
+    // Calculate region bounds
     const regionBoundsX = regionCol * REGION_SIZE_TILES;
     const regionBoundsY = regionRow * REGION_SIZE_TILES;
 
@@ -221,7 +226,8 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     console.info('[CollectionMapPanel] 💾 Saving position:', {
       projectId,
       absolute: { gridX, gridY },
-      region: region?.name || 'none',
+      region: targetRegion?.name || 'unknown',
+      regionId: newRegionId,
       regionBounds: { x: regionBoundsX, y: regionBoundsY },
       relative: { gridX: relativeGridX, gridY: relativeGridY }
     });
@@ -231,7 +237,17 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       gridY: relativeGridY,
     };
 
+    // Save both position and region assignment
     await regionCallbacks.onRepositoryPositionUpdated(collection.id, projectId, layout);
+
+    // Check if region changed and update assignment if needed
+    const membership = memberships.find(m => m.repositoryId === projectId);
+    const oldRegionId = membership?.metadata?.regionId;
+
+    if (oldRegionId !== newRegionId) {
+      console.info('[CollectionMapPanel] 🔄 Region changed from', oldRegionId, 'to', newRegionId);
+      await regionCallbacks.onRepositoryAssigned(collection.id, projectId, newRegionId);
+    }
   }, [collection.id, regionCallbacks, memberships, customRegions]);
 
   // Handle dropped projects
