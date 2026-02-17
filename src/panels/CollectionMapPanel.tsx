@@ -92,24 +92,19 @@ export interface CollectionMapPanelActions extends PanelActions, RegionCallbacks
 
 /**
  * Context interface for CollectionMapPanel data slices
+ * The panel expects the host to provide data for the SELECTED collection only
  */
 export interface CollectionMapPanelContext {
-  userCollections: {
+  selectedCollectionView: {
     data: {
-      collections: Collection[];
+      /** The selected collection to display */
+      collection: Collection;
+      /** Memberships ONLY for the selected collection (already filtered by host) */
       memberships: CollectionMembership[];
-      loading: boolean;
-      saving: boolean;
-      error: string | null;
-      gitHubRepoExists: boolean;
-      gitHubRepoUrl: string | null;
-    };
-    loading: boolean;
-    error: string | null;
-  };
-  alexandriaRepositories: {
-    data: {
+      /** Repositories ONLY for the selected collection (already filtered by host) */
       repositories: AlexandriaEntryWithMetrics[];
+      /** Optional dependency graph for connections between repos */
+      dependencies?: Record<string, string[]>;
     };
     loading: boolean;
     error: string | null;
@@ -492,38 +487,34 @@ export interface AlexandriaRepositoriesSlice {
  * Main panel component that integrates with the panel framework
  */
 export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanelActions, CollectionMapPanelContext>> = ({ context, actions }) => {
-  // Get collections data from context using typed direct access
-  const { userCollections, alexandriaRepositories } = context;
-  const collections = userCollections?.data?.collections || [];
-  const memberships = userCollections?.data?.memberships || [];
-  const collectionsLoading = userCollections?.loading ?? false;
+  // Get data from typed context - host provides filtered data for selected collection only
+  const { selectedCollectionView } = context;
+  const selectedCollection = selectedCollectionView?.data?.collection;
+  const memberships = selectedCollectionView?.data?.memberships || [];
+  const repositories = selectedCollectionView?.data?.repositories || [];
+  const dependencies = selectedCollectionView?.data?.dependencies || {};
+  const isLoading = selectedCollectionView?.loading ?? false;
 
   // Debug logging for memberships changes
   React.useEffect(() => {
-    console.info('[CollectionMapPanel] 📊 Memberships updated:', memberships.map(m => ({
+    console.info('[CollectionMapPanel] 📊 Memberships updated for collection:', selectedCollection?.name);
+    console.info('[CollectionMapPanel] 📊 Memberships:', memberships.map(m => ({
       repo: m.repositoryId,
       layout: m.metadata?.layout
     })));
-  }, [memberships]);
-
-  // Get repositories data from context using typed direct access
-  const repositories = alexandriaRepositories?.data?.repositories || [];
-  const repositoriesLoading = alexandriaRepositories?.loading ?? false;
-
-  // Get selected collection from context (set by UserCollectionsPanel)
-  const selectedCollectionId = (context as any).selectedCollection?.id;
-  const selectedCollection = collections.find((c) => c.id === selectedCollectionId);
+  }, [memberships, selectedCollection?.name]);
 
   // Handle adding a project to the collection
   const handleProjectAdded = useCallback((repositoryPath: string, repositoryMetadata: any) => {
+    if (!selectedCollection) return;
     // Call actions method to add repository to collection
     // This is provided by the host application's context provider
     if (actions.addRepositoryToCollection) {
-      actions.addRepositoryToCollection(selectedCollectionId, repositoryPath, repositoryMetadata);
+      actions.addRepositoryToCollection(selectedCollection.id, repositoryPath, repositoryMetadata);
     } else {
       console.warn('Actions does not support addRepositoryToCollection - drag-drop feature requires context integration');
     }
-  }, [actions, selectedCollectionId]);
+  }, [actions, selectedCollection]);
 
   // Create region management callbacks (must be before early return)
   // Actions is now typed as CollectionMapPanelActions, so these methods are guaranteed to exist
@@ -558,21 +549,11 @@ export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanel
     );
   }
 
-  // Filter memberships for this collection
-  const collectionMemberships = memberships.filter(
-    (m) => m.collectionId === selectedCollection.id
-  );
-
-  // For now, dependencies are empty - could be enhanced later
-  const dependencies: Record<string, string[]> = {};
-
-  const isLoading = collectionsLoading || repositoriesLoading;
-
   return (
     <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
       <CollectionMapPanelContent
         collection={selectedCollection}
-        memberships={collectionMemberships}
+        memberships={memberships}
         repositories={repositories}
         dependencies={dependencies}
         isLoading={isLoading}

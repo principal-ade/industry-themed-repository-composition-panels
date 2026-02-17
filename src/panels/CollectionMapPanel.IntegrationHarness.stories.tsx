@@ -257,44 +257,27 @@ const IntegrationHarness: React.FC<{
   const mockProps: PanelComponentProps<CollectionMapPanelActions, CollectionMapPanelContext> = useMemo(
     () => ({
       context: {
-        // Typed slice properties (direct access)
-        userCollections: {
+        selectedCollection: collection,
+        // Typed slice property with filtered data for selected collection
+        selectedCollectionView: {
           data: {
-            collections: [collection],
+            collection,
             memberships,
-            loading: false,
-            saving: false,
-            error: null,
-            gitHubRepoExists: true,
-            gitHubRepoUrl: 'https://github.com/mock/repo',
-          },
-          loading: false,
-          error: null,
-        },
-        alexandriaRepositories: {
-          data: {
             repositories: mockRepositories,
+            dependencies: {},
           },
           loading: false,
           error: null,
         },
         // Legacy methods (for backward compatibility)
         getSlice: (sliceName: string) => {
-          if (sliceName === 'userCollections') {
+          if (sliceName === 'selectedCollectionView') {
             return {
               data: {
-                collections: [collection],
+                collection,
                 memberships,
-                selectedCollectionId: collection.id,
-              },
-              loading: false,
-              error: null,
-            };
-          }
-          if (sliceName === 'alexandriaRepositories') {
-            return {
-              data: {
                 repositories: mockRepositories,
+                dependencies: {},
               },
               loading: false,
               error: null,
@@ -302,7 +285,6 @@ const IntegrationHarness: React.FC<{
           }
           return { data: null, loading: false, error: null };
         },
-        selectedCollection: collection,
         scope: {
           type: 'workspace',
           workspaceId: 'test-workspace',

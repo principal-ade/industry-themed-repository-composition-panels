@@ -143,7 +143,7 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       version: '0.1.0',
       author: 'Industry Theme',
       description: 'Visualize Alexandria Collections as 8-bit overworld maps',
-      slices: ['userCollections', 'alexandriaRepositories'],
+      slices: ['selectedCollectionView'],
     },
     component: CollectionMapPanel,
 

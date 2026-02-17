@@ -34,52 +34,56 @@ const createMockRepository = (
 // Mock context factory
 const createMockContext = (
   selectedCollection: Collection | null,
-  collections: Collection[],
   memberships: CollectionMembership[],
   repositories: AlexandriaEntryWithMetrics[]
 ): PanelContextValue<CollectionMapPanelContext> => {
+  if (!selectedCollection) {
+    return {
+      selectedCollectionView: {
+        data: {
+          collection: null as any,
+          memberships: [],
+          repositories: [],
+          dependencies: {},
+        },
+        loading: false,
+        error: null,
+      },
+      getSlice: () => undefined,
+      hasSlice: () => false,
+      isSliceLoading: () => false,
+      refresh: async () => {},
+      addEventListener: () => () => {},
+      removeEventListener: () => {},
+    } as any;
+  }
+
   return {
     selectedCollection,
-    // Typed slice properties (direct access)
-    userCollections: {
+    // Typed slice property with filtered data for selected collection
+    selectedCollectionView: {
       data: {
-        collections,
-        memberships,
-        loading: false,
-        saving: false,
-        error: null,
-        gitHubRepoExists: true,
-        gitHubRepoUrl: 'https://github.com/mock/repo',
-      },
-      loading: false,
-      error: null,
-    },
-    alexandriaRepositories: {
-      data: {
-        repositories,
+        collection: selectedCollection,
+        memberships: memberships.filter(m => m.collectionId === selectedCollection.id),
+        repositories: repositories,
+        dependencies: {},
       },
       loading: false,
       error: null,
     },
     // Legacy methods (for backward compatibility)
     getSlice: (sliceName: string) => {
-      if (sliceName === 'userCollections') {
+      if (sliceName === 'selectedCollectionView') {
         return {
           data: {
-            collections,
-            memberships,
-            loading: false,
-            saving: false,
-            error: null,
-            gitHubRepoExists: true,
-            gitHubRepoUrl: 'https://github.com/mock/repo',
+            collection: selectedCollection,
+            memberships: memberships.filter(m => m.collectionId === selectedCollection.id),
+            repositories: repositories,
+            dependencies: {},
           },
           loading: false,
           error: null,
         };
-      }
-      if (sliceName === 'alexandriaRepositories') {
-        return { data: { repositories }, loading: false, error: null };
       }
       return undefined;
     },
@@ -235,7 +239,6 @@ export const ActiveProjects: Story = {
 
     const context = createMockContext(
       activeProjectsCollection,
-      [activeProjectsCollection, readingListCollection, archiveCollection],
       memberships,
       repositories
     );
@@ -281,7 +284,6 @@ export const ReadingList: Story = {
 
     const context = createMockContext(
       readingListCollection,
-      [activeProjectsCollection, readingListCollection, archiveCollection],
       memberships,
       repositories
     );
@@ -317,7 +319,6 @@ export const Archive: Story = {
 
     const context = createMockContext(
       archiveCollection,
-      [activeProjectsCollection, readingListCollection, archiveCollection],
       memberships,
       repositories
     );
@@ -353,7 +354,6 @@ export const EmptyCollection: Story = {
 
     const context = createMockContext(
       emptyCollection,
-      [activeProjectsCollection, readingListCollection, archiveCollection, emptyCollection],
       [],
       []
     );
@@ -394,7 +394,6 @@ export const LargeCollection: Story = {
 
     const context = createMockContext(
       largeCollection,
-      [activeProjectsCollection, readingListCollection, archiveCollection, largeCollection],
       memberships,
       repositories
     );
@@ -484,7 +483,6 @@ export const MultipleRegionsHorizontal: Story = {
 
     const context = createMockContext(
       enterpriseCollection,
-      [activeProjectsCollection, readingListCollection, archiveCollection, enterpriseCollection],
       largeMemberships,
       largeRepositorySet
     );
