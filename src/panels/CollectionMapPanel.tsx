@@ -90,8 +90,8 @@ export interface CollectionMapPanelActions extends PanelActions, RegionCallbacks
 export interface CollectionMapPanelContext {
   selectedCollectionView: {
     data: {
-      /** The selected collection to display */
-      collection: Collection;
+      /** The selected collection to display (null when no collection is selected) */
+      collection: Collection | null;
       /** Memberships ONLY for the selected collection (already filtered by host) */
       memberships: CollectionMembership[];
       /** Repositories ONLY for the selected collection (already filtered by host) */
@@ -795,11 +795,11 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanelActions, CollectionMapPanelContext>> = ({ context, actions }) => {
   // Get data from typed context - host provides filtered data for selected collection only
   const { selectedCollectionView } = context;
-  const selectedCollection = selectedCollectionView?.data?.collection;
-  const memberships = selectedCollectionView?.data?.memberships || [];
-  const repositories = selectedCollectionView?.data?.repositories || [];
-  const dependencies = selectedCollectionView?.data?.dependencies || {};
-  const isLoading = selectedCollectionView?.loading ?? false;
+  const selectedCollection = selectedCollectionView.data.collection;
+  const memberships = selectedCollectionView.data.memberships;
+  const repositories = selectedCollectionView.data.repositories;
+  const dependencies = selectedCollectionView.data.dependencies || {};
+  const isLoading = selectedCollectionView.loading;
 
   // Handle adding a project to the collection
   const handleProjectAdded = useCallback((repositoryPath: string, repositoryMetadata: any) => {
