@@ -790,25 +790,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 };
 
 /**
- * Data slice for user collections
- */
-export interface UserCollectionsSlice {
-  collections: Collection[];
-  memberships: CollectionMembership[];
-  loading: boolean;
-  error?: string;
-}
-
-/**
- * Data slice for Alexandria repositories
- */
-export interface AlexandriaRepositoriesSlice {
-  repositories: AlexandriaEntryWithMetrics[];
-  loading: boolean;
-  error?: string;
-}
-
-/**
  * Main panel component that integrates with the panel framework
  */
 export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanelActions, CollectionMapPanelContext>> = ({ context, actions }) => {

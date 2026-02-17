@@ -264,7 +264,6 @@ const IntegrationHarness: React.FC<{
     () => ({
       context: {
         selectedCollection: collection,
-        // Typed slice property with filtered data for selected collection
         selectedCollectionView: {
           data: {
             collection,
@@ -274,22 +273,6 @@ const IntegrationHarness: React.FC<{
           },
           loading: false,
           error: null,
-        },
-        // Legacy methods (for backward compatibility)
-        getSlice: (sliceName: string) => {
-          if (sliceName === 'selectedCollectionView') {
-            return {
-              data: {
-                collection,
-                memberships,
-                repositories: mockRepositories,
-                dependencies: {},
-              },
-              loading: false,
-              error: null,
-            };
-          }
-          return { data: null, loading: false, error: null };
         },
         scope: {
           type: 'workspace',
@@ -881,16 +864,6 @@ export const DragDropDemo: Story = {
             data: { collection, memberships, repositories: mockRepositories as any, dependencies: {} },
             loading: false,
             error: null,
-          },
-          getSlice: (sliceName: string) => {
-            if (sliceName === 'selectedCollectionView') {
-              return {
-                data: { collection, memberships, repositories: mockRepositories as any, dependencies: {} },
-                loading: false,
-                error: null,
-              };
-            }
-            return { data: null, loading: false, error: null };
           },
           scope: { type: 'workspace', workspaceId: 'test-workspace' },
           refresh: async () => {},
