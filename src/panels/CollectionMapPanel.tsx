@@ -359,8 +359,17 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   // Compute and save BOTH regions and layout in one pass
   // This eliminates duplication between region assignment and layout computation
   const hasComputedLayout = useRef(false);
+  const prevCollectionIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     console.info('[CollectionMapPanel] 🏗️ Layout effect running, hasComputedLayout:', hasComputedLayout.current, 'nodes:', nodes.length);
+
+    // Reset hasComputedLayout when collection changes
+    if (prevCollectionIdRef.current !== null && prevCollectionIdRef.current !== collection.id) {
+      console.info('[CollectionMapPanel] 🔄 Collection changed from', prevCollectionIdRef.current, 'to', collection.id, '- resetting hasComputedLayout');
+      hasComputedLayout.current = false;
+    }
+    prevCollectionIdRef.current = collection.id;
 
     // Only run once per collection
     if (hasComputedLayout.current) {
@@ -467,21 +476,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       hasComputedLayout.current = true;
     })();
   }, [collection.id, nodes, regionLayout, customRegions, regionCallbacks]);
-
-  // Reset layout flag when collection changes (not on initial mount)
-  const prevCollectionIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevCollectionIdRef.current === null) {
-      // Initial mount - don't reset
-      console.info('[CollectionMapPanel] 🔄 Initial collection:', collection.id, '- keeping hasComputedLayout as is');
-      prevCollectionIdRef.current = collection.id;
-    } else if (prevCollectionIdRef.current !== collection.id) {
-      // Collection actually changed - reset layout
-      console.info('[CollectionMapPanel] 🔄 Collection changed from', prevCollectionIdRef.current, 'to', collection.id, '- resetting hasComputedLayout to false');
-      hasComputedLayout.current = false;
-      prevCollectionIdRef.current = collection.id;
-    }
-  }, [collection.id]);
 
 
   return (
