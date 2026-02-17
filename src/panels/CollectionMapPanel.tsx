@@ -407,17 +407,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           order: index,
           createdAt: Date.now(),
         }));
-
-        // Prepare assignments
-        updates.assignments = [];
-        for (const region of map.regions) {
-          for (const nodeId of region.nodeIds) {
-            updates.assignments.push({
-              repositoryId: nodeId,
-              regionId: region.id,
-            });
-          }
-        }
       }
 
       // Prepare positions for nodes that need them
@@ -437,6 +426,29 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
             gridY: node.gridY,
           },
         }));
+
+      // Prepare assignments for ALL nodes that need positions OR missing regionId
+      // This ensures regionId is always set when layout is computed
+      if (map.regions.length > 0) {
+        updates.assignments = [];
+        for (const region of map.regions) {
+          for (const nodeId of region.nodeIds) {
+            const originalNode = nodes.find(n => n.id === nodeId);
+            // Include assignment if node needs position update OR is missing regionId
+            const needsAssignment =
+              !originalNode?.regionId ||
+              updates.positions?.some(p => p.repositoryId === nodeId);
+
+            if (needsAssignment) {
+              updates.assignments.push({
+                repositoryId: nodeId,
+                regionId: region.id,
+              });
+            }
+          }
+        }
+        console.info('[CollectionMapPanel] 🏗️ Creating', updates.assignments.length, 'region assignments');
+      }
 
       console.info('[CollectionMapPanel] 🏗️ Initializing layout for', updates.positions?.length, 'nodes');
 
@@ -575,6 +587,7 @@ export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanel
     console.info('[CollectionMapPanel] 📊 Memberships updated for collection:', selectedCollection?.name);
     console.info('[CollectionMapPanel] 📊 Memberships:', memberships.map(m => ({
       repo: m.repositoryId,
+      regionId: m.metadata?.regionId,
       layout: m.metadata?.layout
     })));
   }, [memberships, selectedCollection?.name]);
