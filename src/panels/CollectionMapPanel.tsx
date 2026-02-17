@@ -257,6 +257,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
   // Convert Alexandria repositories to GenericNode format
   const nodes = useMemo<GenericNode[]>(() => {
+    console.info('[CollectionMapPanel] 📦 Recomputing nodes for collection:', collection.name);
     // Filter memberships for this collection
     const collectionMemberships = memberships.filter(
       (m) => m.collectionId === collection.id
@@ -321,9 +322,17 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   // This eliminates duplication between region assignment and layout computation
   const hasComputedLayout = useRef(false);
   useEffect(() => {
+    console.info('[CollectionMapPanel] 🏗️ Layout effect running, hasComputedLayout:', hasComputedLayout.current, 'nodes:', nodes.length);
+
     // Only run once per collection
-    if (hasComputedLayout.current) return;
-    if (nodes.length === 0) return;
+    if (hasComputedLayout.current) {
+      console.info('[CollectionMapPanel] 🏗️ Skipping - already computed layout');
+      return;
+    }
+    if (nodes.length === 0) {
+      console.info('[CollectionMapPanel] 🏗️ Skipping - no nodes');
+      return;
+    }
 
     // Check if we need to initialize anything
     const needsRegions = customRegions.length === 0 && !nodes.some(n => n.regionId);
@@ -331,8 +340,11 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       !node.layout || node.layout.gridX === undefined || node.layout.gridY === undefined
     );
 
+    console.info('[CollectionMapPanel] 🏗️ needsRegions:', needsRegions, 'needsLayout:', needsLayout);
+
     if (!needsRegions && !needsLayout) {
       hasComputedLayout.current = true;
+      console.info('[CollectionMapPanel] 🏗️ All nodes have layout, setting hasComputedLayout=true');
       return;
     }
 
@@ -374,7 +386,11 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       updates.positions = map.nodes
         .filter(node => {
           const originalNode = nodes.find(n => n.id === node.id);
-          return !originalNode?.layout || originalNode.layout.gridX === undefined || originalNode.layout.gridY === undefined;
+          const needsUpdate = !originalNode?.layout || originalNode.layout.gridX === undefined || originalNode.layout.gridY === undefined;
+          if (!needsUpdate) {
+            console.info('[CollectionMapPanel] 🏗️ Skipping', node.id, '- already has layout:', originalNode?.layout);
+          }
+          return needsUpdate;
         })
         .map(node => ({
           repositoryId: node.id,
@@ -383,6 +399,8 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
             gridY: node.gridY,
           },
         }));
+
+      console.info('[CollectionMapPanel] 🏗️ Initializing layout for', updates.positions?.length, 'nodes');
 
       // Single batched update - 1 re-render!
       await regionCallbacks.onBatchLayoutInitialized(collection.id, updates);
