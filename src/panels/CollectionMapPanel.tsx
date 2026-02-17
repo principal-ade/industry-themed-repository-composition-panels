@@ -374,11 +374,15 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
     // Check if we need to initialize anything
     const needsRegions = customRegions.length === 0 && !nodes.some(n => n.regionId);
-    const needsLayout = nodes.some(node =>
-      !node.layout || node.layout.gridX === undefined || node.layout.gridY === undefined || !node.regionId
+
+    // If ANY node is missing regionId, we can't trust saved positions (coordinates are region-relative)
+    // Better to recompute everything cleanly than risk assigning positions to wrong regions
+    const anyMissingRegionId = nodes.some(n => !n.regionId);
+    const needsLayout = anyMissingRegionId || nodes.some(node =>
+      !node.layout || node.layout.gridX === undefined || node.layout.gridY === undefined
     );
 
-    console.info('[CollectionMapPanel] 🏗️ needsRegions:', needsRegions, 'needsLayout:', needsLayout);
+    console.info('[CollectionMapPanel] 🏗️ needsRegions:', needsRegions, 'needsLayout:', needsLayout, 'anyMissingRegionId:', anyMissingRegionId);
 
     if (!needsRegions && !needsLayout) {
       console.info('[CollectionMapPanel] 🏗️ All nodes have layout, setting hasComputedLayout=true');
@@ -410,10 +414,12 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       }
 
       // Prepare positions for nodes that need them
+      // If any node is missing regionId, recompute ALL positions for consistency
+      const anyMissingRegionId = nodes.some(n => !n.regionId);
       updates.positions = map.nodes
         .filter(node => {
           const originalNode = nodes.find(n => n.id === node.id);
-          const needsUpdate = !originalNode?.layout || originalNode.layout.gridX === undefined || originalNode.layout.gridY === undefined;
+          const needsUpdate = anyMissingRegionId || !originalNode?.layout || originalNode.layout.gridX === undefined || originalNode.layout.gridY === undefined;
           if (!needsUpdate) {
             console.info('[CollectionMapPanel] 🏗️ Skipping', node.id, '- already has layout:', originalNode?.layout);
           }
@@ -450,6 +456,9 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         console.info('[CollectionMapPanel] 🏗️ Creating', updates.assignments.length, 'region assignments');
       }
 
+      if (anyMissingRegionId) {
+        console.info('[CollectionMapPanel] 🏗️ Recomputing ALL positions due to missing regionId assignments');
+      }
       console.info('[CollectionMapPanel] 🏗️ Initializing layout for', updates.positions?.length, 'nodes');
 
       // Single batched update - 1 re-render!
