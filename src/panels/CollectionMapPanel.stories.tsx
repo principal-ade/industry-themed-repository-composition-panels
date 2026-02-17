@@ -304,6 +304,73 @@ export const ReadingList: Story = {
 };
 
 /**
+ * Saved Positions - Tests that manually positioned repos load correctly
+ */
+export const SavedPositions: Story = {
+  render: () => {
+    const memberships: CollectionMembership[] = [
+      {
+        repositoryId: 'web-ade',
+        collectionId: 'saved-positions-test',
+        addedAt: Date.now() - 20 * 24 * 60 * 60 * 1000,
+        metadata: {
+          pinned: true,
+          layout: { gridX: 5, gridY: 5 } // Manually positioned in center
+        },
+      },
+      {
+        repositoryId: 'backend-api',
+        collectionId: 'saved-positions-test',
+        addedAt: Date.now() - 20 * 24 * 60 * 60 * 1000,
+        metadata: {
+          layout: { gridX: 10, gridY: 3 } // Manually positioned top-right
+        },
+      },
+      {
+        repositoryId: 'shared-ui',
+        collectionId: 'saved-positions-test',
+        addedAt: Date.now() - 15 * 24 * 60 * 60 * 1000,
+        metadata: {
+          layout: { gridX: 2, gridY: 8 } // Manually positioned bottom-left
+        },
+      },
+    ];
+
+    const savedPositionsCollection: Collection = {
+      id: 'saved-positions-test',
+      name: 'Saved Positions Test',
+      description: 'Tests that saved layout positions are respected',
+      createdAt: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      updatedAt: Date.now(),
+      metadata: {},
+    };
+
+    const context = createMockContext(
+      savedPositionsCollection,
+      memberships,
+      repositories
+    );
+
+    const mockActions = createMockActions();
+    const mockEvents: PanelEventEmitter = {
+      emit: () => {},
+      on: () => () => {},
+      off: () => {},
+    } as any;
+
+    return (
+      <div style={{ width: '100vw', height: '100vh' }}>
+        <div style={{ padding: '16px', background: '#2a2a2a', color: '#fff', borderBottom: '1px solid #444' }}>
+          <h3>Saved Positions Test</h3>
+          <p>Expected positions: web-ade at (5,5), backend-api at (10,3), shared-ui at (2,8)</p>
+        </div>
+        <CollectionMapPanel context={context} actions={mockActions} events={mockEvents} />
+      </div>
+    );
+  },
+};
+
+/**
  * Archive - Older projects (minimal dependencies shown)
  */
 export const Archive: Story = {

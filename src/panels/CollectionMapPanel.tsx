@@ -8,6 +8,7 @@ import type { PanelComponentProps, PanelActions } from '../types';
 import { OverworldMapPanelContent } from './overworld-map/OverworldMapPanel';
 import type { RegionLayout, GenericNode } from './overworld-map/genericMapper';
 import { nodesToUnifiedOverworldMap } from './overworld-map/genericMapper';
+import { REGION_SIZE_TILES } from './overworld-map/types';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library/types';
 import { calculateRepositorySize } from '../utils/repositoryScaling';
 import { calculateAgingMetrics, type AgingMetrics } from '../utils/repositoryAging';
@@ -199,13 +200,39 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
   // Handle project moved (save position to metadata)
   const handleProjectMoved = useCallback(async (projectId: string, gridX: number, gridY: number) => {
+    // Find which region this repository belongs to
+    const membership = memberships.find(m => m.repositoryId === projectId);
+    const regionId = membership?.metadata?.regionId;
+
+    // Find the region to get its bounds
+    const region = customRegions.find(r => r.id === regionId);
+
+    // Calculate region bounds (same logic as in genericMapper.ts)
+    const regionOrder = region?.order ?? 0;
+    const regionRow = Math.floor(regionOrder / 10);
+    const regionCol = regionOrder % 10;
+    const regionBoundsX = regionCol * REGION_SIZE_TILES;
+    const regionBoundsY = regionRow * REGION_SIZE_TILES;
+
+    // Convert from absolute map coordinates to region-relative coordinates
+    const relativeGridX = gridX - regionBoundsX;
+    const relativeGridY = gridY - regionBoundsY;
+
+    console.info('[CollectionMapPanel] 💾 Saving position:', {
+      projectId,
+      absolute: { gridX, gridY },
+      region: region?.name || 'none',
+      regionBounds: { x: regionBoundsX, y: regionBoundsY },
+      relative: { gridX: relativeGridX, gridY: relativeGridY }
+    });
+
     const layout: RepositoryLayoutData = {
-      gridX,
-      gridY,
+      gridX: relativeGridX,
+      gridY: relativeGridY,
     };
 
     await regionCallbacks.onRepositoryPositionUpdated(collection.id, projectId, layout);
-  }, [collection.id, regionCallbacks]);
+  }, [collection.id, regionCallbacks, memberships, customRegions]);
 
   // Handle dropped projects
   const handleProjectDrop = useCallback(async (data: PanelDragData, event: React.DragEvent) => {
@@ -319,6 +346,10 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           regionId: membership.metadata?.regionId, // Preserve region assignment
           layout: membership.metadata?.layout, // Pass saved position data
         };
+
+        if (membership.metadata?.layout) {
+          console.info('[CollectionMapPanel] 📍 Node', repo.name, 'has saved layout:', membership.metadata.layout);
+        }
 
         return node;
       })
