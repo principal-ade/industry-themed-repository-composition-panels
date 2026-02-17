@@ -12,12 +12,10 @@ import { REGION_SIZE_TILES } from './overworld-map/types';
 import { domEventToGridCoords } from './overworld-map/isometricUtils';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library/types';
 import { calculateRepositorySize } from '../utils/repositoryScaling';
-import { calculateAgingMetrics, type AgingMetrics } from '../utils/repositoryAging';
+import { calculateAgingMetrics } from '../utils/repositoryAging';
 import type {
   CustomRegion,
-  CollectionMetadata,
   RepositoryLayoutData,
-  CollectionMembershipMetadata,
   Collection,
   CollectionMembership,
 } from '@principal-ai/alexandria-collections';
@@ -36,17 +34,6 @@ export interface AlexandriaEntryWithMetrics extends AlexandriaEntry {
     lastEditedAt?: string; // ISO timestamp of last edit (for aging/weathering)
     createdAt?: string; // ISO timestamp of creation (for future architectural style)
   };
-}
-
-/**
- * Generate a deterministic region ID based on grid position
- * @param order - Region order (row-major: row * 10 + col)
- * @returns Region ID in format "region-{row}-{col}"
- */
-function generateRegionId(order: number): string {
-  const row = Math.floor(order / 10);
-  const col = order % 10;
-  return `region-${row}-${col}`;
 }
 
 /**
@@ -443,10 +430,9 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     return memberNodes;
   }, [collection.id, memberships, repositories, dependencies]);
 
-  // Validate that all nodes have valid positions and regions
-  // UNLESS we're in initial layout computation (auto-assignment will fix it)
-  const validatedNodes = useMemo(() => {
-    console.log('[validatedNodes] Validating nodes:', nodes.length);
+  // Split nodes into valid (can render) and unplaced (need user placement)
+  const { validNodes, unplacedNodes } = useMemo(() => {
+    console.log('[nodeValidation] Validating nodes:', nodes.length);
 
     // Check if this is initial load (no positions at all)
     const nodesWithPositions = nodes.filter(n =>
@@ -456,51 +442,40 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
     // If initial load, skip validation - auto-layout effect will handle it
     if (isInitialLoad) {
-      console.log('[validatedNodes] Initial load detected, skipping validation (auto-layout will run)');
-      return nodes;
+      console.log('[nodeValidation] Initial load detected, skipping validation (auto-layout will run)');
+      return { validNodes: nodes, unplacedNodes: [] };
     }
 
-    // After initial load, validate strictly
+    // After initial load, split nodes:
     // Valid states:
     //   1. Has regionId + has layout (manually placed)
     //   2. Has regionId + NO layout (assigned to region, will be auto-positioned with circle packing)
-    // Invalid state:
-    //   3. NO regionId (completely uninitialized - this is a bug!)
-    const invalidNodes: Array<{ id: string; reason: string }> = [];
+    // Unplaced state:
+    //   3. NO regionId (show in bottom drawer for manual placement)
+    const valid: GenericNode[] = [];
+    const unplaced: GenericNode[] = [];
 
     nodes.forEach((node) => {
       const hasRegion = !!node.regionId;
-      const hasPosition = node.layout?.gridX !== undefined && node.layout?.gridY !== undefined;
 
-      // Only crash if node has NO regionId at all
-      // (Having regionId but no layout is OK - will be auto-positioned)
-      if (!hasRegion) {
-        invalidNodes.push({
-          id: node.id,
-          reason: `Missing regionId (has layout: ${hasPosition})`
-        });
+      if (hasRegion) {
+        valid.push(node);
+      } else {
+        unplaced.push(node);
       }
     });
 
-    // CRASH if any nodes are completely uninitialized (after initial load)
-    if (invalidNodes.length > 0) {
-      const error = new Error(
-        `[CollectionMapPanel] FATAL: Attempting to render nodes without regionId!\n` +
-        `This should never happen. All nodes must have a regionId before rendering.\n` +
-        `(Nodes without layout positions will be auto-positioned using circle packing)\n\n` +
-        `Invalid nodes (${invalidNodes.length}):\n` +
-        invalidNodes.map(n => `  - ${n.id}: ${n.reason}`).join('\n') +
-        `\n\nTotal nodes: ${nodes.length}\n` +
-        `Collection: ${collection.id}\n\n` +
-        `This is not initial load - auto-assignment should have already run.`
+    if (unplaced.length > 0) {
+      console.warn(
+        `[nodeValidation] Found ${unplaced.length} unplaced nodes (no regionId):\n` +
+        unplaced.map(n => `  - ${n.id}`).join('\n')
       );
-      console.error(error);
-      throw error;
+    } else {
+      console.log('[nodeValidation] ✓ All nodes have regionId');
     }
 
-    console.log('[validatedNodes] ✓ All nodes valid');
-    return nodes;
-  }, [nodes, collection.id]);
+    return { validNodes: valid, unplacedNodes: unplaced };
+  }, [nodes]);
 
   // Compute and save BOTH regions and layout in one pass
   // This eliminates duplication between region assignment and layout computation
@@ -621,6 +596,34 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     viewportRef.current = viewport;
   }, []);
 
+  // Handle drags from the unplaced drawer
+  const handleDrawerDrop = useCallback(async (event: React.DragEvent) => {
+    const unplacedNodeData = event.dataTransfer.getData('application/x-unplaced-node');
+    if (!unplacedNodeData) return; // Not a drawer drag
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const { nodeId } = JSON.parse(unplacedNodeData);
+    console.log('[handleDrawerDrop] Dropping unplaced node:', nodeId);
+
+    // Convert drop position to grid coordinates
+    const gridCoords = domEventToGridCoords(
+      event.clientX,
+      event.clientY,
+      viewportRef.current,
+      canvasRef.current
+    );
+
+    const gridX = Math.round(gridCoords.gridX);
+    const gridY = Math.round(gridCoords.gridY);
+
+    console.log('[handleDrawerDrop] Placing at:', { gridX, gridY });
+
+    // Place the node (no metadata needed - it's already in the collection)
+    await handleProjectMoved(nodeId, gridX, gridY);
+  }, [handleProjectMoved]);
+
   return (
     <div
       ref={canvasRef}
@@ -634,6 +637,13 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         transition: 'border-color 0.2s ease',
       }}
       {...dropZoneProps}
+      onDragOver={(e) => {
+        // Allow drop for drawer items
+        if (e.dataTransfer.types.includes('application/x-unplaced-node')) {
+          e.preventDefault();
+        }
+      }}
+      onDrop={handleDrawerDrop}
     >
         {/* Edit Regions button */}
         <button
@@ -667,7 +677,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
         {/* Overworld map - shows all nodes with validated positions */}
         <OverworldMapPanelContent
-          nodes={validatedNodes}
+          nodes={validNodes}
         regionLayout={regionLayout}
         isLoading={isLoading}
         isEditingRegions={isEditingRegions}
@@ -687,6 +697,98 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         onRenameRegion={handleRenameRegion}
         onDeleteRegion={handleDeleteRegion}
       />
+
+      {/* Unplaced nodes drawer - shows nodes without regionId */}
+      {unplacedNodes.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'rgba(20, 20, 30, 0.95)',
+            borderTop: '2px solid #ef4444',
+            padding: '12px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            maxHeight: '180px',
+            zIndex: 200,
+            boxShadow: '0 -4px 6px rgba(0, 0, 0, 0.3)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: '#ef4444',
+              fontSize: '13px',
+              fontWeight: 600,
+              fontFamily: 'monospace',
+            }}
+          >
+            <span>⚠️ Unplaced Repositories ({unplacedNodes.length})</span>
+            <span style={{ fontSize: '11px', color: '#999' }}>
+              Drag onto map to place
+            </span>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              paddingBottom: '4px',
+            }}
+          >
+            {unplacedNodes.map((node) => (
+              <div
+                key={node.id}
+                draggable
+                onDragStart={(e) => {
+                  // Set drag data for dropping onto map
+                  e.dataTransfer.setData('text/plain', node.id);
+                  e.dataTransfer.setData('application/x-unplaced-node', JSON.stringify({
+                    nodeId: node.id,
+                    name: node.name,
+                  }));
+                }}
+                style={{
+                  flexShrink: 0,
+                  minWidth: '120px',
+                  padding: '10px 12px',
+                  backgroundColor: '#2a2a3e',
+                  border: '1px solid #444',
+                  borderRadius: '6px',
+                  cursor: 'grab',
+                  transition: 'all 0.2s',
+                  color: '#fff',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#353548';
+                  e.currentTarget.style.borderColor = '#666';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2a2a3e';
+                  e.currentTarget.style.borderColor = '#444';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: '2px' }}>
+                  {node.name}
+                </div>
+                <div style={{ fontSize: '10px', color: '#888' }}>
+                  {node.category || 'repository'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

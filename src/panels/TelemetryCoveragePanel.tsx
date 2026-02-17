@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import {
-  ChevronDown,
   ChevronRight,
   ChevronLeft,
   Activity,

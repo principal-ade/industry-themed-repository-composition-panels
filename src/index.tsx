@@ -2,9 +2,9 @@ import { GitChangesPanel } from './panels/GitChangesPanel';
 import { PackageCompositionPanel } from './panels/PackageCompositionPanel';
 import { SearchPanel } from './panels/SearchPanel';
 import { DependencyGraphPanel } from './panels/dependency-graph';
-import { CollectionMapPanel, CollectionMapPanelActions, CollectionMapPanelContext } from './panels/CollectionMapPanel';
+import { CollectionMapPanel } from './panels/CollectionMapPanel';
 import { TelemetryCoveragePanel } from './panels/TelemetryCoveragePanel';
-import type { PanelDefinition, PanelContextValue, PanelActions } from './types';
+import type { PanelDefinition, PanelContextValue } from './types';
 
 /**
  * Export array of panel definitions.

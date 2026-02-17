@@ -117,7 +117,7 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
   const configFilesArray = pkg.configFiles
     ? Object.values(pkg.configFiles).filter((c) => c?.exists)
     : [];
-  const localConfigs = configFilesArray.filter((c) => !c?.isInherited).length;
+  const _localConfigs = configFilesArray.filter((c) => !c?.isInherited).length;
   const inheritedConfigs = configFilesArray.filter((c) => c?.isInherited).length;
 
   const commands = pkg.packageData.availableCommands?.length || 0;

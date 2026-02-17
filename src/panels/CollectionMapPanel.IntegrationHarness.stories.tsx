@@ -703,8 +703,10 @@ export const SavedPositionsTest: Story = {
 /**
  * Drag & Drop Demo
  *
- * Demonstrates dragging repositories from a sidebar onto the collection map.
- * New repos appear in the "Inbox" staging region and can be dragged to place them.
+ * Demonstrates:
+ * 1. Dragging repositories from external sidebar onto the map (seamless placement)
+ * 2. Unplaced repositories drawer at bottom (repos without regionId)
+ * 3. Dragging from drawer onto map to place them
  */
 export const DragDropDemo: Story = {
   render: () => {

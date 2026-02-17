@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import { FileText, Copy, Check } from 'lucide-react';
 import type { FileTree } from '@principal-ai/repository-abstraction';
