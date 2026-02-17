@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useRef, useMemo, useState } from 'react';
-import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
+import { Application, Container, Graphics, Texture } from 'pixi.js';
 import { Viewport } from 'pixi-viewport';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { OverworldMap } from './types';
@@ -11,7 +11,7 @@ import { generateBuildingSprite } from './components/buildingSpriteGenerator';
 import { IsometricRenderer } from './components/IsometricRenderer';
 import { IsometricInteractionManager } from './components/IsometricInteractionManager';
 import { IsometricPathManager } from './components/IsometricPathManager';
-import { gridToScreen, screenToGrid, getIsometricZIndex, ISO_TILE_WIDTH, ISO_TILE_HEIGHT } from './isometricUtils';
+import { gridToScreen, ISO_TILE_WIDTH, ISO_TILE_HEIGHT } from './isometricUtils';
 import type { RegionLayout, GenericNode } from './genericMapper';
 import { nodesToUnifiedOverworldMap } from './genericMapper';
 
@@ -69,7 +69,6 @@ export interface OverworldMapPanelProps {
 export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   nodes,
   includeDevDependencies = true,
-  includePeerDependencies = false,
   regionLayout,
   width,
   height,
@@ -87,7 +86,6 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const appRef = useRef<Application | null>(null);
   const viewportRef = useRef<Viewport | null>(null);
   const worldContainerRef = useRef<Container | null>(null);
-  const scaleRef = useRef<number>(1);
   const interactionRef = useRef<IsometricInteractionManager | null>(null);
   const pathManagerRef = useRef<IsometricPathManager | null>(null);
   const rendererRef = useRef<IsometricRenderer | null>(null);
@@ -299,41 +297,6 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       viewport.addChild(placeholdersContainer);
       placeholdersRef.current = placeholdersContainer;
 
-      // Function to detect which region is currently in view
-      const updateCurrentRegion = () => {
-        if (mapData.regions.length <= 1) return;
-
-        // Get viewport center in world coordinates
-        const worldPos = viewport.toWorld(
-          dimensionsRef.current.width / 2,
-          dimensionsRef.current.height / 2
-        );
-
-        // Convert to grid coordinates
-        const gridPos = screenToGrid(worldPos.x, worldPos.y);
-
-        // Find which region contains this grid position
-        for (let i = 0; i < mapData.regions.length; i++) {
-          const region = mapData.regions[i];
-          const { x, y, width, height } = region.bounds;
-
-          // Check if grid position is within region bounds
-          if (
-            gridPos.gridX >= x &&
-            gridPos.gridX < x + width &&
-            gridPos.gridY >= y &&
-            gridPos.gridY < y + height
-          ) {
-            if (currentRegionIndex !== i) {
-              // Skip animation for region changes from dragging
-              skipNextAnimation.current = true;
-              setCurrentRegionIndex(i);
-            }
-            return;
-          }
-        }
-      };
-
       // NOTE: Pan/zoom is handled by pixi-viewport automatically (drag, wheel, pinch plugins)
 
       // NOTE: Paths and sprites are now rendered by renderer.renderScene() above
@@ -372,7 +335,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           },
         },
         {
-          onDragStart: (nodeId) => {
+          onDragStart: (_nodeId) => {
             // Drag started
           },
           onDragMove: (nodeId, gridX, gridY) => {

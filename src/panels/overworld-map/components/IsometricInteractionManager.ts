@@ -216,10 +216,6 @@ export class IsometricInteractionManager {
       ? this.viewport.toWorld(this.dragState.dragStartPos.x, this.dragState.dragStartPos.y)
       : this.worldContainer.toLocal(this.dragState.dragStartPos);
 
-    // Account for worldContainer offset
-    const containerOffsetX = this.worldContainer.x || 0;
-    const containerOffsetY = this.worldContainer.y || 0;
-
     const deltaX = (worldPos.x - worldStartPos.x);
     const deltaY = (worldPos.y - worldStartPos.y);
 

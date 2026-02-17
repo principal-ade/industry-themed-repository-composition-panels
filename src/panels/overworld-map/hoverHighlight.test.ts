@@ -234,8 +234,6 @@ describe('hoverHighlight', () => {
 
     test('size 2 building: highlight covers full base diamond footprint', () => {
       const size = 2;
-      const canvasHeight = ISO_TILE_HEIGHT * size + 64; // 128
-      const baseY = 64;
       const tileHeight = ISO_TILE_HEIGHT * size; // 64
 
       // Sprite at screen position (100, 100)

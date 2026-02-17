@@ -34,7 +34,6 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
 
   // Isometric conversion to match grid's 2:1 ratio
   const isoWidth = width;
-  const isoDepthX = depth * 0.5;  // Horizontal: half the depth
   const isoDepthY = depth * 0.25; // Vertical: quarter the depth for 2:1 ratio
 
   // Color variations for shading (darker to lighter)

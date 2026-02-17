@@ -149,10 +149,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   repositories,
   dependencies = {},
   regionLayout,
-  width,
-  height,
   isLoading = false,
-  onProjectMoved,
   onProjectAdded,
   regionCallbacks,
 }) => {
@@ -342,12 +339,18 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     await handleProjectMoved(repoId, gridX, gridY, repositoryMetadata);
   }, [handleProjectMoved]);
 
-  // Set up drop zone
+  // Set up drop zone for BOTH external drags and drawer drags
   const { isDragOver, ...dropZoneProps } = useDropZone({
     handlers: [
       {
         dataType: 'repository-project',
         onDrop: handleProjectDrop,
+      },
+      {
+        dataType: 'application/x-unplaced-node',
+        onDrop: async (data, event) => {
+          await handleDrawerDrop(event);
+        },
       },
     ],
     showVisualFeedback: true,
@@ -637,13 +640,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         transition: 'border-color 0.2s ease',
       }}
       {...dropZoneProps}
-      onDragOver={(e) => {
-        // Allow drop for drawer items
-        if (e.dataTransfer.types.includes('application/x-unplaced-node')) {
-          e.preventDefault();
-        }
-      }}
-      onDrop={handleDrawerDrop}
     >
         {/* Edit Regions button */}
         <button

@@ -87,7 +87,6 @@ export const IsometricGridTest: React.FC<IsometricGridTestProps> = ({
         // Isometric conversion to match grid's 2:1 ratio
         // For depth: horizontal movement should be 2x vertical movement
         const isoWidth = width;
-        const isoDepthX = depth * 0.5;  // Horizontal: half the depth (20px)
         const isoDepthY = depth * 0.25; // Vertical: quarter the depth (10px) for 2:1 ratio
 
         // Bottom face (base - darkest)
