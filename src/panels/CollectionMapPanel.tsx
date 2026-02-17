@@ -163,6 +163,13 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   onProjectAdded,
   regionCallbacks,
 }) => {
+  // Log component mount/unmount
+  React.useEffect(() => {
+    console.info('[CollectionMapPanelContent] 🎬 Component MOUNTED for collection:', collection.name);
+    return () => {
+      console.info('[CollectionMapPanelContent] 💀 Component UNMOUNTING for collection:', collection.name);
+    };
+  }, []);
 
   const customRegions = collection.metadata?.customRegions || [];
 
@@ -343,8 +350,8 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     console.info('[CollectionMapPanel] 🏗️ needsRegions:', needsRegions, 'needsLayout:', needsLayout);
 
     if (!needsRegions && !needsLayout) {
-      hasComputedLayout.current = true;
       console.info('[CollectionMapPanel] 🏗️ All nodes have layout, setting hasComputedLayout=true');
+      hasComputedLayout.current = true;
       return;
     }
 
@@ -404,12 +411,14 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
       // Single batched update - 1 re-render!
       await regionCallbacks.onBatchLayoutInitialized(collection.id, updates);
+      console.info('[CollectionMapPanel] 🏗️ Layout initialized, setting hasComputedLayout=true');
       hasComputedLayout.current = true;
     })();
   }, [collection.id, nodes, regionLayout, customRegions, regionCallbacks]);
 
   // Reset layout flag when collection changes
   useEffect(() => {
+    console.info('[CollectionMapPanel] 🔄 Collection ID changed to:', collection.id, '- resetting hasComputedLayout to false');
     hasComputedLayout.current = false;
   }, [collection.id]);
 
@@ -505,6 +514,14 @@ export interface AlexandriaRepositoriesSlice {
  * Main panel component that integrates with the panel framework
  */
 export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanelActions, CollectionMapPanelContext>> = ({ context, actions }) => {
+  // Log component mount/unmount
+  React.useEffect(() => {
+    console.info('[CollectionMapPanel] 🎬 Panel component MOUNTED');
+    return () => {
+      console.info('[CollectionMapPanel] 💀 Panel component UNMOUNTING');
+    };
+  }, []);
+
   // Get data from typed context - host provides filtered data for selected collection only
   const { selectedCollectionView } = context;
   const selectedCollection = selectedCollectionView?.data?.collection;
