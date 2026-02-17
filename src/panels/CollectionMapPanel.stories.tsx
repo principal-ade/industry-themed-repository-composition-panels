@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useState } from 'react';
-import { CollectionMapPanel, CollectionMapPanelContent, CollectionMapPanelActions } from './CollectionMapPanel';
+import { CollectionMapPanel, CollectionMapPanelContent, CollectionMapPanelActions, CollectionMapPanelContext } from './CollectionMapPanel';
 import type {
   AlexandriaEntryWithMetrics,
   UserCollectionsSlice,
@@ -37,26 +37,49 @@ const createMockContext = (
   collections: Collection[],
   memberships: CollectionMembership[],
   repositories: AlexandriaEntryWithMetrics[]
-): PanelContextValue => {
-  const userCollectionsSlice: UserCollectionsSlice = {
-    collections,
-    memberships,
-    loading: false,
-  };
-
-  const alexandriaRepositoriesSlice: AlexandriaRepositoriesSlice = {
-    repositories,
-    loading: false,
-  };
-
+): PanelContextValue<CollectionMapPanelContext> => {
   return {
     selectedCollection,
+    // Typed slice properties (direct access)
+    userCollections: {
+      data: {
+        collections,
+        memberships,
+        loading: false,
+        saving: false,
+        error: null,
+        gitHubRepoExists: true,
+        gitHubRepoUrl: 'https://github.com/mock/repo',
+      },
+      loading: false,
+      error: null,
+    },
+    alexandriaRepositories: {
+      data: {
+        repositories,
+      },
+      loading: false,
+      error: null,
+    },
+    // Legacy methods (for backward compatibility)
     getSlice: (sliceName: string) => {
       if (sliceName === 'userCollections') {
-        return { data: userCollectionsSlice, loading: false };
+        return {
+          data: {
+            collections,
+            memberships,
+            loading: false,
+            saving: false,
+            error: null,
+            gitHubRepoExists: true,
+            gitHubRepoUrl: 'https://github.com/mock/repo',
+          },
+          loading: false,
+          error: null,
+        };
       }
       if (sliceName === 'alexandriaRepositories') {
-        return { data: alexandriaRepositoriesSlice, loading: false };
+        return { data: { repositories }, loading: false, error: null };
       }
       return undefined;
     },

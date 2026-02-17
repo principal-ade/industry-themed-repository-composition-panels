@@ -90,6 +90,32 @@ export interface CollectionMapPanelActions extends PanelActions, RegionCallbacks
   ) => Promise<void>;
 }
 
+/**
+ * Context interface for CollectionMapPanel data slices
+ */
+export interface CollectionMapPanelContext {
+  userCollections: {
+    data: {
+      collections: Collection[];
+      memberships: CollectionMembership[];
+      loading: boolean;
+      saving: boolean;
+      error: string | null;
+      gitHubRepoExists: boolean;
+      gitHubRepoUrl: string | null;
+    };
+    loading: boolean;
+    error: string | null;
+  };
+  alexandriaRepositories: {
+    data: {
+      repositories: AlexandriaEntryWithMetrics[];
+    };
+    loading: boolean;
+    error: string | null;
+  };
+}
+
 export interface CollectionMapPanelProps {
   /** The collection to visualize as an overworld map */
   collection: Collection;
@@ -465,12 +491,12 @@ export interface AlexandriaRepositoriesSlice {
 /**
  * Main panel component that integrates with the panel framework
  */
-export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanelActions>> = ({ context, actions }) => {
-  // Get collections data from context
-  const collectionsSlice = context.getSlice<UserCollectionsSlice>('userCollections');
-  const collections = collectionsSlice?.data?.collections || [];
-  const memberships = collectionsSlice?.data?.memberships || [];
-  const collectionsLoading = collectionsSlice?.loading ?? false;
+export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanelActions, CollectionMapPanelContext>> = ({ context, actions }) => {
+  // Get collections data from context using typed direct access
+  const { userCollections, alexandriaRepositories } = context;
+  const collections = userCollections?.data?.collections || [];
+  const memberships = userCollections?.data?.memberships || [];
+  const collectionsLoading = userCollections?.loading ?? false;
 
   // Debug logging for memberships changes
   React.useEffect(() => {
@@ -480,10 +506,9 @@ export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanel
     })));
   }, [memberships]);
 
-  // Get repositories data from context
-  const repositoriesSlice = context.getSlice<AlexandriaRepositoriesSlice>('alexandriaRepositories');
-  const repositories = repositoriesSlice?.data?.repositories || [];
-  const repositoriesLoading = repositoriesSlice?.loading ?? false;
+  // Get repositories data from context using typed direct access
+  const repositories = alexandriaRepositories?.data?.repositories || [];
+  const repositoriesLoading = alexandriaRepositories?.loading ?? false;
 
   // Get selected collection from context (set by UserCollectionsPanel)
   const selectedCollectionId = (context as any).selectedCollection?.id;

@@ -2,7 +2,7 @@ import { GitChangesPanel } from './panels/GitChangesPanel';
 import { PackageCompositionPanel } from './panels/PackageCompositionPanel';
 import { SearchPanel } from './panels/SearchPanel';
 import { DependencyGraphPanel } from './panels/dependency-graph';
-import { CollectionMapPanel, CollectionMapPanelActions } from './panels/CollectionMapPanel';
+import { CollectionMapPanel, CollectionMapPanelActions, CollectionMapPanelContext } from './panels/CollectionMapPanel';
 import { TelemetryCoveragePanel } from './panels/TelemetryCoveragePanel';
 import type { PanelDefinition, PanelContextValue, PanelActions } from './types';
 
@@ -10,11 +10,11 @@ import type { PanelDefinition, PanelContextValue, PanelActions } from './types';
  * Export array of panel definitions.
  * This is the required export for panel extensions.
  *
- * Note: Uses `any` for TActions because this is a heterogeneous array containing
- * panels with different action type requirements (e.g., CollectionMapPanelActions).
+ * Note: Uses `any` for both TActions and TContext because this is a heterogeneous array containing
+ * panels with different action and context type requirements (e.g., CollectionMapPanelActions, CollectionMapPanelContext).
  * Each panel definition is still individually type-checked.
  */
-export const panels: ReadonlyArray<PanelDefinition<any, {}>> = [
+export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
   {
     metadata: {
       id: 'industry-theme.git-changes',
@@ -143,7 +143,7 @@ export const panels: ReadonlyArray<PanelDefinition<any, {}>> = [
       version: '0.1.0',
       author: 'Industry Theme',
       description: 'Visualize Alexandria Collections as 8-bit overworld maps',
-      slices: [],
+      slices: ['userCollections', 'alexandriaRepositories'],
     },
     component: CollectionMapPanel,
 
@@ -275,6 +275,7 @@ export type {
   AlexandriaEntryWithMetrics,
   RegionCallbacks,
   CollectionMapPanelActions,
+  CollectionMapPanelContext,
 } from './panels/CollectionMapPanel';
 
 // Re-export alexandria-collections types for backwards compatibility

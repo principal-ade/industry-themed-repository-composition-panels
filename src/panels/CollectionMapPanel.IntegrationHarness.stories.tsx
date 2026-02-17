@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { CollectionMapPanel, CollectionMapPanelActions } from './CollectionMapPanel';
+import { CollectionMapPanel, CollectionMapPanelActions, CollectionMapPanelContext } from './CollectionMapPanel';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import type { Collection, CollectionMembership, CustomRegion } from '@principal-ai/alexandria-collections';
 
@@ -254,9 +254,31 @@ const IntegrationHarness: React.FC<{
   }, [logEvent, eventEmitter]);
 
   // Mock context, actions, and events
-  const mockProps: PanelComponentProps<CollectionMapPanelActions> = useMemo(
+  const mockProps: PanelComponentProps<CollectionMapPanelActions, CollectionMapPanelContext> = useMemo(
     () => ({
       context: {
+        // Typed slice properties (direct access)
+        userCollections: {
+          data: {
+            collections: [collection],
+            memberships,
+            loading: false,
+            saving: false,
+            error: null,
+            gitHubRepoExists: true,
+            gitHubRepoUrl: 'https://github.com/mock/repo',
+          },
+          loading: false,
+          error: null,
+        },
+        alexandriaRepositories: {
+          data: {
+            repositories: mockRepositories,
+          },
+          loading: false,
+          error: null,
+        },
+        // Legacy methods (for backward compatibility)
         getSlice: (sliceName: string) => {
           if (sliceName === 'userCollections') {
             return {
