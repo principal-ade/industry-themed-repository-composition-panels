@@ -5,17 +5,19 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import type { Collection, CollectionMembership, CustomRegion } from '@principal-ai/alexandria-collections';
 
 // Browser-compatible EventEmitter
-class SimpleEventEmitter {
-  private listeners: Map<string, Set<Function>> = new Map();
+type EventListener = (...args: any[]) => void;
 
-  on(event: string, listener: Function) {
+class SimpleEventEmitter {
+  private listeners: Map<string, Set<EventListener>> = new Map();
+
+  on(event: string, listener: EventListener) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
     this.listeners.get(event)!.add(listener);
   }
 
-  off(event: string, listener: Function) {
+  off(event: string, listener: EventListener) {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       eventListeners.delete(listener);
@@ -96,9 +98,13 @@ const IntegrationHarness: React.FC<{
   const onRegionCreated = useCallback(async (collectionId: string, region: Omit<CustomRegion, 'id'>) => {
     logEvent(`Creating region: ${region.name}`);
 
+    // Generate deterministic ID from order (row-major: row * 10 + col)
+    const row = Math.floor(region.order / 10);
+    const col = region.order % 10;
+
     const newRegion: CustomRegion = {
       ...region,
-      id: `region-${Date.now()}`,
+      id: `region-${row}-${col}`,
     };
 
     setCollection((prev) => ({
@@ -358,10 +364,10 @@ export const ActiveProjects: Story = {
   render: () => {
     // Create default age-based regions
     const ageRegions: CustomRegion[] = [
-      { id: 'region-last-month', name: 'Last Month', order: 0, createdAt: Date.now() },
-      { id: 'region-last-3-months', name: 'Last 3 Months', order: 1, createdAt: Date.now() },
-      { id: 'region-last-year', name: 'Last Year', order: 2, createdAt: Date.now() },
-      { id: 'region-older', name: 'Older', order: 3, createdAt: Date.now() },
+      { id: 'region-0-0', name: 'Last Month', order: 0, createdAt: 0 },
+      { id: 'region-0-1', name: 'Last 3 Months', order: 1, createdAt: 0 },
+      { id: 'region-0-2', name: 'Last Year', order: 2, createdAt: 0 },
+      { id: 'region-0-3', name: 'Older', order: 3, createdAt: 0 },
     ];
 
     // Assign repositories to regions based on lastEditedAt
@@ -453,36 +459,36 @@ export const CustomRegionsOrganized: Story = {
         metadata: {
           customRegions: [
             {
-              id: 'region-frontend',
+              id: 'region-0-0',
               name: 'Frontend',
               description: 'Frontend applications and design systems',
               color: '#3b82f6',
               order: 0,
-              createdAt: Date.now(),
+              createdAt: 0,
             },
             {
-              id: 'region-backend',
+              id: 'region-0-1',
               name: 'Backend Services',
               description: 'API services and backend infrastructure',
               color: '#10b981',
               order: 1,
-              createdAt: Date.now(),
+              createdAt: 0,
             },
             {
-              id: 'region-mobile',
+              id: 'region-0-2',
               name: 'Mobile',
               description: 'Mobile applications',
               color: '#f59e0b',
               order: 2,
-              createdAt: Date.now(),
+              createdAt: 0,
             },
             {
-              id: 'region-infrastructure',
+              id: 'region-0-3',
               name: 'Infrastructure',
               description: 'DevOps and infrastructure code',
               color: '#8b5cf6',
               order: 3,
-              createdAt: Date.now(),
+              createdAt: 0,
             },
           ],
         },
@@ -497,10 +503,10 @@ export const CustomRegionsOrganized: Story = {
         {  repositoryId: 'auth-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
         {  repositoryId: 'notification-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
         // Mobile
-        {  repositoryId: 'mobile-app', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-mobile' } },
+        {  repositoryId: 'mobile-app', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-0-2' } },
         // Infrastructure
-        {  repositoryId: 'data-pipeline', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-infrastructure' } },
-        {  repositoryId: 'deployment-scripts', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-infrastructure' } },
+        {  repositoryId: 'data-pipeline', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-0-3' } },
+        {  repositoryId: 'deployment-scripts', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-0-3' } },
       ]}
     />
   ),
@@ -568,10 +574,10 @@ export const SingleRegionAddingTest: Story = {
         metadata: {
           customRegions: [
             {
-              id: 'region-main',
+              id: 'region-0-0',
               name: 'Main',
               order: 0,
-              createdAt: Date.now(),
+              createdAt: 0,
             },
           ],
         },
@@ -581,7 +587,7 @@ export const SingleRegionAddingTest: Story = {
         repositoryId: repo.name,
         collectionId: 'col-single',
         addedAt: Date.now(),
-        metadata: { regionId: 'region-main' },
+        metadata: { regionId: 'region-0-0' },
       }))}
     />
   ),
@@ -602,16 +608,16 @@ export const SavedPositionsTest: Story = {
         metadata: {
           customRegions: [
             {
-              id: 'region-frontend',
+              id: 'region-0-0',
               name: 'Frontend',
               order: 0,
-              createdAt: Date.now(),
+              createdAt: 0,
             },
             {
-              id: 'region-backend',
+              id: 'region-0-1',
               name: 'Backend',
               order: 1,
-              createdAt: Date.now(),
+              createdAt: 0,
             },
           ],
         },
@@ -623,7 +629,7 @@ export const SavedPositionsTest: Story = {
           collectionId: 'col-saved',
           addedAt: Date.now(),
           metadata: {
-            regionId: 'region-frontend',
+            regionId: 'region-0-0',
             layout: {
               gridX: 5,
               gridY: 5,
@@ -635,7 +641,7 @@ export const SavedPositionsTest: Story = {
           collectionId: 'col-saved',
           addedAt: Date.now(),
           metadata: {
-            regionId: 'region-frontend',
+            regionId: 'region-0-0',
             layout: {
               gridX: 10,
               gridY: 8,
@@ -647,7 +653,7 @@ export const SavedPositionsTest: Story = {
           collectionId: 'col-saved',
           addedAt: Date.now(),
           metadata: {
-            regionId: 'region-frontend',
+            regionId: 'region-0-0',
             layout: {
               gridX: 15,
               gridY: 5,
@@ -660,7 +666,7 @@ export const SavedPositionsTest: Story = {
           collectionId: 'col-saved',
           addedAt: Date.now(),
           metadata: {
-            regionId: 'region-backend',
+            regionId: 'region-0-1',
             layout: {
               gridX: 8,
               gridY: 6,
@@ -672,7 +678,7 @@ export const SavedPositionsTest: Story = {
           collectionId: 'col-saved',
           addedAt: Date.now(),
           metadata: {
-            regionId: 'region-backend',
+            regionId: 'region-0-1',
             layout: {
               gridX: 12,
               gridY: 10,
@@ -685,11 +691,274 @@ export const SavedPositionsTest: Story = {
           collectionId: 'col-saved',
           addedAt: Date.now(),
           metadata: {
-            regionId: 'region-backend',
+            regionId: 'region-0-1',
             // No layout - will use circle packing
           },
         },
       ]}
     />
   ),
+};
+
+/**
+ * Drag & Drop Demo
+ *
+ * Demonstrates dragging repositories from a sidebar onto the collection map.
+ * New repos appear in the "Inbox" staging region and can be dragged to place them.
+ */
+export const DragDropDemo: Story = {
+  render: () => {
+    const TestHarnessWithDragSource = () => {
+      const [collection, setCollection] = useState<Collection>({
+        id: 'col-dragdrop',
+        name: 'Drag & Drop Test',
+        description: 'Test collection for drag and drop',
+        theme: 'industry',
+        icon: 'Package',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        metadata: {
+          customRegions: [
+            { id: 'region-0-0', name: 'Main', order: 0, createdAt: 0 },
+          ],
+        },
+      });
+
+      const [memberships, setMemberships] = useState<CollectionMembership[]>([
+        // One placed repo
+        {
+          repositoryId: mockRepositories[0].name,
+          collectionId: 'col-dragdrop',
+          addedAt: Date.now(),
+          metadata: {
+            regionId: 'region-0-0',
+            layout: { gridX: 10, gridY: 10 },
+          },
+        },
+        // Two repos in staging (no regionId/layout)
+        {
+          repositoryId: mockRepositories[1].name,
+          collectionId: 'col-dragdrop',
+          addedAt: Date.now(),
+          metadata: {},
+        },
+        {
+          repositoryId: mockRepositories[2].name,
+          collectionId: 'col-dragdrop',
+          addedAt: Date.now(),
+          metadata: {},
+        },
+      ]);
+
+      const [eventLog, setEventLog] = useState<string[]>([]);
+
+      const logEvent = (message: string) => {
+        setEventLog(prev => [...prev.slice(-9), `${new Date().toLocaleTimeString()}: ${message}`]);
+      };
+
+      // Only include repos not already in the collection
+      const draggableProjects = [
+        mockRepositories[3],
+        mockRepositories[4],
+      ];
+
+      const onRegionCreated = useCallback(async (collectionId: string, region: Omit<CustomRegion, 'id'>) => {
+        logEvent(`Creating region: ${region.name}`);
+        const row = Math.floor(region.order / 10);
+        const col = region.order % 10;
+        const newRegion: CustomRegion = { ...region, id: `region-${row}-${col}` };
+        setCollection(prev => ({
+          ...prev,
+          metadata: {
+            ...prev.metadata,
+            customRegions: [...(prev.metadata?.customRegions || []), newRegion],
+          },
+        }));
+        return newRegion;
+      }, []);
+
+      const onRegionUpdated = useCallback(async (collectionId: string, regionId: string, updates: Partial<CustomRegion>) => {
+        logEvent(`Updating region: ${regionId}`);
+        setCollection(prev => ({
+          ...prev,
+          metadata: {
+            ...prev.metadata,
+            customRegions: prev.metadata?.customRegions?.map(r =>
+              r.id === regionId ? { ...r, ...updates } : r
+            ),
+          },
+        }));
+      }, []);
+
+      const onRegionDeleted = useCallback(async (collectionId: string, regionId: string) => {
+        logEvent(`Deleting region: ${regionId}`);
+        setCollection(prev => ({
+          ...prev,
+          metadata: {
+            ...prev.metadata,
+            customRegions: prev.metadata?.customRegions?.filter(r => r.id !== regionId),
+          },
+        }));
+      }, []);
+
+      const onRepositoryAssigned = useCallback(async (collectionId: string, repositoryId: string, regionId: string) => {
+        logEvent(`Assigned ${repositoryId} → ${regionId}`);
+        setMemberships(prev =>
+          prev.map(m =>
+            m.repositoryId === repositoryId
+              ? { ...m, metadata: { ...m.metadata, regionId } }
+              : m
+          )
+        );
+      }, []);
+
+      const onRepositoryPositionUpdated = useCallback(async (collectionId: string, repositoryId: string, layout: any) => {
+        logEvent(`Position updated: ${repositoryId} → (${layout.gridX}, ${layout.gridY})`);
+        setMemberships(prev =>
+          prev.map(m =>
+            m.repositoryId === repositoryId
+              ? { ...m, metadata: { ...m.metadata, layout } }
+              : m
+          )
+        );
+      }, []);
+
+      const onBatchLayoutInitialized = useCallback(async (collectionId: string, updates: any) => {
+        logEvent(`Batch init: ${updates.regions?.length || 0} regions, ${updates.positions?.length || 0} positions`);
+        if (updates.regions) {
+          setCollection(prev => ({
+            ...prev,
+            metadata: { ...prev.metadata, customRegions: updates.regions },
+          }));
+        }
+        if (updates.positions || updates.assignments) {
+          setMemberships(prev => {
+            const updated = prev.map(m => {
+              const assignment = updates.assignments?.find((a: any) => a.repositoryId === m.repositoryId);
+              const position = updates.positions?.find((p: any) => p.repositoryId === m.repositoryId);
+
+              if (!assignment && !position) return m;
+
+              return {
+                ...m,
+                metadata: {
+                  ...m.metadata,
+                  ...(assignment && { regionId: assignment.regionId }),
+                  ...(position && { layout: position.layout }),
+                },
+              };
+            });
+            return updated;
+          });
+        }
+      }, []);
+
+      const addRepositoryToCollection = useCallback(async (collectionId: string, repositoryPath: string, metadata: any) => {
+        console.log('[addRepositoryToCollection] Called with:', { collectionId, repositoryPath, metadata });
+        logEvent(`Added repo: ${metadata?.name || repositoryPath}`);
+        const newMembership: CollectionMembership = {
+          repositoryId: metadata?.name || repositoryPath,
+          collectionId: 'col-dragdrop',
+          addedAt: Date.now(),
+        };
+        console.log('[addRepositoryToCollection] Creating membership:', newMembership);
+        setMemberships(prev => {
+          console.log('[addRepositoryToCollection] Previous memberships:', prev);
+          const updated = [...prev, newMembership];
+          console.log('[addRepositoryToCollection] Updated memberships:', updated);
+          return updated;
+        });
+      }, [logEvent]);
+
+      const eventEmitter = useMemo(() => new SimpleEventEmitter(), []);
+
+      const panelProps = useMemo<PanelComponentProps<CollectionMapPanelActions, CollectionMapPanelContext>>(() => ({
+        context: {
+          selectedCollection: collection,
+          selectedCollectionView: {
+            data: { collection, memberships, repositories: mockRepositories as any, dependencies: {} },
+            loading: false,
+            error: null,
+          },
+          getSlice: (sliceName: string) => {
+            if (sliceName === 'selectedCollectionView') {
+              return {
+                data: { collection, memberships, repositories: mockRepositories as any, dependencies: {} },
+                loading: false,
+                error: null,
+              };
+            }
+            return { data: null, loading: false, error: null };
+          },
+          scope: { type: 'workspace', workspaceId: 'test-workspace' },
+          refresh: async () => {},
+        } as any,
+        actions: {
+          onRegionCreated,
+          onRegionUpdated,
+          onRegionDeleted,
+          onRepositoryAssigned,
+          onRepositoryPositionUpdated,
+          onBatchLayoutInitialized,
+          addRepositoryToCollection,
+        } as any,
+        events: eventEmitter as any,
+      }), [collection, memberships, onRegionCreated, onRegionUpdated, onRegionDeleted, onRepositoryAssigned, onRepositoryPositionUpdated, onBatchLayoutInitialized, addRepositoryToCollection, eventEmitter]);
+
+      return (
+        <div style={{ display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#0a0a0f' }}>
+          <div style={{ width: '280px', flexShrink: 0, borderRight: '1px solid #333', display: 'flex', flexDirection: 'column', backgroundColor: '#1a1a2e' }}>
+            <div style={{ padding: '16px', borderBottom: '1px solid #333' }}>
+              <h3 style={{ color: '#fff', margin: 0, fontSize: '14px', fontWeight: 600 }}>📦 Draggable Repos</h3>
+              <p style={{ color: '#888', fontSize: '11px', margin: '4px 0 0 0' }}>Drag onto map to add</p>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {draggableProjects.map(repo => (
+                <div
+                  key={repo.name}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', repo.name);
+                    e.dataTransfer.setData('application/x-panel-data', JSON.stringify({
+                      dataType: 'repository-project',
+                      primaryData: repo.name,
+                      metadata: { name: repo.name, lastEditedAt: repo.lastEditedAt },
+                      sourcePanel: 'drag-source',
+                    }));
+                  }}
+                  style={{ padding: '10px', backgroundColor: '#16213e', border: '1px solid #333', borderRadius: '6px', cursor: 'grab', transition: 'all 0.2s' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#1e2a47';
+                    e.currentTarget.style.borderColor = '#444';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#16213e';
+                    e.currentTarget.style.borderColor = '#333';
+                  }}
+                >
+                  <div style={{ color: '#fff', fontSize: '13px', fontWeight: 500 }}>{repo.name}</div>
+                  <div style={{ color: '#888', fontSize: '11px', marginTop: '2px' }}>{repo.provider?.type || 'local'}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ borderTop: '1px solid #333', padding: '12px', maxHeight: '200px', overflow: 'auto' }}>
+              <div style={{ color: '#888', fontSize: '11px', fontWeight: 600, marginBottom: '8px' }}>EVENT LOG</div>
+              {eventLog.length === 0 ? (
+                <div style={{ color: '#555', fontSize: '10px', fontStyle: 'italic' }}>No events yet</div>
+              ) : (
+                <div style={{ fontSize: '10px', color: '#888', fontFamily: 'monospace' }}>
+                  {eventLog.map((log, i) => (<div key={i} style={{ marginBottom: '4px' }}>{log}</div>))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <CollectionMapPanel {...panelProps} />
+          </div>
+        </div>
+      );
+    };
+
+    return <TestHarnessWithDragSource />;
+  },
 };

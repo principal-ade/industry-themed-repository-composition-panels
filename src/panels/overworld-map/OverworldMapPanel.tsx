@@ -57,6 +57,9 @@ export interface OverworldMapPanelProps {
 
   /** Stable collection identifier - only recreate PIXI when this changes */
   collectionKey?: string;
+
+  /** Callback when viewport is ready (for coordinate conversion) */
+  onViewportReady?: (viewport: Viewport) => void;
 }
 
 /**
@@ -78,6 +81,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   onRenameRegion,
   onDeleteRegion,
   collectionKey,
+  onViewportReady,
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
@@ -116,11 +120,13 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
   // Convert nodes to unified overworld map
   const mapData = useMemo<OverworldMap>(() => {
+    console.log('[OverworldMapPanel] mapData memo recalculating', { nodeCount: nodes.length, customRegions: customRegions.length });
     const map = nodesToUnifiedOverworldMap(nodes, {
       includeDevDependencies,
       regionLayout,
       customRegions, // Pass through custom regions for manual layout
     });
+    console.log('[OverworldMapPanel] mapData created:', { mapNodeCount: map.nodes.length, mapRegions: map.regions.length });
     mapDataRef.current = map; // Store for placeholder rendering
     return map;
   }, [nodes, includeDevDependencies, regionLayout, customRegions]);
@@ -254,6 +260,11 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       app.stage.addChild(viewport);
       viewportRef.current = viewport;
       worldContainerRef.current = viewport; // Viewport is also the world container
+
+      // Notify parent that viewport is ready for coordinate conversion
+      if (onViewportReady) {
+        onViewportReady(viewport);
+      }
 
       // Render grid with region boundaries using IsometricRenderer (like LayoutEngineTest)
       const renderer = new IsometricRenderer({
@@ -679,10 +690,54 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
   // Separate effect to update scene when mapData changes (without recreating PIXI)
   useEffect(() => {
-    if (!viewportRef.current || !rendererRef.current || !mapData) return;
+    console.log('[OverworldMapPanel] Scene render effect triggered', { hasViewport: !!viewportRef.current, hasRenderer: !!rendererRef.current, hasMapData: !!mapData });
+    if (!viewportRef.current || !rendererRef.current || !mapData || !appRef.current) return;
 
+    // Skip re-render if actively dragging to prevent destroying sprites mid-drag
+    if (interactionRef.current?.isDragging()) {
+      console.log('[OverworldMapPanel] Skipping scene re-render - drag in progress');
+      return;
+    }
+
+    console.log('[OverworldMapPanel] Re-rendering scene with', { nodes: mapData.nodes.length, regions: mapData.regions.length });
     const renderer = rendererRef.current;
     const viewport = viewportRef.current;
+    const app = appRef.current;
+
+    // Generate any missing building sprite textures for new size+color combinations
+    const existingKeys = new Set(renderer.getTextureKeys().filter(k => k.startsWith('building-')));
+    const neededCombos = new Set<string>();
+
+    for (const node of mapData.nodes) {
+      const key = `building-${node.size.toFixed(2)}-${node.color}`;
+      neededCombos.add(key);
+    }
+
+    console.log('[OverworldMapPanel] Checking sprites:', { existing: existingKeys.size, needed: neededCombos.size });
+
+    // Generate missing textures
+    let generatedCount = 0;
+    for (const key of neededCombos) {
+      if (!renderer.hasTexture(key)) {
+        const [, sizeStr, colorHex] = key.split('-');
+        const size = parseFloat(sizeStr);
+        const color = parseInt(colorHex.replace('#', ''), 16);
+
+        console.log('[OverworldMapPanel] Generating missing sprite:', { key, size, color });
+        const buildingGraphics = generateBuildingSprite({ size, color });
+        const texture = app.renderer.generateTexture({
+          target: buildingGraphics,
+          resolution: 2,
+        });
+        renderer.addTexture(key, texture);
+        buildingGraphics.destroy();
+        generatedCount++;
+      }
+    }
+
+    if (generatedCount > 0) {
+      console.log('[OverworldMapPanel] Generated', generatedCount, 'new sprite textures');
+    }
 
     // Remove and destroy old scene containers to prevent memory leaks
     if (sceneContainersRef.current) {
@@ -701,7 +756,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     }
 
     // Render new scene with updated mapData
+    console.log('[OverworldMapPanel] Calling renderer.renderScene...');
     const scene = renderer.renderScene(mapData, true);
+    console.log('[OverworldMapPanel] Scene rendered, sprite count:', scene.spriteInstances.size);
 
     // Re-add scene containers
     viewport.addChild(scene.background);

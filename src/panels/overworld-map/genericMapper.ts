@@ -1006,11 +1006,13 @@ export function nodesToUnifiedOverworldMap(
     }
   }
 
-  // Calculate total map dimensions
+  // Calculate total map dimensions (accounting for negative positions like staging region)
+  const minCol = Math.min(...layoutRegions.map(r => r.gridPosition.col));
   const maxCol = Math.max(...layoutRegions.map(r => r.gridPosition.col));
+  const minRow = Math.min(...layoutRegions.map(r => r.gridPosition.row));
   const maxRow = Math.max(...layoutRegions.map(r => r.gridPosition.row));
-  const totalCols = maxCol + 1;
-  const totalRows = maxRow + 1;
+  const totalCols = maxCol - minCol + 1;
+  const totalRows = maxRow - minRow + 1;
   const mapWidth = totalCols * REGION_SIZE_TILES;
   const mapHeight = totalRows * REGION_SIZE_TILES;
 

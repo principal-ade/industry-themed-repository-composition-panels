@@ -494,6 +494,13 @@ export class IsometricInteractionManager {
   }
 
   /**
+   * Check if a sprite is currently being dragged
+   */
+  isDragging(): boolean {
+    return this.dragState !== null && this.dragState.isDragging;
+  }
+
+  /**
    * Cleanup resources
    */
   destroy(): void {

@@ -2,6 +2,7 @@
  * Isometric rendering utilities for converting between grid and screen coordinates
  */
 
+import type { Viewport } from 'pixi-viewport';
 import { TILE_SIZE, type GridPoint, type IsometricCoords } from './types';
 
 // Re-export TILE_SIZE for external use
@@ -185,4 +186,42 @@ export function offsetGridPositions(
     gridX: node.gridX + deltaX,
     gridY: node.gridY + deltaY,
   }));
+}
+
+/**
+ * Convert DOM event coordinates to grid coordinates
+ * This handles the full transformation pipeline:
+ * 1. DOM event (clientX, clientY) -> viewport screen coords
+ * 2. Viewport screen coords -> world coords (accounting for pan/zoom)
+ * 3. World coords -> grid coords (isometric conversion)
+ *
+ * @param clientX DOM event clientX (screen position)
+ * @param clientY DOM event clientY (screen position)
+ * @param viewport PIXI Viewport instance
+ * @param canvasElement The canvas element (for getting bounding rect)
+ * @returns Grid coordinates {gridX, gridY}
+ */
+export function domEventToGridCoords(
+  clientX: number,
+  clientY: number,
+  viewport: Viewport | null,
+  canvasElement: HTMLElement | null
+): GridPoint {
+  if (!viewport || !canvasElement) {
+    console.warn('[domEventToGridCoords] Missing viewport or canvas element, returning (0, 0)');
+    return { gridX: 0, gridY: 0 };
+  }
+
+  // Step 1: Convert DOM coordinates to canvas-relative coordinates
+  const rect = canvasElement.getBoundingClientRect();
+  const canvasX = clientX - rect.left;
+  const canvasY = clientY - rect.top;
+
+  // Step 2: Convert canvas coordinates to world coordinates using viewport
+  const worldPoint = viewport.toWorld({ x: canvasX, y: canvasY });
+
+  // Step 3: Convert world coordinates to grid coordinates
+  const gridCoords = screenToGrid(worldPoint.x, worldPoint.y);
+
+  return gridCoords;
 }

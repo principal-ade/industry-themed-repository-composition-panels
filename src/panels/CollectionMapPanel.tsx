@@ -9,6 +9,7 @@ import { OverworldMapPanelContent } from './overworld-map/OverworldMapPanel';
 import type { RegionLayout, GenericNode } from './overworld-map/genericMapper';
 import { nodesToUnifiedOverworldMap } from './overworld-map/genericMapper';
 import { REGION_SIZE_TILES } from './overworld-map/types';
+import { domEventToGridCoords } from './overworld-map/isometricUtils';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library/types';
 import { calculateRepositorySize } from '../utils/repositoryScaling';
 import { calculateAgingMetrics, type AgingMetrics } from '../utils/repositoryAging';
@@ -38,10 +39,14 @@ export interface AlexandriaEntryWithMetrics extends AlexandriaEntry {
 }
 
 /**
- * Generate a unique region ID
+ * Generate a deterministic region ID based on grid position
+ * @param order - Region order (row-major: row * 10 + col)
+ * @returns Region ID in format "region-{row}-{col}"
  */
-function generateRegionId(): string {
-  return `region-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+function generateRegionId(order: number): string {
+  const row = Math.floor(order / 10);
+  const col = order % 10;
+  return `region-${row}-${col}`;
 }
 
 /**
@@ -49,7 +54,7 @@ function generateRegionId(): string {
  */
 export interface RegionCallbacks {
   /** Create a new custom region */
-  onRegionCreated: (collectionId: string, region: Omit<CustomRegion, 'id' | 'createdAt'>) => Promise<CustomRegion>;
+  onRegionCreated: (collectionId: string, region: Omit<CustomRegion, 'id'>) => Promise<CustomRegion>;
 
   /** Update an existing region */
   onRegionUpdated: (collectionId: string, regionId: string, updates: Partial<CustomRegion>) => Promise<void>;
@@ -164,10 +169,15 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   onProjectAdded,
   regionCallbacks,
 }) => {
+  // Get custom regions directly from collection metadata
   const customRegions = collection.metadata?.customRegions || [];
 
   // Region editing state
   const [isEditingRegions, setIsEditingRegions] = React.useState(false);
+
+  // Viewport reference for coordinate conversion
+  const viewportRef = React.useRef<any>(null);
+  const canvasRef = React.useRef<HTMLDivElement>(null);
 
   // Note: We no longer force creation of a default region
   // Instead, we let the layout algorithm create age-based regions on first load
@@ -191,7 +201,33 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   }, [regionCallbacks, collection.id, customRegions.length]);
 
   // Handle project moved (save position to metadata)
-  const handleProjectMoved = useCallback(async (projectId: string, gridX: number, gridY: number) => {
+  const handleProjectMoved = useCallback(async (projectId: string, gridX: number, gridY: number, metadata?: any) => {
+    console.log('[handleProjectMoved] Moving project:', { projectId, gridX, gridY });
+
+    // Check if this is a repo being added for the first time (from drag-drop)
+    const isNewRepo = !!metadata;
+    const existingMembership = memberships.find(m => m.repositoryId === projectId);
+
+    // VALIDATION: For existing repos, must have a membership
+    if (!isNewRepo && !existingMembership) {
+      const error = new Error(
+        `[handleProjectMoved] FATAL ERROR: Attempting to move repo "${projectId}" that doesn't exist in collection!\n` +
+        `Memberships (${memberships.length}): [${memberships.map(m => m.repositoryId).join(', ')}]\n` +
+        `This indicates a sprite was rendered without valid backing data.`
+      );
+      console.error(error);
+      throw error;
+    }
+
+    const isFirstPlacement = isNewRepo || (!!existingMembership && !existingMembership.metadata?.regionId);
+
+    console.log('[handleProjectMoved] Placement check:', {
+      isNewRepo,
+      existingMembership: existingMembership ? { id: existingMembership.repositoryId, hasMetadata: !!existingMembership.metadata, regionId: existingMembership.metadata?.regionId } : null,
+      isExistingWithoutRegion: !!existingMembership && !existingMembership.metadata?.regionId,
+      isFirstPlacement
+    });
+
     // Determine which region this position is in based on absolute coordinates
     // Regions are laid out in a grid: region 0 at (0,0), region 1 at (20,0), etc.
     const regionCol = Math.floor(gridX / REGION_SIZE_TILES);
@@ -202,11 +238,63 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     const targetRegion = customRegions.find(r => r.order === regionOrder);
     const newRegionId = targetRegion?.id;
 
+    console.log('[handleProjectMoved] Target region:', { regionOrder, newRegionId, targetRegion });
+
     if (!newRegionId) {
       console.warn('[CollectionMapPanel] ⚠️ Could not determine region for position:', { gridX, gridY, regionOrder });
       return;
     }
 
+    // If this is a first placement (new repo from drag-drop OR existing membership without regionId)
+    if (isFirstPlacement) {
+      console.log('[PLACEMENT] Starting placement for:', projectId);
+      console.log('[PLACEMENT] Target region:', newRegionId);
+      console.log('[PLACEMENT] Target position:', { gridX, gridY });
+
+      try {
+        // If it's a new repo (not yet in collection), add it first
+        if (isNewRepo) {
+          if (!onProjectAdded) {
+            throw new Error('onProjectAdded callback not available');
+          }
+
+          console.log('[PLACEMENT] Step 1: Calling onProjectAdded (repo not in collection yet)...');
+          await onProjectAdded(projectId, metadata);
+          console.log('[PLACEMENT] Step 1: onProjectAdded completed');
+        } else {
+          console.log('[PLACEMENT] Step 1: SKIPPED (repo already in collection as membership)');
+        }
+
+        // Calculate region bounds
+        const regionBoundsX = regionCol * REGION_SIZE_TILES;
+        const regionBoundsY = regionRow * REGION_SIZE_TILES;
+
+        // Convert from absolute map coordinates to region-relative coordinates
+        const relativeGridX = gridX - regionBoundsX;
+        const relativeGridY = gridY - regionBoundsY;
+
+        const layout: RepositoryLayoutData = {
+          gridX: relativeGridX,
+          gridY: relativeGridY,
+        };
+
+        console.log('[PLACEMENT] Step 2: Setting position:', layout);
+        await regionCallbacks.onRepositoryPositionUpdated(collection.id, projectId, layout);
+        console.log('[PLACEMENT] Step 2: Position updated');
+
+        console.log('[PLACEMENT] Step 3: Assigning region:', newRegionId);
+        await regionCallbacks.onRepositoryAssigned(collection.id, projectId, newRegionId);
+        console.log('[PLACEMENT] Step 3: Region assigned');
+
+        console.log('[PLACEMENT] ✓ Placement completed successfully');
+      } catch (error) {
+        console.error('[PLACEMENT] ✗ ERROR during placement:', error);
+        throw error;
+      }
+      return;
+    }
+
+    // For existing members, save position and update region if needed
     // Calculate region bounds
     const regionBoundsX = regionCol * REGION_SIZE_TILES;
     const regionBoundsY = regionRow * REGION_SIZE_TILES;
@@ -220,6 +308,8 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       gridY: relativeGridY,
     };
 
+    console.log('[handleProjectMoved] Saving position:', { layout, newRegionId });
+
     // Save both position and region assignment
     await regionCallbacks.onRepositoryPositionUpdated(collection.id, projectId, layout);
 
@@ -228,53 +318,42 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     const oldRegionId = membership?.metadata?.regionId;
 
     if (oldRegionId !== newRegionId) {
+      console.log('[handleProjectMoved] Region changed, updating assignment:', { oldRegionId, newRegionId });
       await regionCallbacks.onRepositoryAssigned(collection.id, projectId, newRegionId);
     }
-  }, [collection.id, regionCallbacks, memberships, customRegions]);
+  }, [collection.id, regionCallbacks, memberships, customRegions, onProjectAdded]);
 
   // Handle dropped projects
   const handleProjectDrop = useCallback(async (data: PanelDragData, event: React.DragEvent) => {
-    if (!onProjectAdded) {
-      console.warn('No onProjectAdded callback provided - cannot add project to collection');
-      return;
-    }
+    console.log('[handleProjectDrop] Drop event:', { data, eventType: event.type });
 
     // Extract repository info from dropped data
-    const repositoryPath = data.primaryData;
+    const repositoryPath = data.primaryData as string;
     const repositoryMetadata = data.metadata || {};
+    const repoId = (repositoryMetadata?.name as string) || repositoryPath;
 
-    // First add the repository to the collection
-    onProjectAdded(repositoryPath, repositoryMetadata);
+    console.log('[handleProjectDrop] Converting drop position to grid coords');
 
-    // If regions exist, assign to appropriate region
-    if (customRegions.length > 0) {
-      // Determine target region based on repository age if available
-      let targetRegionId = customRegions[0]?.id;
+    // Convert drop position to grid coordinates
+    const gridCoords = domEventToGridCoords(
+      event.clientX,
+      event.clientY,
+      viewportRef.current,
+      canvasRef.current
+    );
 
-      // Check if metadata has lastEditedAt property and use it for age-based assignment
-      const lastEditedAt = 'lastEditedAt' in repositoryMetadata ? repositoryMetadata.lastEditedAt : null;
-      if (lastEditedAt && customRegions.length >= 4) {
-        // Try to assign to age-appropriate region
-        const now = Date.now();
-        const editTime = new Date(lastEditedAt as string | number).getTime();
-        const daysAgo = (now - editTime) / (1000 * 60 * 60 * 24);
+    console.log('[handleProjectDrop] Drop at grid position:', gridCoords);
 
-        let regionIndex = 0;
-        if (daysAgo > 365) regionIndex = 3; // Older
-        else if (daysAgo > 90) regionIndex = 2; // Last Year
-        else if (daysAgo > 30) regionIndex = 1; // Last 3 Months
-        // else regionIndex = 0; // Last Month
+    // Snap to nearest tile
+    const gridX = Math.round(gridCoords.gridX);
+    const gridY = Math.round(gridCoords.gridY);
 
-        targetRegionId = customRegions[regionIndex]?.id || customRegions[0]?.id;
-      }
+    console.log('[handleProjectDrop] Snapped to grid:', { gridX, gridY });
 
-      // Assign repository to the determined region
-      if (targetRegionId) {
-        await regionCallbacks.onRepositoryAssigned(collection.id, repositoryPath, targetRegionId);
-      }
-    }
-    // If no regions exist yet, the initialization effect will create them and assign repos
-  }, [collection.id, onProjectAdded, customRegions, regionCallbacks]);
+    // Place immediately at drop position, passing metadata directly
+    console.log('[handleProjectDrop] Placing repo at drop position');
+    await handleProjectMoved(repoId, gridX, gridY, repositoryMetadata);
+  }, [handleProjectMoved]);
 
   // Set up drop zone
   const { isDragOver, ...dropZoneProps } = useDropZone({
@@ -288,14 +367,23 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   });
 
   // Convert Alexandria repositories to GenericNode format
+  // INCLUDES: Both collection members AND pending repos (waiting to be placed)
   const nodes = useMemo<GenericNode[]>(() => {
+    console.log('[nodes memo] Converting memberships to nodes', {
+      collectionId: collection.id,
+      totalMemberships: memberships.length,
+      totalRepositories: repositories.length
+    });
+
     // Filter memberships for this collection
     const collectionMemberships = memberships.filter(
       (m) => m.collectionId === collection.id
     );
 
-    // Map to generic nodes
-    return collectionMemberships
+    console.log('[nodes memo] Filtered memberships for collection:', collectionMemberships);
+
+    // Map collection members to generic nodes
+    const memberNodes = collectionMemberships
       .map((membership) => {
         // Match against github.id (owner/repo format) or name as fallback
         const repo = repositories.find((r) => {
@@ -304,8 +392,11 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         });
 
         if (!repo) {
+          console.warn('[nodes memo] No repository found for membership:', membership.repositoryId);
           return null;
         }
+
+        console.log('[nodes memo] Creating node for:', membership.repositoryId);
 
         // Determine category from github metadata or theme
         let category: string | undefined;
@@ -347,7 +438,69 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         return node;
       })
       .filter((n): n is GenericNode => n !== null);
+
+    console.log('[nodes memo] Created nodes:', { total: memberNodes.length });
+    return memberNodes;
   }, [collection.id, memberships, repositories, dependencies]);
+
+  // Validate that all nodes have valid positions and regions
+  // UNLESS we're in initial layout computation (auto-assignment will fix it)
+  const validatedNodes = useMemo(() => {
+    console.log('[validatedNodes] Validating nodes:', nodes.length);
+
+    // Check if this is initial load (no positions at all)
+    const nodesWithPositions = nodes.filter(n =>
+      n.regionId && n.layout?.gridX !== undefined && n.layout?.gridY !== undefined
+    );
+    const isInitialLoad = nodesWithPositions.length === 0 && nodes.length > 0;
+
+    // If initial load, skip validation - auto-layout effect will handle it
+    if (isInitialLoad) {
+      console.log('[validatedNodes] Initial load detected, skipping validation (auto-layout will run)');
+      return nodes;
+    }
+
+    // After initial load, validate strictly
+    // Valid states:
+    //   1. Has regionId + has layout (manually placed)
+    //   2. Has regionId + NO layout (assigned to region, will be auto-positioned with circle packing)
+    // Invalid state:
+    //   3. NO regionId (completely uninitialized - this is a bug!)
+    const invalidNodes: Array<{ id: string; reason: string }> = [];
+
+    nodes.forEach((node) => {
+      const hasRegion = !!node.regionId;
+      const hasPosition = node.layout?.gridX !== undefined && node.layout?.gridY !== undefined;
+
+      // Only crash if node has NO regionId at all
+      // (Having regionId but no layout is OK - will be auto-positioned)
+      if (!hasRegion) {
+        invalidNodes.push({
+          id: node.id,
+          reason: `Missing regionId (has layout: ${hasPosition})`
+        });
+      }
+    });
+
+    // CRASH if any nodes are completely uninitialized (after initial load)
+    if (invalidNodes.length > 0) {
+      const error = new Error(
+        `[CollectionMapPanel] FATAL: Attempting to render nodes without regionId!\n` +
+        `This should never happen. All nodes must have a regionId before rendering.\n` +
+        `(Nodes without layout positions will be auto-positioned using circle packing)\n\n` +
+        `Invalid nodes (${invalidNodes.length}):\n` +
+        invalidNodes.map(n => `  - ${n.id}: ${n.reason}`).join('\n') +
+        `\n\nTotal nodes: ${nodes.length}\n` +
+        `Collection: ${collection.id}\n\n` +
+        `This is not initial load - auto-assignment should have already run.`
+      );
+      console.error(error);
+      throw error;
+    }
+
+    console.log('[validatedNodes] ✓ All nodes valid');
+    return nodes;
+  }, [nodes, collection.id]);
 
   // Compute and save BOTH regions and layout in one pass
   // This eliminates duplication between region assignment and layout computation
@@ -372,17 +525,27 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     // Check if we need to initialize anything
     const needsRegions = customRegions.length === 0 && !nodes.some(n => n.regionId);
 
-    // If ANY node is missing regionId, we can't trust saved positions (coordinates are region-relative)
-    // Better to recompute everything cleanly than risk assigning positions to wrong regions
-    const anyMissingRegionId = nodes.some(n => !n.regionId);
-    const needsLayout = anyMissingRegionId || nodes.some(node =>
-      !node.layout || node.layout.gridX === undefined || node.layout.gridY === undefined
+    // Determine if this is initial load vs new repo added
+    // Initial load: ALL nodes missing positions/regions
+    // New repo: SOME nodes have positions, some don't (new ones go to staging)
+    const nodesWithPositions = nodes.filter(n =>
+      n.regionId && n.layout?.gridX !== undefined && n.layout?.gridY !== undefined
     );
+    const isInitialLoad = nodesWithPositions.length === 0 && nodes.length > 0;
+
+    // Only auto-layout during initial load
+    // After that, new repos without positions go to staging area for manual placement
+    const needsLayout = isInitialLoad;
 
     if (!needsRegions && !needsLayout) {
       hasComputedLayout.current = true;
       return;
     }
+
+    // Mark as computed BEFORE async work to prevent double-computation
+    // This ensures we only compute once per collection, even if renders happen
+    // while the async initialization is in progress
+    hasComputedLayout.current = true;
 
     // Run layout engine - it will create regions AND compute positions
     const map = nodesToUnifiedOverworldMap(nodes, {
@@ -403,7 +566,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           id: region.id,
           name: region.name,
           order: index,
-          createdAt: Date.now(),
+          createdAt: 0, // Deterministic value - regions don't need real timestamps
         }));
       }
 
@@ -448,62 +611,70 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
       // Single batched update - 1 re-render!
       await regionCallbacks.onBatchLayoutInitialized(collection.id, updates);
-      hasComputedLayout.current = true;
     })();
   }, [collection.id, nodes, regionLayout, customRegions, regionCallbacks]);
 
 
+  // Callback when viewport is ready
+  const handleViewportReady = useCallback((viewport: any) => {
+    console.log('[CollectionMapPanel] Viewport ready for coordinate conversion');
+    viewportRef.current = viewport;
+  }, []);
+
   return (
     <div
+      ref={canvasRef}
       style={{
         position: 'relative',
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        border: isDragOver ? '2px solid #3b82f6' : 'none',
-        transition: 'border 0.2s ease',
+        boxSizing: 'border-box',
+        border: isDragOver ? '2px solid #3b82f6' : '2px solid transparent',
+        transition: 'border-color 0.2s ease',
       }}
       {...dropZoneProps}
     >
-      {/* Edit Regions button */}
-      <button
-        onClick={() => setIsEditingRegions(!isEditingRegions)}
-        style={{
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          zIndex: 100,
-          backgroundColor: isEditingRegions ? 'rgba(251, 191, 36, 0.9)' : 'rgba(0, 0, 0, 0.7)',
-          border: isEditingRegions ? '2px solid #fbbf24' : '2px solid #4b5563',
-          padding: '8px 16px',
-          borderRadius: 8,
-          color: 'white',
-          fontFamily: 'monospace',
-          fontSize: 14,
-          fontWeight: 'bold',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-          pointerEvents: 'auto',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = isEditingRegions ? 'rgba(251, 191, 36, 1)' : 'rgba(75, 85, 99, 0.9)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = isEditingRegions ? 'rgba(251, 191, 36, 0.9)' : 'rgba(0, 0, 0, 0.7)';
-        }}
-      >
-        {isEditingRegions ? 'Done Editing' : 'Edit Layout'}
-      </button>
+        {/* Edit Regions button */}
+        <button
+          onClick={() => setIsEditingRegions(!isEditingRegions)}
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            zIndex: 100,
+            backgroundColor: isEditingRegions ? 'rgba(251, 191, 36, 0.9)' : 'rgba(0, 0, 0, 0.7)',
+            border: isEditingRegions ? '2px solid #fbbf24' : '2px solid #4b5563',
+            padding: '8px 16px',
+            borderRadius: 8,
+            color: 'white',
+            fontFamily: 'monospace',
+            fontSize: 14,
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            pointerEvents: 'auto',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = isEditingRegions ? 'rgba(251, 191, 36, 1)' : 'rgba(75, 85, 99, 0.9)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = isEditingRegions ? 'rgba(251, 191, 36, 0.9)' : 'rgba(0, 0, 0, 0.7)';
+          }}
+        >
+          {isEditingRegions ? 'Done Editing' : 'Edit Layout'}
+        </button>
 
-      {/* Overworld map (always visible) */}
-      <OverworldMapPanelContent
-        nodes={nodes}
+        {/* Overworld map - shows all nodes with validated positions */}
+        <OverworldMapPanelContent
+          nodes={validatedNodes}
         regionLayout={regionLayout}
         isLoading={isLoading}
         isEditingRegions={isEditingRegions}
         customRegions={customRegions}
         collectionKey={collection.id}
         onProjectMoved={handleProjectMoved}
+        onViewportReady={handleViewportReady}
         onAddRegion={async (position: { row: number; col: number }) => {
           // Calculate order from grid position (row-major order)
           const order = position.row * 10 + position.col; // Assume max 10 columns
@@ -511,12 +682,11 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           // Generate region name
           const name = `Region ${customRegions.length + 1}`;
 
-          await regionCallbacks.onRegionCreated(collection.id, { name, order });
+          await regionCallbacks.onRegionCreated(collection.id, { name, order, createdAt: 0 });
         }}
         onRenameRegion={handleRenameRegion}
         onDeleteRegion={handleDeleteRegion}
       />
-
     </div>
   );
 };
@@ -554,10 +724,15 @@ export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanel
 
   // Handle adding a project to the collection
   const handleProjectAdded = useCallback((repositoryPath: string, repositoryMetadata: any) => {
-    if (!selectedCollection) return;
+    console.log('[handleProjectAdded] Called with:', { repositoryPath, repositoryMetadata, selectedCollection: selectedCollection?.id });
+    if (!selectedCollection) {
+      console.warn('[handleProjectAdded] No selected collection');
+      return;
+    }
     // Call actions method to add repository to collection
     // This is provided by the host application's context provider
     if (actions.addRepositoryToCollection) {
+      console.log('[handleProjectAdded] Calling addRepositoryToCollection');
       actions.addRepositoryToCollection(selectedCollection.id, repositoryPath, repositoryMetadata);
     } else {
       console.warn('Actions does not support addRepositoryToCollection - drag-drop feature requires context integration');

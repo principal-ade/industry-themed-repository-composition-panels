@@ -73,6 +73,27 @@ export class IsometricRenderer {
   }
 
   /**
+   * Add a texture to the atlas
+   */
+  addTexture(key: string, texture: Texture): void {
+    this.atlas[key] = texture;
+  }
+
+  /**
+   * Check if a texture exists in the atlas
+   */
+  hasTexture(key: string): boolean {
+    return key in this.atlas;
+  }
+
+  /**
+   * Get all texture keys in the atlas
+   */
+  getTextureKeys(): string[] {
+    return Object.keys(this.atlas);
+  }
+
+  /**
    * Main rendering method - creates all scene elements
    */
   renderScene(mapData: OverworldMap, showGrid = true): SceneContainers {

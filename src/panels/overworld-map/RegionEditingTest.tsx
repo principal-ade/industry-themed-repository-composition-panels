@@ -180,7 +180,7 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
       // Function to add a new region at a position
       const addRegion = (pos: { row: number; col: number }) => {
         const newRegion: MapRegion = {
-          id: `region-${Date.now()}`,
+          id: `region-${pos.row}-${pos.col}`,
           name: `Region ${initialRegionData.length + 1}`,
           bounds: {
             x: pos.col * regionSize,
