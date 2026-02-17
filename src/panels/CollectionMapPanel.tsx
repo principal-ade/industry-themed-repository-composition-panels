@@ -4,7 +4,7 @@
 
 import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import { useDropZone, type PanelDragData } from '@principal-ade/panel-framework-core';
-import type { PanelComponentProps } from '../types';
+import type { PanelComponentProps, PanelActions } from '../types';
 import { OverworldMapPanelContent } from './overworld-map/OverworldMapPanel';
 import type { RegionLayout, GenericNode } from './overworld-map/genericMapper';
 import { nodesToUnifiedOverworldMap } from './overworld-map/genericMapper';
@@ -74,6 +74,19 @@ export interface RegionCallbacks {
       assignments?: Array<{ repositoryId: string; regionId: string }>;
       positions?: Array<{ repositoryId: string; layout: RepositoryLayoutData }>;
     }
+  ) => Promise<void>;
+}
+
+/**
+ * Actions interface required by CollectionMapPanel
+ * Extends PanelActions with region management callbacks and repository addition
+ */
+export interface CollectionMapPanelActions extends PanelActions, RegionCallbacks {
+  /** Add a repository to a collection (for drag-drop integration) */
+  addRepositoryToCollection?: (
+    collectionId: string,
+    repositoryPath: string,
+    repositoryMetadata: any
   ) => Promise<void>;
 }
 
@@ -452,12 +465,20 @@ export interface AlexandriaRepositoriesSlice {
 /**
  * Main panel component that integrates with the panel framework
  */
-export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context, actions }) => {
+export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanelActions>> = ({ context, actions }) => {
   // Get collections data from context
   const collectionsSlice = context.getSlice<UserCollectionsSlice>('userCollections');
   const collections = collectionsSlice?.data?.collections || [];
   const memberships = collectionsSlice?.data?.memberships || [];
   const collectionsLoading = collectionsSlice?.loading ?? false;
+
+  // Debug logging for memberships changes
+  React.useEffect(() => {
+    console.info('[CollectionMapPanel] 📊 Memberships updated:', memberships.map(m => ({
+      repo: m.repositoryId,
+      layout: m.metadata?.layout
+    })));
+  }, [memberships]);
 
   // Get repositories data from context
   const repositoriesSlice = context.getSlice<AlexandriaRepositoriesSlice>('alexandriaRepositories');
@@ -472,63 +493,22 @@ export const CollectionMapPanel: React.FC<PanelComponentProps> = ({ context, act
   const handleProjectAdded = useCallback((repositoryPath: string, repositoryMetadata: any) => {
     // Call actions method to add repository to collection
     // This is provided by the host application's context provider
-    if ((actions as any)?.addRepositoryToCollection) {
-      (actions as any).addRepositoryToCollection(selectedCollectionId, repositoryPath, repositoryMetadata);
+    if (actions.addRepositoryToCollection) {
+      actions.addRepositoryToCollection(selectedCollectionId, repositoryPath, repositoryMetadata);
     } else {
       console.warn('Actions does not support addRepositoryToCollection - drag-drop feature requires context integration');
     }
   }, [actions, selectedCollectionId]);
 
   // Create region management callbacks (must be before early return)
+  // Actions is now typed as CollectionMapPanelActions, so these methods are guaranteed to exist
   const regionCallbacks: RegionCallbacks = useMemo(() => ({
-    onRegionCreated: async (collectionId: string, region: Omit<CustomRegion, 'id' | 'createdAt'>) => {
-      if (!(actions as any)?.onRegionCreated) {
-        throw new Error('Actions must implement onRegionCreated for CollectionMapPanel');
-      }
-      return await (actions as any).onRegionCreated(collectionId, region);
-    },
-
-    onRegionUpdated: async (collectionId: string, regionId: string, updates: Partial<CustomRegion>) => {
-      if (!(actions as any)?.onRegionUpdated) {
-        throw new Error('Actions must implement onRegionUpdated for CollectionMapPanel');
-      }
-      await (actions as any).onRegionUpdated(collectionId, regionId, updates);
-    },
-
-    onRegionDeleted: async (collectionId: string, regionId: string) => {
-      if (!(actions as any)?.onRegionDeleted) {
-        throw new Error('Actions must implement onRegionDeleted for CollectionMapPanel');
-      }
-      await (actions as any).onRegionDeleted(collectionId, regionId);
-    },
-
-    onRepositoryAssigned: async (collectionId: string, repositoryId: string, regionId: string) => {
-      if (!(actions as any)?.onRepositoryAssigned) {
-        throw new Error('Actions must implement onRepositoryAssigned for CollectionMapPanel');
-      }
-      await (actions as any).onRepositoryAssigned(collectionId, repositoryId, regionId);
-    },
-
-    onRepositoryPositionUpdated: async (collectionId: string, repositoryId: string, layout: RepositoryLayoutData) => {
-      if (!(actions as any)?.onRepositoryPositionUpdated) {
-        throw new Error('Actions must implement onRepositoryPositionUpdated for CollectionMapPanel');
-      }
-      await (actions as any).onRepositoryPositionUpdated(collectionId, repositoryId, layout);
-    },
-
-    onBatchLayoutInitialized: async (
-      collectionId: string,
-      updates: {
-        regions?: CustomRegion[];
-        assignments?: Array<{ repositoryId: string; regionId: string }>;
-        positions?: Array<{ repositoryId: string; layout: RepositoryLayoutData }>;
-      }
-    ) => {
-      if (!(actions as any)?.onBatchLayoutInitialized) {
-        throw new Error('Actions must implement onBatchLayoutInitialized for CollectionMapPanel');
-      }
-      await (actions as any).onBatchLayoutInitialized(collectionId, updates);
-    },
+    onRegionCreated: actions.onRegionCreated,
+    onRegionUpdated: actions.onRegionUpdated,
+    onRegionDeleted: actions.onRegionDeleted,
+    onRepositoryAssigned: actions.onRepositoryAssigned,
+    onRepositoryPositionUpdated: actions.onRepositoryPositionUpdated,
+    onBatchLayoutInitialized: actions.onBatchLayoutInitialized,
   }), [actions]);
 
   // If no collection is selected, show a placeholder

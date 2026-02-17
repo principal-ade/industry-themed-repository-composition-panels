@@ -1,14 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useState } from 'react';
-import { CollectionMapPanel, CollectionMapPanelContent } from './CollectionMapPanel';
+import { CollectionMapPanel, CollectionMapPanelContent, CollectionMapPanelActions } from './CollectionMapPanel';
 import type {
-  Collection,
   AlexandriaEntryWithMetrics,
-  CollectionMembership,
   UserCollectionsSlice,
   AlexandriaRepositoriesSlice,
 } from './CollectionMapPanel';
-import type { PanelContextValue, PanelActions, PanelEventEmitter } from '../types';
+import type { Collection, CollectionMembership, CustomRegion, RepositoryLayoutData } from '@principal-ai/alexandria-collections';
+import type { PanelContextValue, PanelEventEmitter } from '../types';
 import type { RegionLayout } from './overworld-map/genericMapper';
 
 /**
@@ -68,6 +67,37 @@ const createMockContext = (
     removeEventListener: () => {},
   } as any;
 };
+
+// Mock actions factory
+const createMockActions = (): CollectionMapPanelActions => ({
+  onRegionCreated: async (collectionId: string, region: Omit<CustomRegion, 'id' | 'createdAt'>) => {
+    console.log('[Mock] Region created:', collectionId, region);
+    return {
+      ...region,
+      id: `region-${Date.now()}`,
+      createdAt: Date.now(),
+    };
+  },
+  onRegionUpdated: async (collectionId: string, regionId: string, updates: Partial<CustomRegion>) => {
+    console.log('[Mock] Region updated:', collectionId, regionId, updates);
+  },
+  onRegionDeleted: async (collectionId: string, regionId: string) => {
+    console.log('[Mock] Region deleted:', collectionId, regionId);
+  },
+  onRepositoryAssigned: async (collectionId: string, repositoryId: string, regionId: string) => {
+    console.log('[Mock] Repository assigned:', collectionId, repositoryId, regionId);
+  },
+  onRepositoryPositionUpdated: async (collectionId: string, repositoryId: string, layout: RepositoryLayoutData) => {
+    console.log('[Mock] Repository position updated:', collectionId, repositoryId, layout);
+  },
+  onBatchLayoutInitialized: async (collectionId: string, updates: {
+    regions?: CustomRegion[];
+    assignments?: Array<{ repositoryId: string; regionId: string }>;
+    positions?: Array<{ repositoryId: string; layout: RepositoryLayoutData }>;
+  }) => {
+    console.log('[Mock] Batch layout initialized:', collectionId, updates);
+  },
+});
 
 const meta = {
   title: 'Panels/CollectionMapPanel',
@@ -187,7 +217,7 @@ export const ActiveProjects: Story = {
       repositories
     );
 
-    const mockActions: PanelActions = {};
+    const mockActions = createMockActions();
     const mockEvents: PanelEventEmitter = {
       emit: () => {},
       on: () => () => {},
@@ -233,7 +263,7 @@ export const ReadingList: Story = {
       repositories
     );
 
-    const mockActions: PanelActions = {};
+    const mockActions = createMockActions();
     const mockEvents: PanelEventEmitter = {
       emit: () => {},
       on: () => () => {},
@@ -269,7 +299,7 @@ export const Archive: Story = {
       repositories
     );
 
-    const mockActions: PanelActions = {};
+    const mockActions = createMockActions();
     const mockEvents: PanelEventEmitter = {
       emit: () => {},
       on: () => () => {},
@@ -305,7 +335,7 @@ export const EmptyCollection: Story = {
       []
     );
 
-    const mockActions: PanelActions = {};
+    const mockActions = createMockActions();
     const mockEvents: PanelEventEmitter = {
       emit: () => {},
       on: () => () => {},
@@ -346,7 +376,7 @@ export const LargeCollection: Story = {
       repositories
     );
 
-    const mockActions: PanelActions = {};
+    const mockActions = createMockActions();
     const mockEvents: PanelEventEmitter = {
       emit: () => {},
       on: () => () => {},
@@ -436,7 +466,7 @@ export const MultipleRegionsHorizontal: Story = {
       largeRepositorySet
     );
 
-    const mockActions: PanelActions = {};
+    const mockActions = createMockActions();
     const mockEvents: PanelEventEmitter = {
       emit: () => {},
       on: () => () => {},
@@ -525,6 +555,16 @@ export const MultipleRegionsGridLayout: Story = {
       fillDirection: 'row-major', // Fill left-to-right, then top-to-bottom
     };
 
+    const mockActions = createMockActions();
+    const regionCallbacks = {
+      onRegionCreated: mockActions.onRegionCreated,
+      onRegionUpdated: mockActions.onRegionUpdated,
+      onRegionDeleted: mockActions.onRegionDeleted,
+      onRepositoryAssigned: mockActions.onRepositoryAssigned,
+      onRepositoryPositionUpdated: mockActions.onRepositoryPositionUpdated,
+      onBatchLayoutInitialized: mockActions.onBatchLayoutInitialized,
+    };
+
     return (
       <div style={{ width: '100vw', height: '100vh' }}>
         <CollectionMapPanelContent
@@ -532,6 +572,7 @@ export const MultipleRegionsGridLayout: Story = {
           memberships={largeMemberships}
           repositories={largeRepositorySet}
           regionLayout={gridLayout}
+          regionCallbacks={regionCallbacks}
         />
       </div>
     );
@@ -656,6 +697,27 @@ const DragDropDemoComponent = () => {
             memberships={memberships}
             repositories={repositories}
             onProjectAdded={handleProjectAdded}
+            regionCallbacks={{
+              onRegionCreated: async (collectionId, region) => {
+                console.log('[DragDropDemo] Region created:', collectionId, region);
+                return { ...region, id: `region-${Date.now()}`, createdAt: Date.now() };
+              },
+              onRegionUpdated: async (collectionId, regionId, updates) => {
+                console.log('[DragDropDemo] Region updated:', collectionId, regionId, updates);
+              },
+              onRegionDeleted: async (collectionId, regionId) => {
+                console.log('[DragDropDemo] Region deleted:', collectionId, regionId);
+              },
+              onRepositoryAssigned: async (collectionId, repositoryId, regionId) => {
+                console.log('[DragDropDemo] Repository assigned:', collectionId, repositoryId, regionId);
+              },
+              onRepositoryPositionUpdated: async (collectionId, repositoryId, layout) => {
+                console.log('[DragDropDemo] Repository position updated:', collectionId, repositoryId, layout);
+              },
+              onBatchLayoutInitialized: async (collectionId, updates) => {
+                console.log('[DragDropDemo] Batch layout initialized:', collectionId, updates);
+              },
+            }}
           />
         </div>
       </div>

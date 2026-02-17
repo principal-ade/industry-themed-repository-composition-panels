@@ -2,15 +2,19 @@ import { GitChangesPanel } from './panels/GitChangesPanel';
 import { PackageCompositionPanel } from './panels/PackageCompositionPanel';
 import { SearchPanel } from './panels/SearchPanel';
 import { DependencyGraphPanel } from './panels/dependency-graph';
-import { CollectionMapPanel } from './panels/CollectionMapPanel';
+import { CollectionMapPanel, CollectionMapPanelActions } from './panels/CollectionMapPanel';
 import { TelemetryCoveragePanel } from './panels/TelemetryCoveragePanel';
-import type { PanelDefinition, PanelContextValue } from './types';
+import type { PanelDefinition, PanelContextValue, PanelActions } from './types';
 
 /**
  * Export array of panel definitions.
  * This is the required export for panel extensions.
+ *
+ * Note: Uses `any` for TActions because this is a heterogeneous array containing
+ * panels with different action type requirements (e.g., CollectionMapPanelActions).
+ * Each panel definition is still individually type-checked.
  */
-export const panels: PanelDefinition[] = [
+export const panels: ReadonlyArray<PanelDefinition<any, {}>> = [
   {
     metadata: {
       id: 'industry-theme.git-changes',
@@ -270,6 +274,7 @@ export type {
   CollectionMapPanelProps,
   AlexandriaEntryWithMetrics,
   RegionCallbacks,
+  CollectionMapPanelActions,
 } from './panels/CollectionMapPanel';
 
 // Re-export alexandria-collections types for backwards compatibility

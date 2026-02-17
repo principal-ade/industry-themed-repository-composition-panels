@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/repository-composition-panels",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Repository composition panels including Git Changes panel for the panel framework",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -45,7 +45,7 @@
   "peerDependencies": {
     "@principal-ade/dynamic-file-tree": "^0.1.67",
     "@principal-ade/industry-theme": "^0.1.7",
-    "@principal-ade/panel-framework-core": "^0.3.0",
+    "@principal-ade/panel-framework-core": "^0.4.0",
     "@principal-ade/utcp-panel-event": "^0.1.0",
     "@principal-ai/alexandria-collections": "^1.2.2",
     "@principal-ai/alexandria-core-library": "^0.3.2",
@@ -75,7 +75,7 @@
     "@eslint/js": "^9.39.2",
     "@principal-ade/dynamic-file-tree": "^0.1.68",
     "@principal-ade/industry-theme": "^0.1.7",
-    "@principal-ade/panel-framework-core": "^0.3.0",
+    "@principal-ade/panel-framework-core": "^0.4.0",
     "@principal-ade/utcp-panel-event": "^0.1.0",
     "@principal-ai/alexandria-collections": "^1.2.2",
     "@principal-ai/alexandria-core-library": "^0.3.2",

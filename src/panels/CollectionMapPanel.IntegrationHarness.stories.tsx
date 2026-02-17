@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { CollectionMapPanel } from './CollectionMapPanel';
+import { CollectionMapPanel, CollectionMapPanelActions } from './CollectionMapPanel';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import type { Collection, CollectionMembership, CustomRegion } from '@principal-ai/alexandria-collections';
 
@@ -254,7 +254,7 @@ const IntegrationHarness: React.FC<{
   }, [logEvent, eventEmitter]);
 
   // Mock context, actions, and events
-  const mockProps: PanelComponentProps = useMemo(
+  const mockProps: PanelComponentProps<CollectionMapPanelActions> = useMemo(
     () => ({
       context: {
         getSlice: (sliceName: string) => {
@@ -485,18 +485,18 @@ export const CustomRegionsOrganized: Story = {
       }}
       initialMemberships={[
         // Frontend
-        { id: 'm1', repositoryId: 'active-frontend', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
-        { id: 'm2', repositoryId: 'old-frontend', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
-        { id: 'm3', repositoryId: 'design-system', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
+        {  repositoryId: 'active-frontend', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
+        {  repositoryId: 'old-frontend', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
+        {  repositoryId: 'design-system', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
         // Backend
-        { id: 'm4', repositoryId: 'api-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
-        { id: 'm5', repositoryId: 'auth-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
-        { id: 'm6', repositoryId: 'notification-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
+        {  repositoryId: 'api-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
+        {  repositoryId: 'auth-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
+        {  repositoryId: 'notification-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
         // Mobile
-        { id: 'm7', repositoryId: 'mobile-app', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-mobile' } },
+        {  repositoryId: 'mobile-app', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-mobile' } },
         // Infrastructure
-        { id: 'm8', repositoryId: 'data-pipeline', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-infrastructure' } },
-        { id: 'm9', repositoryId: 'deployment-scripts', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-infrastructure' } },
+        {  repositoryId: 'data-pipeline', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-infrastructure' } },
+        {  repositoryId: 'deployment-scripts', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-infrastructure' } },
       ]}
     />
   ),
@@ -615,7 +615,6 @@ export const SavedPositionsTest: Story = {
       initialMemberships={[
         // Frontend repositories with saved positions
         {
-          id: 'mem-0',
           repositoryId: mockRepositories[0].name, // web-ade
           collectionId: 'col-saved',
           addedAt: Date.now(),
@@ -628,7 +627,6 @@ export const SavedPositionsTest: Story = {
           },
         },
         {
-          id: 'mem-1',
           repositoryId: mockRepositories[1].name, // shared-ui
           collectionId: 'col-saved',
           addedAt: Date.now(),
@@ -641,7 +639,6 @@ export const SavedPositionsTest: Story = {
           },
         },
         {
-          id: 'mem-2',
           repositoryId: mockRepositories[2].name, // api-client
           collectionId: 'col-saved',
           addedAt: Date.now(),
@@ -655,7 +652,6 @@ export const SavedPositionsTest: Story = {
         },
         // Backend repositories with saved positions
         {
-          id: 'mem-3',
           repositoryId: mockRepositories[4].name, // backend-api
           collectionId: 'col-saved',
           addedAt: Date.now(),
@@ -668,7 +664,6 @@ export const SavedPositionsTest: Story = {
           },
         },
         {
-          id: 'mem-4',
           repositoryId: mockRepositories[5].name, // database
           collectionId: 'col-saved',
           addedAt: Date.now(),
@@ -682,7 +677,6 @@ export const SavedPositionsTest: Story = {
         },
         // One auto-positioned repository (no saved position)
         {
-          id: 'mem-5',
           repositoryId: mockRepositories[9].name, // auth-service
           collectionId: 'col-saved',
           addedAt: Date.now(),
