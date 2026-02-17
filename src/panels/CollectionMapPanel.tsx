@@ -164,14 +164,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   onProjectAdded,
   regionCallbacks,
 }) => {
-  // Log component mount/unmount
-  React.useEffect(() => {
-    console.info('[CollectionMapPanelContent] 🎬 Component MOUNTED for collection:', collection.name);
-    return () => {
-      console.info('[CollectionMapPanelContent] 💀 Component UNMOUNTING for collection:', collection.name);
-    };
-  }, []);
-
   const customRegions = collection.metadata?.customRegions || [];
 
   // Region editing state
@@ -223,15 +215,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     const relativeGridX = gridX - regionBoundsX;
     const relativeGridY = gridY - regionBoundsY;
 
-    console.info('[CollectionMapPanel] 💾 Saving position:', {
-      projectId,
-      absolute: { gridX, gridY },
-      region: targetRegion?.name || 'unknown',
-      regionId: newRegionId,
-      regionBounds: { x: regionBoundsX, y: regionBoundsY },
-      relative: { gridX: relativeGridX, gridY: relativeGridY }
-    });
-
     const layout: RepositoryLayoutData = {
       gridX: relativeGridX,
       gridY: relativeGridY,
@@ -245,7 +228,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     const oldRegionId = membership?.metadata?.regionId;
 
     if (oldRegionId !== newRegionId) {
-      console.info('[CollectionMapPanel] 🔄 Region changed from', oldRegionId, 'to', newRegionId);
       await regionCallbacks.onRepositoryAssigned(collection.id, projectId, newRegionId);
     }
   }, [collection.id, regionCallbacks, memberships, customRegions]);
@@ -307,7 +289,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
   // Convert Alexandria repositories to GenericNode format
   const nodes = useMemo<GenericNode[]>(() => {
-    console.info('[CollectionMapPanel] 📦 Recomputing nodes for collection:', collection.name);
     // Filter memberships for this collection
     const collectionMemberships = memberships.filter(
       (m) => m.collectionId === collection.id
@@ -363,10 +344,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           layout: membership.metadata?.layout, // Pass saved position data
         };
 
-        if (membership.metadata?.layout) {
-          console.info('[CollectionMapPanel] 📍 Node', repo.name, 'has saved layout:', membership.metadata.layout);
-        }
-
         return node;
       })
       .filter((n): n is GenericNode => n !== null);
@@ -378,22 +355,17 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   const prevCollectionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    console.info('[CollectionMapPanel] 🏗️ Layout effect running, hasComputedLayout:', hasComputedLayout.current, 'nodes:', nodes.length);
-
     // Reset hasComputedLayout when collection changes
     if (prevCollectionIdRef.current !== null && prevCollectionIdRef.current !== collection.id) {
-      console.info('[CollectionMapPanel] 🔄 Collection changed from', prevCollectionIdRef.current, 'to', collection.id, '- resetting hasComputedLayout');
       hasComputedLayout.current = false;
     }
     prevCollectionIdRef.current = collection.id;
 
     // Only run once per collection
     if (hasComputedLayout.current) {
-      console.info('[CollectionMapPanel] 🏗️ Skipping - already computed layout');
       return;
     }
     if (nodes.length === 0) {
-      console.info('[CollectionMapPanel] 🏗️ Skipping - no nodes');
       return;
     }
 
@@ -407,10 +379,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       !node.layout || node.layout.gridX === undefined || node.layout.gridY === undefined
     );
 
-    console.info('[CollectionMapPanel] 🏗️ needsRegions:', needsRegions, 'needsLayout:', needsLayout, 'anyMissingRegionId:', anyMissingRegionId);
-
     if (!needsRegions && !needsLayout) {
-      console.info('[CollectionMapPanel] 🏗️ All nodes have layout, setting hasComputedLayout=true');
       hasComputedLayout.current = true;
       return;
     }
@@ -445,9 +414,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         .filter(node => {
           const originalNode = nodes.find(n => n.id === node.id);
           const needsUpdate = anyMissingRegionId || !originalNode?.layout || originalNode.layout.gridX === undefined || originalNode.layout.gridY === undefined;
-          if (!needsUpdate) {
-            console.info('[CollectionMapPanel] 🏗️ Skipping', node.id, '- already has layout:', originalNode?.layout);
-          }
           return needsUpdate;
         })
         .map(node => ({
@@ -478,17 +444,10 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
             }
           }
         }
-        console.info('[CollectionMapPanel] 🏗️ Creating', updates.assignments.length, 'region assignments');
       }
-
-      if (anyMissingRegionId) {
-        console.info('[CollectionMapPanel] 🏗️ Recomputing ALL positions due to missing regionId assignments');
-      }
-      console.info('[CollectionMapPanel] 🏗️ Initializing layout for', updates.positions?.length, 'nodes');
 
       // Single batched update - 1 re-render!
       await regionCallbacks.onBatchLayoutInitialized(collection.id, updates);
-      console.info('[CollectionMapPanel] 🏗️ Layout initialized, setting hasComputedLayout=true');
       hasComputedLayout.current = true;
     })();
   }, [collection.id, nodes, regionLayout, customRegions, regionCallbacks]);
@@ -585,14 +544,6 @@ export interface AlexandriaRepositoriesSlice {
  * Main panel component that integrates with the panel framework
  */
 export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanelActions, CollectionMapPanelContext>> = ({ context, actions }) => {
-  // Log component mount/unmount
-  React.useEffect(() => {
-    console.info('[CollectionMapPanel] 🎬 Panel component MOUNTED');
-    return () => {
-      console.info('[CollectionMapPanel] 💀 Panel component UNMOUNTING');
-    };
-  }, []);
-
   // Get data from typed context - host provides filtered data for selected collection only
   const { selectedCollectionView } = context;
   const selectedCollection = selectedCollectionView?.data?.collection;
@@ -600,16 +551,6 @@ export const CollectionMapPanel: React.FC<PanelComponentProps<CollectionMapPanel
   const repositories = selectedCollectionView?.data?.repositories || [];
   const dependencies = selectedCollectionView?.data?.dependencies || {};
   const isLoading = selectedCollectionView?.loading ?? false;
-
-  // Debug logging for memberships changes
-  React.useEffect(() => {
-    console.info('[CollectionMapPanel] 📊 Memberships updated for collection:', selectedCollection?.name);
-    console.info('[CollectionMapPanel] 📊 Memberships:', memberships.map(m => ({
-      repo: m.repositoryId,
-      regionId: m.metadata?.regionId,
-      layout: m.metadata?.layout
-    })));
-  }, [memberships, selectedCollection?.name]);
 
   // Handle adding a project to the collection
   const handleProjectAdded = useCallback((repositoryPath: string, repositoryMetadata: any) => {
