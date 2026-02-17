@@ -416,10 +416,19 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     })();
   }, [collection.id, nodes, regionLayout, customRegions, regionCallbacks]);
 
-  // Reset layout flag when collection changes
+  // Reset layout flag when collection changes (not on initial mount)
+  const prevCollectionIdRef = useRef<string | null>(null);
   useEffect(() => {
-    console.info('[CollectionMapPanel] 🔄 Collection ID changed to:', collection.id, '- resetting hasComputedLayout to false');
-    hasComputedLayout.current = false;
+    if (prevCollectionIdRef.current === null) {
+      // Initial mount - don't reset
+      console.info('[CollectionMapPanel] 🔄 Initial collection:', collection.id, '- keeping hasComputedLayout as is');
+      prevCollectionIdRef.current = collection.id;
+    } else if (prevCollectionIdRef.current !== collection.id) {
+      // Collection actually changed - reset layout
+      console.info('[CollectionMapPanel] 🔄 Collection changed from', prevCollectionIdRef.current, 'to', collection.id, '- resetting hasComputedLayout to false');
+      hasComputedLayout.current = false;
+      prevCollectionIdRef.current = collection.id;
+    }
   }, [collection.id]);
 
 
