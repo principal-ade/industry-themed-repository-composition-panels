@@ -375,7 +375,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     // Check if we need to initialize anything
     const needsRegions = customRegions.length === 0 && !nodes.some(n => n.regionId);
     const needsLayout = nodes.some(node =>
-      !node.layout || node.layout.gridX === undefined || node.layout.gridY === undefined
+      !node.layout || node.layout.gridX === undefined || node.layout.gridY === undefined || !node.regionId
     );
 
     console.info('[CollectionMapPanel] 🏗️ needsRegions:', needsRegions, 'needsLayout:', needsLayout);
