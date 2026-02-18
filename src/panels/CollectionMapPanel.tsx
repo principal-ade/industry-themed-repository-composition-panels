@@ -108,6 +108,12 @@ export interface CollectionMapPanelContext {
   };
 }
 
+/**
+ * Type alias for the selectedCollectionView property
+ * Exported for convenience so hosts don't need to use indexed access types
+ */
+export type SelectedCollectionView = CollectionMapPanelContext['selectedCollectionView'];
+
 export interface CollectionMapPanelProps {
   /** The collection to visualize as an overworld map */
   collection: Collection;

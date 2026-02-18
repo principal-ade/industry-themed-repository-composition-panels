@@ -276,6 +276,7 @@ export type {
   RegionCallbacks,
   CollectionMapPanelActions,
   CollectionMapPanelContext,
+  SelectedCollectionView,
 } from './panels/CollectionMapPanel';
 
 // Re-export alexandria-collections types for backwards compatibility

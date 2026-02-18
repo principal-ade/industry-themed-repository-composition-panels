@@ -1,0 +1,22 @@
+# Principal View Component Library
+version: "1.0.0"
+name: "@industry-theme/repository-composition-panels"
+description: "Repository composition panels including Git Changes panel for the panel framework"
+
+# Service resource registry
+# Define all services in this repository with their OTEL resource attributes
+# Each service configures its own resources at runtime, but declaring them here provides:
+# - Service documentation/registry
+# - Expected resource schema for validation
+# - Dev workspace trace routing
+resources:
+  industry-themed-panels-storybook:
+    service.name: "industry-themed-panels-storybook"
+    service.version: "0.6.9"
+    deployment.environment: "development"
+    project: "repository-composition-panels"
+    # service.repository.url and service.commit.sha are auto-detected from git locally
+    # and set via environment variables in production
+
+nodeComponents: {}
+edgeComponents: {}
