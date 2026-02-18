@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/react-vite';
+import type { OtelExportConfig } from '@principal-ai/storybook-addon-otel';
 
 const preview: Preview = {
   parameters: {
@@ -13,6 +14,16 @@ const preview: Preview = {
         order: ['Introduction', 'Panels', '*'],
       },
     },
+    // OpenTelemetry export configuration
+    otelExport: {
+      enabled: true,
+      endpoint: 'http://localhost:4318/v1/traces',
+      serviceName: 'industry-themed-panels-storybook',
+      resourceAttributes: {
+        'environment': 'development',
+        'project': 'repository-composition-panels',
+      },
+    } as OtelExportConfig,
   },
 };
 
