@@ -4,6 +4,7 @@
 
 import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import { useDropZone, type PanelDragData } from '@principal-ade/panel-framework-core';
+import { trace } from '@opentelemetry/api';
 import type { PanelComponentProps, PanelActions } from '../types';
 import { OverworldMapPanelContent } from './overworld-map/OverworldMapPanel';
 import type { RegionLayout, GenericNode } from './overworld-map/genericMapper';
@@ -19,6 +20,9 @@ import type {
   Collection,
   CollectionMembership,
 } from '@principal-ai/alexandria-collections';
+
+// Create tracer for CollectionMapPanel
+const tracer = trace.getTracer('collection-map-panel', '0.6.9');
 
 /**
  * Extended Alexandria Entry with metrics for visualization sizing
@@ -339,6 +343,31 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     await handleProjectMoved(repoId, gridX, gridY, repositoryMetadata);
   }, [handleProjectMoved]);
 
+  // Handle drags from the unplaced drawer
+  const handleDrawerDrop = useCallback(async (event: React.DragEvent) => {
+    const unplacedNodeData = event.dataTransfer.getData('application/x-unplaced-node');
+    if (!unplacedNodeData) return; // Not a drawer drag
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const { nodeId } = JSON.parse(unplacedNodeData);
+
+    // Convert drop position to grid coordinates
+    const gridCoords = domEventToGridCoords(
+      event.clientX,
+      event.clientY,
+      viewportRef.current,
+      canvasRef.current
+    );
+
+    const gridX = Math.round(gridCoords.gridX);
+    const gridY = Math.round(gridCoords.gridY);
+
+    // Place the node (no metadata needed - it's already in the collection)
+    await handleProjectMoved(nodeId, gridX, gridY);
+  }, [handleProjectMoved]);
+
   // Set up drop zone for BOTH external drags and drawer drags
   const { isDragOver, ...dropZoneProps } = useDropZone({
     handlers: [
@@ -359,18 +388,24 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   // Convert Alexandria repositories to GenericNode format
   // INCLUDES: Both collection members AND pending repos (waiting to be placed)
   const nodes = useMemo<GenericNode[]>(() => {
-    console.log('[nodes memo] Converting memberships to nodes', {
-      collectionId: collection.id,
-      totalMemberships: memberships.length,
-      totalRepositories: repositories.length
-    });
+    return tracer.startActiveSpan('collection-map.convert-nodes', (span) => {
+      try {
+        span.setAttribute('collection.id', collection.id);
+        span.setAttribute('memberships.count', memberships.length);
+        span.setAttribute('repositories.count', repositories.length);
 
-    // Filter memberships for this collection
-    const collectionMemberships = memberships.filter(
-      (m) => m.collectionId === collection.id
-    );
+        console.log('[nodes memo] Converting memberships to nodes', {
+          collectionId: collection.id,
+          totalMemberships: memberships.length,
+          totalRepositories: repositories.length
+        });
 
-    console.log('[nodes memo] Filtered memberships for collection:', collectionMemberships);
+        // Filter memberships for this collection
+        const collectionMemberships = memberships.filter(
+          (m) => m.collectionId === collection.id
+        );
+
+        console.log('[nodes memo] Filtered memberships for collection:', collectionMemberships);
 
     // Map collection members to generic nodes
     const memberNodes = collectionMemberships
@@ -429,8 +464,17 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       })
       .filter((n): n is GenericNode => n !== null);
 
-    console.log('[nodes memo] Created nodes:', { total: memberNodes.length });
-    return memberNodes;
+        console.log('[nodes memo] Created nodes:', { total: memberNodes.length });
+
+        span.setAttribute('nodes.created', memberNodes.length);
+        span.end();
+        return memberNodes;
+      } catch (error) {
+        span.recordException(error as Error);
+        span.end();
+        throw error;
+      }
+    });
   }, [collection.id, memberships, repositories, dependencies]);
 
   // Split nodes into valid (can render) and unplaced (need user placement)
@@ -526,17 +570,27 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     hasComputedLayout.current = true;
 
     // Run layout engine - it will create regions AND compute positions
+    const span = tracer.startSpan('collection-map.initialize-layout');
+    span.setAttribute('collection.id', collection.id);
+    span.setAttribute('nodes.count', nodes.length);
+    span.setAttribute('needs.regions', needsRegions);
+    span.setAttribute('needs.layout', needsLayout);
+
     const map = nodesToUnifiedOverworldMap(nodes, {
       regionLayout,
       customRegions,
     });
 
+    span.setAttribute('regions.computed', map.regions.length);
+    span.setAttribute('nodes.positioned', map.nodes.length);
+
     (async () => {
-      const updates: {
-        regions?: CustomRegion[];
-        assignments?: Array<{ repositoryId: string; regionId: string }>;
-        positions?: Array<{ repositoryId: string; layout: RepositoryLayoutData }>;
-      } = {};
+      try {
+        const updates: {
+          regions?: CustomRegion[];
+          assignments?: Array<{ repositoryId: string; regionId: string }>;
+          positions?: Array<{ repositoryId: string; layout: RepositoryLayoutData }>;
+        } = {};
 
       // Prepare regions if needed
       if (needsRegions && map.regions.length > 0) {
@@ -587,8 +641,23 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         }
       }
 
-      // Single batched update - 1 re-render!
-      await regionCallbacks.onBatchLayoutInitialized(collection.id, updates);
+        // Single batched update - 1 re-render!
+        span.addEvent('batch-layout-update', {
+          'regions.count': updates.regions?.length || 0,
+          'assignments.count': updates.assignments?.length || 0,
+          'positions.count': updates.positions?.length || 0,
+        });
+
+        await regionCallbacks.onBatchLayoutInitialized(collection.id, updates);
+
+        span.setStatus({ code: 1 }); // OK
+        span.end();
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({ code: 2, message: (error as Error).message }); // ERROR
+        span.end();
+        throw error;
+      }
     })();
   }, [collection.id, nodes, regionLayout, customRegions, regionCallbacks]);
 
@@ -599,33 +668,25 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     viewportRef.current = viewport;
   }, []);
 
-  // Handle drags from the unplaced drawer
-  const handleDrawerDrop = useCallback(async (event: React.DragEvent) => {
-    const unplacedNodeData = event.dataTransfer.getData('application/x-unplaced-node');
-    if (!unplacedNodeData) return; // Not a drawer drag
+  // Manual drag event handlers to ensure drops work for unplaced nodes
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    // Check if this is an unplaced node drag
+    if (e.dataTransfer.types.includes('application/x-unplaced-node')) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, []);
 
-    event.preventDefault();
-    event.stopPropagation();
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    // Check if this is an unplaced node drag
+    if (e.dataTransfer.types.includes('application/x-unplaced-node')) {
+      e.preventDefault();
+      e.stopPropagation();
 
-    const { nodeId } = JSON.parse(unplacedNodeData);
-    console.log('[handleDrawerDrop] Dropping unplaced node:', nodeId);
-
-    // Convert drop position to grid coordinates
-    const gridCoords = domEventToGridCoords(
-      event.clientX,
-      event.clientY,
-      viewportRef.current,
-      canvasRef.current
-    );
-
-    const gridX = Math.round(gridCoords.gridX);
-    const gridY = Math.round(gridCoords.gridY);
-
-    console.log('[handleDrawerDrop] Placing at:', { gridX, gridY });
-
-    // Place the node (no metadata needed - it's already in the collection)
-    await handleProjectMoved(nodeId, gridX, gridY);
-  }, [handleProjectMoved]);
+      // Call the drawer drop handler
+      handleDrawerDrop(e);
+    }
+  }, [handleDrawerDrop]);
 
   return (
     <div
@@ -640,6 +701,8 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         transition: 'border-color 0.2s ease',
       }}
       {...dropZoneProps}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
         {/* Edit Regions button */}
         <button
