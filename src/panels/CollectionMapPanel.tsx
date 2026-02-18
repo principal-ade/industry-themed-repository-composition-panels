@@ -676,9 +676,9 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
   // Manual drag event handlers to ensure drops work for both external and unplaced node drags
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    // Allow drops for both external drags and unplaced node drags
+    // Allow drops for both external drags (application/x-panel-data) and unplaced node drags
     if (e.dataTransfer.types.includes('application/x-unplaced-node') ||
-        e.dataTransfer.types.includes('repository-project')) {
+        e.dataTransfer.types.includes('application/x-panel-data')) {
       e.preventDefault();
       e.stopPropagation();
     }
