@@ -674,25 +674,28 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     viewportRef.current = viewport;
   }, []);
 
-  // Manual drag event handlers to ensure drops work for unplaced nodes
+  // Manual drag event handlers to ensure drops work for both external and unplaced node drags
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    // Check if this is an unplaced node drag
-    if (e.dataTransfer.types.includes('application/x-unplaced-node')) {
+    // Allow drops for both external drags and unplaced node drags
+    if (e.dataTransfer.types.includes('application/x-unplaced-node') ||
+        e.dataTransfer.types.includes('repository-project')) {
       e.preventDefault();
       e.stopPropagation();
     }
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
-    // Check if this is an unplaced node drag
+    // Handle unplaced node drags manually (useDropZone doesn't handle them properly)
     if (e.dataTransfer.types.includes('application/x-unplaced-node')) {
       e.preventDefault();
       e.stopPropagation();
-
-      // Call the drawer drop handler
       handleDrawerDrop(e);
     }
-  }, [handleDrawerDrop]);
+    // For external drags, let dropZoneProps.onDrop handle it
+    else if (dropZoneProps.onDrop) {
+      dropZoneProps.onDrop(e);
+    }
+  }, [handleDrawerDrop, dropZoneProps]);
 
   return (
     <div
