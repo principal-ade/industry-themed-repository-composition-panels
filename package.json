@@ -40,7 +40,8 @@
     "test": "bun test --preload ./src/panels/overworld-map/test-setup.ts",
     "test:watch": "bun test --preload ./src/panels/overworld-map/test-setup.ts --watch",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "prepare": "husky"
   },
   "peerDependencies": {
     "@principal-ade/dynamic-file-tree": "^0.1.67",
@@ -104,6 +105,8 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-storybook": "10.1.2",
     "happy-dom": "^20.6.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -120,5 +123,14 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/principal-ade/industry-themed-repository-composition-panels.git"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }
