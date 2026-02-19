@@ -10,9 +10,12 @@ const window = new Window();
 const document = window.document;
 
 // Set globals
-(global as any).window = window;
-(global as any).document = document;
-(global as any).HTMLCanvasElement = window.HTMLCanvasElement;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).window = window;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).document = document;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).HTMLCanvasElement = window.HTMLCanvasElement;
 
 // Mock canvas 2d context since happy-dom doesn't fully support it
 // We only need basic structure for testing, not actual rendering
@@ -67,9 +70,15 @@ const mockContext = {
 
 // Override getContext to return our mock
 const originalGetContext = window.HTMLCanvasElement.prototype.getContext;
-window.HTMLCanvasElement.prototype.getContext = function (contextType: any, ...args: any[]) {
+window.HTMLCanvasElement.prototype.getContext = function (
+  contextType: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ...args: any[]
+) {
   if (contextType === '2d') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return mockContext as any;
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return originalGetContext.call(this, contextType as any, ...args);
 };

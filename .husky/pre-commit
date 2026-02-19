@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Run typecheck on entire codebase (TypeScript needs full type graph)
 bun run typecheck
 

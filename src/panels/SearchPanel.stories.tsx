@@ -67,7 +67,7 @@ const sampleFiles = [
 ];
 
 const createMockFileTree = (files: string[]): FileTree => {
-  const allFiles = files.map(path => {
+  const allFiles = files.map((path) => {
     const parts = path.split('/');
     const name = parts[parts.length - 1];
     return {
@@ -80,7 +80,7 @@ const createMockFileTree = (files: string[]): FileTree => {
   });
 
   const directories = new Set<string>();
-  files.forEach(path => {
+  files.forEach((path) => {
     const parts = path.split('/');
     let dir = '';
     for (let i = 0; i < parts.length - 1; i++) {
@@ -89,7 +89,7 @@ const createMockFileTree = (files: string[]): FileTree => {
     }
   });
 
-  const allDirectories = Array.from(directories).map(path => {
+  const allDirectories = Array.from(directories).map((path) => {
     const parts = path.split('/');
     return {
       path,
@@ -119,8 +119,8 @@ const createMockFileTree = (files: string[]): FileTree => {
       totalSize: 0,
     },
     metadata: {},
-    getFile: (path: string) => allFiles.find(f => f.path === path),
-    getDirectory: (path: string) => allDirectories.find(d => d.path === path),
+    getFile: (path: string) => allFiles.find((f) => f.path === path),
+    getDirectory: (path: string) => allDirectories.find((d) => d.path === path),
   } as unknown as FileTree;
 };
 
@@ -134,12 +134,8 @@ export const Default: Story = {
   args: {
     fileTree: sampleFileTree,
     baseDirectory: '/Users/developer/my-project',
-    onFileSelect: (filePath: string) => {
-      console.log('File selected:', filePath);
-    },
-    onSearchResultsChange: (results) => {
-      console.log('Search results:', results.length);
-    },
+    onFileSelect: (_filePath: string) => {},
+    onSearchResultsChange: (_results) => {},
   },
 };
 
@@ -182,16 +178,26 @@ export const LargeFileTree: Story = {
   args: {
     fileTree: createMockFileTree([
       ...sampleFiles,
-      ...Array.from({ length: 50 }, (_, i) => `src/features/feature${i}/index.tsx`),
-      ...Array.from({ length: 50 }, (_, i) => `src/features/feature${i}/component.tsx`),
-      ...Array.from({ length: 50 }, (_, i) => `src/features/feature${i}/styles.css`),
+      ...Array.from(
+        { length: 50 },
+        (_, i) => `src/features/feature${i}/index.tsx`
+      ),
+      ...Array.from(
+        { length: 50 },
+        (_, i) => `src/features/feature${i}/component.tsx`
+      ),
+      ...Array.from(
+        { length: 50 },
+        (_, i) => `src/features/feature${i}/styles.css`
+      ),
       ...Array.from({ length: 20 }, (_, i) => `tests/unit/test${i}.spec.ts`),
-      ...Array.from({ length: 20 }, (_, i) => `tests/integration/test${i}.spec.ts`),
+      ...Array.from(
+        { length: 20 },
+        (_, i) => `tests/integration/test${i}.spec.ts`
+      ),
     ]),
     baseDirectory: '/Users/developer/large-project',
-    onFileSelect: (filePath: string) => {
-      console.log('File selected:', filePath);
-    },
+    onFileSelect: (_filePath: string) => {},
   },
 };
 
@@ -201,7 +207,9 @@ export const LargeFileTree: Story = {
 export const Preview: StoryObj<typeof SearchPanelPreview> = {
   render: () => (
     <ThemeProvider>
-      <div style={{ width: '200px', background: '#1a1a1a', borderRadius: '8px' }}>
+      <div
+        style={{ width: '200px', background: '#1a1a1a', borderRadius: '8px' }}
+      >
         <SearchPanelPreview />
       </div>
     </ThemeProvider>

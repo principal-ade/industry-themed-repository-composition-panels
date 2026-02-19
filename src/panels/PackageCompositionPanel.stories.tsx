@@ -1,7 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ThemeProvider } from '@principal-ade/industry-theme';
-import { PackageCompositionPanelContent, PackageCompositionPanelPreview } from './PackageCompositionPanel';
-import type { PackageLayer, PackageCommand, ConfigFile } from '../types/composition';
+import {
+  PackageCompositionPanelContent,
+  PackageCompositionPanelPreview,
+} from './PackageCompositionPanel';
+import type {
+  PackageLayer,
+  PackageCommand,
+  ConfigFile,
+} from '../types/composition';
 
 /**
  * PackageCompositionPanelContent displays detected packages with their
@@ -108,9 +115,30 @@ const samplePackages: PackageLayer[] = [
       availableCommands: [
         { name: 'dev', command: 'vite', type: 'script' },
         { name: 'build', command: 'vite build', type: 'script' },
-        { name: 'test', command: 'vitest', type: 'script', isLensCommand: true, lensId: 'vitest', lensOperation: 'check' },
-        { name: 'lint', command: 'eslint .', type: 'script', isLensCommand: true, lensId: 'eslint', lensOperation: 'check' },
-        { name: 'typecheck', command: 'tsc --noEmit', type: 'script', isLensCommand: true, lensId: 'typescript', lensOperation: 'check' },
+        {
+          name: 'test',
+          command: 'vitest',
+          type: 'script',
+          isLensCommand: true,
+          lensId: 'vitest',
+          lensOperation: 'check',
+        },
+        {
+          name: 'lint',
+          command: 'eslint .',
+          type: 'script',
+          isLensCommand: true,
+          lensId: 'eslint',
+          lensOperation: 'check',
+        },
+        {
+          name: 'typecheck',
+          command: 'tsc --noEmit',
+          type: 'script',
+          isLensCommand: true,
+          lensId: 'typescript',
+          lensOperation: 'check',
+        },
       ],
     },
     configFiles: {
@@ -146,12 +174,35 @@ const samplePackages: PackageLayer[] = [
       ],
     },
     configFiles: {
-      typescript: { path: 'packages/ui/tsconfig.json', exists: true, type: 'json' },
-      eslint: { path: 'eslint.config.js', exists: true, type: 'js', isInherited: true, inheritedFrom: 'root' },
-      prettier: { path: '.prettierrc', exists: true, type: 'json', isInherited: true, inheritedFrom: 'root' },
+      typescript: {
+        path: 'packages/ui/tsconfig.json',
+        exists: true,
+        type: 'json',
+      },
+      eslint: {
+        path: 'eslint.config.js',
+        exists: true,
+        type: 'js',
+        isInherited: true,
+        inheritedFrom: 'root',
+      },
+      prettier: {
+        path: '.prettierrc',
+        exists: true,
+        type: 'json',
+        isInherited: true,
+        inheritedFrom: 'root',
+      },
     },
     qualityMetrics: {
-      hexagon: { tests: 80, linting: 90, formatting: 95, types: 85, deadCode: 70, documentation: 60 },
+      hexagon: {
+        tests: 80,
+        linting: 90,
+        formatting: 95,
+        types: 85,
+        deadCode: 70,
+        documentation: 60,
+      },
       availableLenses: ['eslint', 'prettier', 'typescript'],
       lensReadiness: {
         eslint: {
@@ -162,8 +213,25 @@ const samplePackages: PackageLayer[] = [
           readyViaInheritance: true,
           inheritedChecks: 1,
           checks: [
-            { requirement: { type: 'devDependency', name: 'eslint', description: 'ESLint package' }, satisfied: true, foundValue: '^9.0.0' },
-            { requirement: { type: 'config', name: 'eslint.config.js', description: 'ESLint config' }, satisfied: true, isInherited: true, inheritedFrom: 'root' },
+            {
+              requirement: {
+                type: 'devDependency',
+                name: 'eslint',
+                description: 'ESLint package',
+              },
+              satisfied: true,
+              foundValue: '^9.0.0',
+            },
+            {
+              requirement: {
+                type: 'config',
+                name: 'eslint.config.js',
+                description: 'ESLint config',
+              },
+              satisfied: true,
+              isInherited: true,
+              inheritedFrom: 'root',
+            },
           ],
           missing: [],
           ecosystem: 'node',
@@ -176,7 +244,11 @@ const samplePackages: PackageLayer[] = [
           },
           installInstructions: {
             command: 'npm install -D eslint',
-            alternatives: { pnpm: 'pnpm add -D eslint', yarn: 'yarn add -D eslint', bun: 'bun add -D eslint' },
+            alternatives: {
+              pnpm: 'pnpm add -D eslint',
+              yarn: 'yarn add -D eslint',
+              bun: 'bun add -D eslint',
+            },
           },
           defaultCommand: 'eslint .',
           isToolchainTool: false,
@@ -189,8 +261,25 @@ const samplePackages: PackageLayer[] = [
           readyViaInheritance: true,
           inheritedChecks: 1,
           checks: [
-            { requirement: { type: 'devDependency', name: 'prettier', description: 'Prettier package' }, satisfied: true, foundValue: '^3.0.0' },
-            { requirement: { type: 'config', name: '.prettierrc', description: 'Prettier config' }, satisfied: true, isInherited: true, inheritedFrom: 'root' },
+            {
+              requirement: {
+                type: 'devDependency',
+                name: 'prettier',
+                description: 'Prettier package',
+              },
+              satisfied: true,
+              foundValue: '^3.0.0',
+            },
+            {
+              requirement: {
+                type: 'config',
+                name: '.prettierrc',
+                description: 'Prettier config',
+              },
+              satisfied: true,
+              isInherited: true,
+              inheritedFrom: 'root',
+            },
           ],
           missing: [],
           ecosystem: 'node',
@@ -203,7 +292,11 @@ const samplePackages: PackageLayer[] = [
           },
           installInstructions: {
             command: 'npm install -D prettier',
-            alternatives: { pnpm: 'pnpm add -D prettier', yarn: 'yarn add -D prettier', bun: 'bun add -D prettier' },
+            alternatives: {
+              pnpm: 'pnpm add -D prettier',
+              yarn: 'yarn add -D prettier',
+              bun: 'bun add -D prettier',
+            },
           },
           defaultCommand: 'prettier --check .',
           isToolchainTool: false,
@@ -214,8 +307,24 @@ const samplePackages: PackageLayer[] = [
           ready: true,
           partial: false,
           checks: [
-            { requirement: { type: 'devDependency', name: 'typescript', description: 'TypeScript compiler' }, satisfied: true, foundValue: '^5.0.0' },
-            { requirement: { type: 'config', name: 'tsconfig.json', description: 'TypeScript config' }, satisfied: true, foundValue: 'packages/ui/tsconfig.json' },
+            {
+              requirement: {
+                type: 'devDependency',
+                name: 'typescript',
+                description: 'TypeScript compiler',
+              },
+              satisfied: true,
+              foundValue: '^5.0.0',
+            },
+            {
+              requirement: {
+                type: 'config',
+                name: 'tsconfig.json',
+                description: 'TypeScript config',
+              },
+              satisfied: true,
+              foundValue: 'packages/ui/tsconfig.json',
+            },
           ],
           missing: [],
           ecosystem: 'node',
@@ -228,7 +337,11 @@ const samplePackages: PackageLayer[] = [
           },
           installInstructions: {
             command: 'npm install -D typescript',
-            alternatives: { pnpm: 'pnpm add -D typescript', yarn: 'yarn add -D typescript', bun: 'bun add -D typescript' },
+            alternatives: {
+              pnpm: 'pnpm add -D typescript',
+              yarn: 'yarn add -D typescript',
+              bun: 'bun add -D typescript',
+            },
           },
           defaultCommand: 'tsc --noEmit',
           isToolchainTool: false,
@@ -253,14 +366,40 @@ const samplePackages: PackageLayer[] = [
       peerDependencies: {},
       availableCommands: [
         { name: 'build', command: 'tsup', type: 'script' },
-        { name: 'test', command: 'vitest', type: 'script', isLensCommand: true, lensId: 'vitest' },
+        {
+          name: 'test',
+          command: 'vitest',
+          type: 'script',
+          isLensCommand: true,
+          lensId: 'vitest',
+        },
       ],
     },
     configFiles: {
-      typescript: { path: 'packages/utils/tsconfig.json', exists: true, type: 'json' },
-      vitest: { path: 'packages/utils/vitest.config.ts', exists: true, type: 'ts' },
-      eslint: { path: 'eslint.config.js', exists: true, type: 'js', isInherited: true, inheritedFrom: 'root' },
-      prettier: { path: '.prettierrc', exists: true, type: 'json', isInherited: true, inheritedFrom: 'root' },
+      typescript: {
+        path: 'packages/utils/tsconfig.json',
+        exists: true,
+        type: 'json',
+      },
+      vitest: {
+        path: 'packages/utils/vitest.config.ts',
+        exists: true,
+        type: 'ts',
+      },
+      eslint: {
+        path: 'eslint.config.js',
+        exists: true,
+        type: 'js',
+        isInherited: true,
+        inheritedFrom: 'root',
+      },
+      prettier: {
+        path: '.prettierrc',
+        exists: true,
+        type: 'json',
+        isInherited: true,
+        inheritedFrom: 'root',
+      },
     },
   }),
   createMockPackage({
@@ -288,9 +427,25 @@ const samplePackages: PackageLayer[] = [
       ],
     },
     configFiles: {
-      typescript: { path: 'packages/api/tsconfig.json', exists: true, type: 'json' },
-      eslint: { path: 'eslint.config.js', exists: true, type: 'js', isInherited: true, inheritedFrom: 'root' },
-      prettier: { path: '.prettierrc', exists: true, type: 'json', isInherited: true, inheritedFrom: 'root' },
+      typescript: {
+        path: 'packages/api/tsconfig.json',
+        exists: true,
+        type: 'json',
+      },
+      eslint: {
+        path: 'eslint.config.js',
+        exists: true,
+        type: 'js',
+        isInherited: true,
+        inheritedFrom: 'root',
+      },
+      prettier: {
+        path: '.prettierrc',
+        exists: true,
+        type: 'json',
+        isInherited: true,
+        inheritedFrom: 'root',
+      },
     },
   }),
 ];
@@ -301,15 +456,9 @@ const samplePackages: PackageLayer[] = [
 export const Default: Story = {
   args: {
     packages: samplePackages,
-    onCommandClick: (command: PackageCommand, packagePath: string) => {
-      console.log('Command clicked:', command.name, 'in', packagePath || 'root');
-    },
-    onConfigClick: (config: ConfigFile) => {
-      console.log('Config clicked:', config.path);
-    },
-    onPackageClick: (packagePath: string) => {
-      console.log('Package clicked:', packagePath || 'root');
-    },
+    onCommandClick: (_command: PackageCommand, _packagePath: string) => {},
+    onConfigClick: (_config: ConfigFile) => {},
+    onPackageClick: (_packagePath: string) => {},
   },
 };
 
@@ -386,12 +535,51 @@ export const ManyCommands: Story = {
             { name: 'dev', command: 'vite', type: 'script' },
             { name: 'build', command: 'vite build', type: 'script' },
             { name: 'preview', command: 'vite preview', type: 'script' },
-            { name: 'test', command: 'vitest', type: 'script', isLensCommand: true, lensId: 'vitest' },
-            { name: 'test:coverage', command: 'vitest --coverage', type: 'script', isLensCommand: true, lensId: 'vitest', lensOperation: 'coverage' },
-            { name: 'lint', command: 'eslint .', type: 'script', isLensCommand: true, lensId: 'eslint' },
-            { name: 'lint:fix', command: 'eslint . --fix', type: 'script', isLensCommand: true, lensId: 'eslint', lensOperation: 'fix' },
-            { name: 'format', command: 'prettier --write .', type: 'script', isLensCommand: true, lensId: 'prettier', lensOperation: 'fix' },
-            { name: 'typecheck', command: 'tsc --noEmit', type: 'script', isLensCommand: true, lensId: 'typescript' },
+            {
+              name: 'test',
+              command: 'vitest',
+              type: 'script',
+              isLensCommand: true,
+              lensId: 'vitest',
+            },
+            {
+              name: 'test:coverage',
+              command: 'vitest --coverage',
+              type: 'script',
+              isLensCommand: true,
+              lensId: 'vitest',
+              lensOperation: 'coverage',
+            },
+            {
+              name: 'lint',
+              command: 'eslint .',
+              type: 'script',
+              isLensCommand: true,
+              lensId: 'eslint',
+            },
+            {
+              name: 'lint:fix',
+              command: 'eslint . --fix',
+              type: 'script',
+              isLensCommand: true,
+              lensId: 'eslint',
+              lensOperation: 'fix',
+            },
+            {
+              name: 'format',
+              command: 'prettier --write .',
+              type: 'script',
+              isLensCommand: true,
+              lensId: 'prettier',
+              lensOperation: 'fix',
+            },
+            {
+              name: 'typecheck',
+              command: 'tsc --noEmit',
+              type: 'script',
+              isLensCommand: true,
+              lensId: 'typescript',
+            },
           ],
         },
         configFiles: {
@@ -434,8 +622,20 @@ export const WithInlineConfigs: Story = {
           ],
         },
         configFiles: {
-          eslint: { path: 'package.json', exists: true, type: 'json', isInline: true, inlineField: 'eslintConfig' },
-          prettier: { path: 'package.json', exists: true, type: 'json', isInline: true, inlineField: 'prettier' },
+          eslint: {
+            path: 'package.json',
+            exists: true,
+            type: 'json',
+            isInline: true,
+            inlineField: 'eslintConfig',
+          },
+          prettier: {
+            path: 'package.json',
+            exists: true,
+            type: 'json',
+            isInline: true,
+            inlineField: 'prettier',
+          },
         },
       }),
     ],
@@ -470,10 +670,32 @@ export const PythonPackage: Story = {
           },
           peerDependencies: {},
           availableCommands: [
-            { name: 'serve', command: 'uvicorn main:app --reload', type: 'script' },
-            { name: 'test', command: 'pytest', type: 'script', isLensCommand: true, lensId: 'pytest' },
-            { name: 'lint', command: 'ruff check .', type: 'script', isLensCommand: true, lensId: 'ruff' },
-            { name: 'typecheck', command: 'mypy .', type: 'script', isLensCommand: true, lensId: 'mypy' },
+            {
+              name: 'serve',
+              command: 'uvicorn main:app --reload',
+              type: 'script',
+            },
+            {
+              name: 'test',
+              command: 'pytest',
+              type: 'script',
+              isLensCommand: true,
+              lensId: 'pytest',
+            },
+            {
+              name: 'lint',
+              command: 'ruff check .',
+              type: 'script',
+              isLensCommand: true,
+              lensId: 'ruff',
+            },
+            {
+              name: 'typecheck',
+              command: 'mypy .',
+              type: 'script',
+              isLensCommand: true,
+              lensId: 'mypy',
+            },
           ],
         },
         configFiles: {
@@ -607,7 +829,9 @@ export const MonorepoOrchestrators: Story = {
 export const Preview: StoryObj<typeof PackageCompositionPanelPreview> = {
   render: () => (
     <ThemeProvider>
-      <div style={{ width: '200px', background: '#1a1a1a', borderRadius: '8px' }}>
+      <div
+        style={{ width: '200px', background: '#1a1a1a', borderRadius: '8px' }}
+      >
         <PackageCompositionPanelPreview />
       </div>
     </ThemeProvider>

@@ -65,8 +65,9 @@ export const BuildingSizeTest: React.FC<BuildingSizeTestProps> = ({
       // 100 → 1.0x, 316 → 1.5x, 1000 → 2.0x, 3162 → 2.5x, 10000 → 3.0x
       const fileCounts = [100, 316, 1000, 3162, 10000];
       const sizes = fileCounts.map(calculateSize);
-      const sizeLabels = fileCounts.map((count, i) =>
-        `${sizes[i].toFixed(1)}x (${count.toLocaleString()} files)`
+      const sizeLabels = fileCounts.map(
+        (count, i) =>
+          `${sizes[i].toFixed(1)}x (${count.toLocaleString()} files)`
       );
 
       for (let i = 0; i < sizes.length; i++) {
@@ -132,7 +133,7 @@ export const BuildingSizeTest: React.FC<BuildingSizeTestProps> = ({
             },
             centerX: gridWidth / 2,
             centerY: gridHeight / 2,
-            nodeIds: nodes.map(n => n.id),
+            nodeIds: nodes.map((n) => n.id),
           },
         ],
         name: 'Building Size Test',
@@ -196,15 +197,9 @@ export const BuildingSizeTest: React.FC<BuildingSizeTestProps> = ({
           },
         },
         {
-          onDragStart: (nodeId) => {
-            console.log('Drag start:', nodeId);
-          },
-          onDragMove: (nodeId, gridX, gridY) => {
-            console.log('Drag move:', nodeId, gridX, gridY);
-          },
-          onDragEnd: (nodeId, gridX, gridY) => {
-            console.log('Drag end:', nodeId, 'at', gridX, gridY);
-          },
+          onDragStart: (_nodeId) => {},
+          onDragMove: (_nodeId, _gridX, _gridY) => {},
+          onDragEnd: (_nodeId, _gridX, _gridY) => {},
         }
       );
 

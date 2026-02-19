@@ -92,40 +92,40 @@ export const IsometricGridTest: React.FC<IsometricGridTestProps> = ({
         // Bottom face (base - darkest)
         buildingSprite.fillStyle = { color: 0x654321 }; // Dark brown
         buildingSprite.beginPath();
-        buildingSprite.moveTo(-isoWidth / 2, 0);                        // Left
-        buildingSprite.lineTo(0, -isoDepthY);                           // Back
-        buildingSprite.lineTo(isoWidth / 2, 0);                         // Right
-        buildingSprite.lineTo(0, isoDepthY);                            // Front
+        buildingSprite.moveTo(-isoWidth / 2, 0); // Left
+        buildingSprite.lineTo(0, -isoDepthY); // Back
+        buildingSprite.lineTo(isoWidth / 2, 0); // Right
+        buildingSprite.lineTo(0, isoDepthY); // Front
         buildingSprite.closePath();
         buildingSprite.fill();
 
         // Left face (darker side)
         buildingSprite.fillStyle = { color: 0x8b4513 }; // Brown
         buildingSprite.beginPath();
-        buildingSprite.moveTo(-isoWidth / 2, 0);                        // Bottom left
-        buildingSprite.lineTo(-isoWidth / 2, -height);                  // Top left
-        buildingSprite.lineTo(0, -height - isoDepthY);                  // Top back (2:1 ratio)
-        buildingSprite.lineTo(0, -isoDepthY);                           // Bottom back (2:1 ratio)
+        buildingSprite.moveTo(-isoWidth / 2, 0); // Bottom left
+        buildingSprite.lineTo(-isoWidth / 2, -height); // Top left
+        buildingSprite.lineTo(0, -height - isoDepthY); // Top back (2:1 ratio)
+        buildingSprite.lineTo(0, -isoDepthY); // Bottom back (2:1 ratio)
         buildingSprite.closePath();
         buildingSprite.fill();
 
         // Right face (lighter front)
         buildingSprite.fillStyle = { color: 0xd2691e }; // Lighter brown
         buildingSprite.beginPath();
-        buildingSprite.moveTo(0, -isoDepthY);                           // Bottom back
-        buildingSprite.lineTo(0, -height - isoDepthY);                  // Top back
-        buildingSprite.lineTo(isoWidth / 2, -height);                   // Top right
-        buildingSprite.lineTo(isoWidth / 2, 0);                         // Bottom right
+        buildingSprite.moveTo(0, -isoDepthY); // Bottom back
+        buildingSprite.lineTo(0, -height - isoDepthY); // Top back
+        buildingSprite.lineTo(isoWidth / 2, -height); // Top right
+        buildingSprite.lineTo(isoWidth / 2, 0); // Bottom right
         buildingSprite.closePath();
         buildingSprite.fill();
 
         // Top face (roof - lightest)
         buildingSprite.fillStyle = { color: 0xa0522d }; // Medium brown
         buildingSprite.beginPath();
-        buildingSprite.moveTo(-isoWidth / 2, -height);                  // Left
-        buildingSprite.lineTo(0, -height - isoDepthY);                  // Back (2:1 ratio)
-        buildingSprite.lineTo(isoWidth / 2, -height);                   // Right
-        buildingSprite.lineTo(0, -height + isoDepthY);                  // Front (2:1 ratio)
+        buildingSprite.moveTo(-isoWidth / 2, -height); // Left
+        buildingSprite.lineTo(0, -height - isoDepthY); // Back (2:1 ratio)
+        buildingSprite.lineTo(isoWidth / 2, -height); // Right
+        buildingSprite.lineTo(0, -height + isoDepthY); // Front (2:1 ratio)
         buildingSprite.closePath();
         buildingSprite.fill();
 
@@ -199,7 +199,7 @@ export const IsometricGridTest: React.FC<IsometricGridTestProps> = ({
       const renderer = new IsometricRenderer({
         viewport,
         atlas,
-        tileWidth: 64,  // Must match ISO_TILE_WIDTH from isometricUtils
+        tileWidth: 64, // Must match ISO_TILE_WIDTH from isometricUtils
         tileHeight: 32, // Must match ISO_TILE_HEIGHT from isometricUtils
         gridColor: 0x333333,
         regionColor: 0xff6600,
@@ -211,8 +211,8 @@ export const IsometricGridTest: React.FC<IsometricGridTestProps> = ({
       // 5. Calculate grid center and position all containers
       const centerGridX = gridWidth / 2;
       const centerGridY = gridHeight / 2;
-      const centerScreenX = (centerGridX - centerGridY) * 32;  // ISO_TILE_WIDTH / 2
-      const centerScreenY = (centerGridX + centerGridY) * 16;  // ISO_TILE_HEIGHT / 2
+      const centerScreenX = (centerGridX - centerGridY) * 32; // ISO_TILE_WIDTH / 2
+      const centerScreenY = (centerGridX + centerGridY) * 16; // ISO_TILE_HEIGHT / 2
       const offsetX = worldWidth / 2 - centerScreenX;
       const offsetY = worldHeight / 2 - centerScreenY;
 
@@ -247,25 +247,19 @@ export const IsometricGridTest: React.FC<IsometricGridTestProps> = ({
           {
             viewport,
             worldContainer: viewport,
-            tileWidth: 64,  // Must match ISO_TILE_WIDTH from isometricUtils
+            tileWidth: 64, // Must match ISO_TILE_WIDTH from isometricUtils
             tileHeight: 32, // Must match ISO_TILE_HEIGHT from isometricUtils
             mapBounds: {
               minX: boundaryRadius,
               minY: boundaryRadius,
-              maxX: gridWidth - boundaryRadius,  // Try without the -1
+              maxX: gridWidth - boundaryRadius, // Try without the -1
               maxY: gridHeight - boundaryRadius,
             },
           },
           {
-            onDragStart: (nodeId) => {
-              console.log('Drag start:', nodeId);
-            },
-            onDragMove: (nodeId, gridX, gridY) => {
-              console.log('Drag move:', nodeId, gridX, gridY);
-            },
-            onDragEnd: (nodeId, gridX, gridY) => {
-              console.log('Drag end:', nodeId, 'at', gridX, gridY);
-            },
+            onDragStart: (_nodeId) => {},
+            onDragMove: (_nodeId, _gridX, _gridY) => {},
+            onDragEnd: (_nodeId, _gridX, _gridY) => {},
           }
         );
 

@@ -13,8 +13,12 @@ import type {
   LocationNodeType,
 } from './types';
 import { REGION_SIZE_TILES } from './types';
+import type { CustomRegion } from '@principal-ai/alexandria-collections';
 import type { AgingMetrics } from '../../utils/repositoryAging';
-import { layoutSpritesMultiRegion, layoutSpritesInRegion } from './spriteLayoutEngine';
+import {
+  layoutSpritesMultiRegion,
+  layoutSpritesInRegion,
+} from './spriteLayoutEngine';
 
 /**
  * Generic node - represents any entity (package, repo, service, etc.)
@@ -25,18 +29,18 @@ export interface GenericNode {
   isRoot?: boolean;
 
   // For determining visual representation
-  category?: string;      // e.g., 'frontend', 'backend', 'database', 'python', 'node'
-  language?: string;      // Primary programming language (e.g., 'typescript', 'python', 'rust')
-  importance?: number;    // 0-100, affects building size
-  size?: number;          // Size multiplier (1.5x - 4.0x) for sprite scaling based on metrics
-  aging?: AgingMetrics;   // Aging metrics for weathering and color fade
+  category?: string; // e.g., 'frontend', 'backend', 'database', 'python', 'node'
+  language?: string; // Primary programming language (e.g., 'typescript', 'python', 'rust')
+  importance?: number; // 0-100, affects building size
+  size?: number; // Size multiplier (1.5x - 4.0x) for sprite scaling based on metrics
+  aging?: AgingMetrics; // Aging metrics for weathering and color fade
 
   // Connections to other nodes
-  dependencies?: string[];    // IDs of nodes this depends on
+  dependencies?: string[]; // IDs of nodes this depends on
   devDependencies?: string[]; // IDs of dev/optional dependencies
 
   // Region assignment
-  regionId?: string;          // Which custom region this node is assigned to
+  regionId?: string; // Which custom region this node is assigned to
 
   // Saved position data
   layout?: {
@@ -63,7 +67,7 @@ export interface RegionLayout {
 export interface GenericMapperOptions {
   includeDevDependencies?: boolean;
   mapPadding?: number;
-  customRegions?: any[]; // Manual region definitions for manual layout mode
+  customRegions?: CustomRegion[]; // Manual region definitions for manual layout mode
 
   // Region layout configuration
   regionLayout?: RegionLayout;
@@ -102,22 +106,22 @@ const DEFAULT_CATEGORY_THEMES: Record<string, BiomeTheme> = {
  * Default category to color mapping
  */
 const DEFAULT_CATEGORY_COLORS: Record<string, string> = {
-  node: '#06b6d4',       // cyan
+  node: '#06b6d4', // cyan
   javascript: '#06b6d4',
   typescript: '#06b6d4',
-  python: '#fbbf24',     // yellow
-  rust: '#ef4444',       // red
+  python: '#fbbf24', // yellow
+  rust: '#ef4444', // red
   cargo: '#ef4444',
-  go: '#22c55e',         // green
+  go: '#22c55e', // green
   frontend: '#06b6d4',
   backend: '#ef4444',
   database: '#3b82f6',
   api: '#fbbf24',
-  'git-repo': '#3b82f6',  // blue
-  monorepo: '#8b5cf6',    // purple
-  library: '#22c55e',     // green
-  tool: '#fbbf24',        // yellow
-  default: '#94a3b8',     // gray
+  'git-repo': '#3b82f6', // blue
+  monorepo: '#8b5cf6', // purple
+  library: '#22c55e', // green
+  tool: '#fbbf24', // yellow
+  default: '#94a3b8', // gray
 };
 
 /**
@@ -129,22 +133,34 @@ function getCategoryTheme(
 ): BiomeTheme {
   if (!category) return 'grass';
   if (customMapper) return customMapper(category);
-  return DEFAULT_CATEGORY_THEMES[category.toLowerCase()] || DEFAULT_CATEGORY_THEMES.default;
+  return (
+    DEFAULT_CATEGORY_THEMES[category.toLowerCase()] ||
+    DEFAULT_CATEGORY_THEMES.default
+  );
 }
 
 /**
  * Get color for a category
  */
-function getCategoryColor(category: string | undefined, isRoot: boolean): string {
+function getCategoryColor(
+  category: string | undefined,
+  isRoot: boolean
+): string {
   if (isRoot) return '#f97316'; // Orange for root
   if (!category) return DEFAULT_CATEGORY_COLORS.default;
-  return DEFAULT_CATEGORY_COLORS[category.toLowerCase()] || DEFAULT_CATEGORY_COLORS.default;
+  return (
+    DEFAULT_CATEGORY_COLORS[category.toLowerCase()] ||
+    DEFAULT_CATEGORY_COLORS.default
+  );
 }
 
 /**
  * Determine node type based on importance/size
  */
-function determineNodeType(node: GenericNode, isRoot: boolean): LocationNodeType {
+function determineNodeType(
+  node: GenericNode,
+  isRoot: boolean
+): LocationNodeType {
   // Check for git-specific categories
   if (node.category === 'git-repo') return 'git-repo';
   if (node.category === 'monorepo') return 'monorepo';
@@ -152,7 +168,8 @@ function determineNodeType(node: GenericNode, isRoot: boolean): LocationNodeType
   if (isRoot) return 'castle';
 
   const importance = node.importance || 0;
-  const depCount = (node.dependencies?.length || 0) + (node.devDependencies?.length || 0);
+  const depCount =
+    (node.dependencies?.length || 0) + (node.devDependencies?.length || 0);
 
   if (importance > 80 || depCount > 10) return 'fortress';
   if (importance > 50 || depCount > 5) return 'tower';
@@ -313,7 +330,7 @@ export function nodesToUnifiedOverworldMap(
 ): OverworldMap {
   // Calculate consistent size for each node (used by both layout and rendering)
   // CRITICAL: Layout engine and renderer must use the same size value
-  const nodeWithSizes = nodes.map(node => {
+  const nodeWithSizes = nodes.map((node) => {
     const isRoot = node.isRoot || false;
     const nodeType = options.getNodeType
       ? options.getNodeType(node)
@@ -324,7 +341,12 @@ export function nodesToUnifiedOverworldMap(
   });
 
   // Use automatic layout engine for positioning
-  const layoutNodes: Array<{ id: string; size: number; language?: string; lastEditedAt?: string }> = nodeWithSizes.map(node => ({
+  const layoutNodes: Array<{
+    id: string;
+    size: number;
+    language?: string;
+    lastEditedAt?: string;
+  }> = nodeWithSizes.map((node) => ({
     id: node.id,
     size: node.size, // Now guaranteed to have a size
     language: node.language,
@@ -337,12 +359,18 @@ export function nodesToUnifiedOverworldMap(
     name: string;
     gridPosition: { row: number; col: number };
     bounds: { x: number; y: number; width: number; height: number };
-    nodes: Array<{ id: string; gridX: number; gridY: number; size: number; language?: string }>;
+    nodes: Array<{
+      id: string;
+      gridX: number;
+      gridY: number;
+      size: number;
+      language?: string;
+    }>;
   }>;
 
   // If custom regions are provided (manual mode), create empty regions at their positions
   if (options.customRegions && options.customRegions.length > 0) {
-    layoutRegions = options.customRegions.map((customRegion: any) => {
+    layoutRegions = options.customRegions.map((customRegion: CustomRegion) => {
       // Calculate grid position from order (row-major layout with 10 columns max)
       const row = Math.floor(customRegion.order / 10);
       const col = customRegion.order % 10;
@@ -368,10 +396,13 @@ export function nodesToUnifiedOverworldMap(
 
     for (const layoutNode of layoutNodes) {
       // Find the original GenericNode to get its regionId
-      const genericNode = nodeWithSizes.find(n => n.id === layoutNode.id);
+      const genericNode = nodeWithSizes.find((n) => n.id === layoutNode.id);
       const assignedRegionId = genericNode?.regionId;
 
-      if (assignedRegionId && layoutRegions.some(r => r.regionId === assignedRegionId)) {
+      if (
+        assignedRegionId &&
+        layoutRegions.some((r) => r.regionId === assignedRegionId)
+      ) {
         // Node has a valid region assignment
         if (!nodesByRegion.has(assignedRegionId)) {
           nodesByRegion.set(assignedRegionId, []);
@@ -398,22 +429,33 @@ export function nodesToUnifiedOverworldMap(
       const needsPositioning: typeof regionNodes = [];
 
       for (const layoutNode of regionNodes) {
-        const genericNode = nodeWithSizes.find(n => n.id === layoutNode.id);
+        const genericNode = nodeWithSizes.find((n) => n.id === layoutNode.id);
         // Use saved position if it exists
-        if (genericNode?.layout?.gridX !== undefined &&
-            genericNode.layout.gridY !== undefined) {
+        if (
+          genericNode?.layout?.gridX !== undefined &&
+          genericNode.layout.gridY !== undefined
+        ) {
           savedPositions.push(layoutNode);
         } else {
           needsPositioning.push(layoutNode);
         }
       }
 
-      const placedNodes: Array<{id: string, gridX: number, gridY: number, size: number, language?: string}> = [];
+      const placedNodes: Array<{
+        id: string;
+        gridX: number;
+        gridY: number;
+        size: number;
+        language?: string;
+      }> = [];
 
       // Place nodes with saved positions first
       for (const layoutNode of savedPositions) {
-        const genericNode = nodeWithSizes.find(n => n.id === layoutNode.id);
-        if (genericNode?.layout?.gridX !== undefined && genericNode.layout.gridY !== undefined) {
+        const genericNode = nodeWithSizes.find((n) => n.id === layoutNode.id);
+        if (
+          genericNode?.layout?.gridX !== undefined &&
+          genericNode.layout.gridY !== undefined
+        ) {
           placedNodes.push({
             id: layoutNode.id,
             gridX: region.bounds.x + genericNode.layout.gridX,
@@ -426,22 +468,30 @@ export function nodesToUnifiedOverworldMap(
 
       // Use circle packing for nodes without saved positions
       if (needsPositioning.length > 0) {
-        const result = layoutSpritesInRegion(needsPositioning, {
-          width: REGION_SIZE_TILES,
-          height: REGION_SIZE_TILES,
-        }, { spacing: 0.5 });
+        const result = layoutSpritesInRegion(
+          needsPositioning,
+          {
+            width: REGION_SIZE_TILES,
+            height: REGION_SIZE_TILES,
+          },
+          { spacing: 0.5 }
+        );
 
         // Add auto-positioned nodes to placed nodes
-        placedNodes.push(...result.placed.map(node => ({
-          id: node.id,
-          gridX: region.bounds.x + node.gridX,
-          gridY: region.bounds.y + node.gridY,
-          size: node.size,
-          language: node.language,
-        })));
+        placedNodes.push(
+          ...result.placed.map((node) => ({
+            id: node.id,
+            gridX: region.bounds.x + node.gridX,
+            gridY: region.bounds.y + node.gridY,
+            size: node.size,
+            language: node.language,
+          }))
+        );
 
         if (result.overflow.length > 0) {
-          console.warn(`[nodesToUnifiedOverworldMap] ${result.overflow.length} nodes didn't fit in region ${region.name}`);
+          console.warn(
+            `[nodesToUnifiedOverworldMap] ${result.overflow.length} nodes didn't fit in region ${region.name}`
+          );
         }
       }
 
@@ -452,20 +502,30 @@ export function nodesToUnifiedOverworldMap(
     // This provides a sensible initial placement when repos don't have region assignments
     if (unassignedNodes.length > 0 && layoutRegions.length > 0) {
       // Use age-based distribution if nodes have lastEditedAt data
-      const hasAgeData = unassignedNodes.some(n => {
-        const genericNode = nodeWithSizes.find(gn => gn.id === n.id);
+      const hasAgeData = unassignedNodes.some((n) => {
+        const genericNode = nodeWithSizes.find((gn) => gn.id === n.id);
         return genericNode?.aging?.lastEditedAt;
       });
 
       if (hasAgeData && layoutRegions.length >= 2) {
         // Distribute by age across available regions
         // Map age buckets to regions (evenly distributed)
-        const regionMapping = new Map<string, typeof layoutRegions[0]>();
-        const ageBuckets = ['LAST_MONTH', 'LAST_3_MONTHS', 'LAST_YEAR', 'OLDER'];
+        const regionMapping = new Map<string, (typeof layoutRegions)[0]>();
+        const ageBuckets = [
+          'LAST_MONTH',
+          'LAST_3_MONTHS',
+          'LAST_YEAR',
+          'OLDER',
+        ];
 
         ageBuckets.forEach((bucket, index) => {
-          const regionIndex = Math.floor((index / ageBuckets.length) * layoutRegions.length);
-          regionMapping.set(bucket, layoutRegions[Math.min(regionIndex, layoutRegions.length - 1)]);
+          const regionIndex = Math.floor(
+            (index / ageBuckets.length) * layoutRegions.length
+          );
+          regionMapping.set(
+            bucket,
+            layoutRegions[Math.min(regionIndex, layoutRegions.length - 1)]
+          );
         });
 
         // Helper to get age bucket
@@ -483,7 +543,7 @@ export function nodesToUnifiedOverworldMap(
         // Group unassigned nodes by age
         const nodesByAge = new Map<string, typeof unassignedNodes>();
         for (const node of unassignedNodes) {
-          const genericNode = nodeWithSizes.find(n => n.id === node.id);
+          const genericNode = nodeWithSizes.find((n) => n.id === node.id);
           const bucket = getAgeBucket(genericNode?.aging?.lastEditedAt);
           if (!nodesByAge.has(bucket)) {
             nodesByAge.set(bucket, []);
@@ -494,41 +554,57 @@ export function nodesToUnifiedOverworldMap(
         // Place each age group in its corresponding region
         for (const [bucket, nodes] of nodesByAge.entries()) {
           const targetRegion = regionMapping.get(bucket) || layoutRegions[0];
-          const result = layoutSpritesInRegion(nodes, {
-            width: REGION_SIZE_TILES,
-            height: REGION_SIZE_TILES,
-          }, { spacing: 0.5 });
+          const result = layoutSpritesInRegion(
+            nodes,
+            {
+              width: REGION_SIZE_TILES,
+              height: REGION_SIZE_TILES,
+            },
+            { spacing: 0.5 }
+          );
 
           // Append to region's nodes
-          targetRegion.nodes.push(...result.placed.map(node => ({
-            id: node.id,
-            gridX: targetRegion.bounds.x + node.gridX,
-            gridY: targetRegion.bounds.y + node.gridY,
-            size: node.size,
-            language: node.language,
-          })));
+          targetRegion.nodes.push(
+            ...result.placed.map((node) => ({
+              id: node.id,
+              gridX: targetRegion.bounds.x + node.gridX,
+              gridY: targetRegion.bounds.y + node.gridY,
+              size: node.size,
+              language: node.language,
+            }))
+          );
         }
       } else {
         // Fallback: Place all unassigned nodes in the first region
         const firstRegion = layoutRegions[0];
-        const result = layoutSpritesInRegion(unassignedNodes, {
-          width: REGION_SIZE_TILES,
-          height: REGION_SIZE_TILES,
-        }, { spacing: 0.5 });
+        const result = layoutSpritesInRegion(
+          unassignedNodes,
+          {
+            width: REGION_SIZE_TILES,
+            height: REGION_SIZE_TILES,
+          },
+          { spacing: 0.5 }
+        );
 
         // Append to first region's nodes
-        firstRegion.nodes.push(...result.placed.map(node => ({
-          id: node.id,
-          gridX: firstRegion.bounds.x + node.gridX,
-          gridY: firstRegion.bounds.y + node.gridY,
-          size: node.size,
-          language: node.language,
-        })));
+        firstRegion.nodes.push(
+          ...result.placed.map((node) => ({
+            id: node.id,
+            gridX: firstRegion.bounds.x + node.gridX,
+            gridY: firstRegion.bounds.y + node.gridY,
+            size: node.size,
+            language: node.language,
+          }))
+        );
       }
     }
   } else {
     // Use automatic age-based grouping
-    const autoLayoutRegions = layoutSpritesMultiRegion(layoutNodes, REGION_SIZE_TILES, { spacing: 0.5 });
+    const autoLayoutRegions = layoutSpritesMultiRegion(
+      layoutNodes,
+      REGION_SIZE_TILES,
+      { spacing: 0.5 }
+    );
 
     // Convert to required format with guaranteed names
     layoutRegions = autoLayoutRegions.map((region, index) => ({
@@ -546,14 +622,22 @@ export function nodesToUnifiedOverworldMap(
         regionId: 'region-0-0',
         name: 'Main',
         gridPosition: { row: 0, col: 0 },
-        bounds: { x: 0, y: 0, width: REGION_SIZE_TILES, height: REGION_SIZE_TILES },
+        bounds: {
+          x: 0,
+          y: 0,
+          width: REGION_SIZE_TILES,
+          height: REGION_SIZE_TILES,
+        },
         nodes: [],
       });
     }
   }
 
   // Create node position lookup
-  const nodePositions = new Map<string, { gridX: number; gridY: number; size: number; language?: string }>();
+  const nodePositions = new Map<
+    string,
+    { gridX: number; gridY: number; size: number; language?: string }
+  >();
   for (const region of layoutRegions) {
     for (const layoutNode of region.nodes) {
       nodePositions.set(layoutNode.id, {
@@ -567,7 +651,11 @@ export function nodesToUnifiedOverworldMap(
 
   // Convert to LocationNodes
   const locationNodes: LocationNode[] = nodeWithSizes.map((node) => {
-    const pos = nodePositions.get(node.id) || { gridX: 0, gridY: 0, size: node.size };
+    const pos = nodePositions.get(node.id) || {
+      gridX: 0,
+      gridY: 0,
+      size: node.size,
+    };
     const isRoot = node.isRoot || false;
     const theme = getCategoryTheme(node.category, options.getCategoryTheme);
     const nodeType = options.getNodeType
@@ -582,10 +670,18 @@ export function nodesToUnifiedOverworldMap(
     const spriteKey = `building-${size.toFixed(2)}-${color}`;
 
     // Validate packageType
-    const packageType = (['node', 'python', 'cargo', 'go', 'package'] as const).includes(
-      node.category as any
+    const validPackageTypes = [
+      'node',
+      'python',
+      'cargo',
+      'go',
+      'package',
+    ] as const;
+    type PackageType = (typeof validPackageTypes)[number];
+    const packageType: PackageType = validPackageTypes.includes(
+      node.category as PackageType
     )
-      ? (node.category as 'node' | 'python' | 'cargo' | 'go' | 'package')
+      ? (node.category as PackageType)
       : 'package';
 
     return {
@@ -655,23 +751,25 @@ export function nodesToUnifiedOverworldMap(
   }
 
   // Calculate total map dimensions (accounting for negative positions like staging region)
-  const minCol = Math.min(...layoutRegions.map(r => r.gridPosition.col));
-  const maxCol = Math.max(...layoutRegions.map(r => r.gridPosition.col));
-  const minRow = Math.min(...layoutRegions.map(r => r.gridPosition.row));
-  const maxRow = Math.max(...layoutRegions.map(r => r.gridPosition.row));
+  const minCol = Math.min(...layoutRegions.map((r) => r.gridPosition.col));
+  const maxCol = Math.max(...layoutRegions.map((r) => r.gridPosition.col));
+  const minRow = Math.min(...layoutRegions.map((r) => r.gridPosition.row));
+  const maxRow = Math.max(...layoutRegions.map((r) => r.gridPosition.row));
   const totalCols = maxCol - minCol + 1;
   const totalRows = maxRow - minRow + 1;
   const mapWidth = totalCols * REGION_SIZE_TILES;
   const mapHeight = totalRows * REGION_SIZE_TILES;
 
   // Create regions with age bucket names if available
-  const regions: MapRegion[] = layoutRegions.map(region => ({
+  const regions: MapRegion[] = layoutRegions.map((region) => ({
     id: region.regionId,
-    name: region.name || `Region ${region.gridPosition.row}-${region.gridPosition.col}`,
+    name:
+      region.name ||
+      `Region ${region.gridPosition.row}-${region.gridPosition.col}`,
     bounds: region.bounds,
     centerX: region.bounds.x + region.bounds.width / 2,
     centerY: region.bounds.y + region.bounds.height / 2,
-    nodeIds: region.nodes.map(n => n.id),
+    nodeIds: region.nodes.map((n) => n.id),
   }));
 
   return {

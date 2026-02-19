@@ -112,7 +112,15 @@ const PackageCoverageCard: React.FC<PackageCoverageCardProps> = ({
 
   const stats = useMemo(() => {
     if (!coverage || coverage.files.length === 0) {
-      return { percentage: 0, totalTraced: 0, totalTests: 0, testFiles: 0, coveredFiles: 0, partialFiles: 0, uncoveredFiles: 0 };
+      return {
+        percentage: 0,
+        totalTraced: 0,
+        totalTests: 0,
+        testFiles: 0,
+        coveredFiles: 0,
+        partialFiles: 0,
+        uncoveredFiles: 0,
+      };
     }
     const result = calculateTelemetryCoverageStats(coverage.files);
     return result;
@@ -141,13 +149,15 @@ const PackageCoverageCard: React.FC<PackageCoverageCardProps> = ({
       onMouseEnter={(e) => {
         if (!isSelected) {
           e.currentTarget.style.borderColor = theme.colors.primary;
-          e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+          e.currentTarget.style.backgroundColor =
+            theme.colors.backgroundTertiary;
         }
       }}
       onMouseLeave={(e) => {
         if (!isSelected) {
           e.currentTarget.style.borderColor = theme.colors.border;
-          e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+          e.currentTarget.style.backgroundColor =
+            theme.colors.backgroundSecondary;
         }
       }}
     >
@@ -155,7 +165,11 @@ const PackageCoverageCard: React.FC<PackageCoverageCardProps> = ({
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Activity
           size={16}
-          color={stats.percentage > 0 ? getCoverageColor(stats.percentage) : theme.colors.textSecondary}
+          color={
+            stats.percentage > 0
+              ? getCoverageColor(stats.percentage)
+              : theme.colors.textSecondary
+          }
         />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
@@ -249,7 +263,9 @@ const PackageCoverageCard: React.FC<PackageCoverageCardProps> = ({
 /**
  * TelemetryCoveragePanelContent - Internal component that renders the telemetry coverage UI
  */
-export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps> = ({
+export const TelemetryCoveragePanelContent: React.FC<
+  TelemetryCoveragePanelProps
+> = ({
   packages,
   coverageData,
   fileTree,
@@ -260,7 +276,9 @@ export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps
   onViewTrace,
 }) => {
   const { theme } = useTheme();
-  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(
+    null
+  );
 
   // Create coverage map for quick lookup
   const coverageMap = useMemo(() => {
@@ -274,8 +292,12 @@ export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps
     return [...packages].sort((a, b) => {
       const aCoverage = coverageMap.get(a.id);
       const bCoverage = coverageMap.get(b.id);
-      const aStats = aCoverage ? calculateTelemetryCoverageStats(aCoverage.files) : { percentage: 0 };
-      const bStats = bCoverage ? calculateTelemetryCoverageStats(bCoverage.files) : { percentage: 0 };
+      const aStats = aCoverage
+        ? calculateTelemetryCoverageStats(aCoverage.files)
+        : { percentage: 0 };
+      const bStats = bCoverage
+        ? calculateTelemetryCoverageStats(bCoverage.files)
+        : { percentage: 0 };
       return bStats.percentage - aStats.percentage;
     });
   }, [packages, coverageMap]);
@@ -294,7 +316,15 @@ export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps
   const overallStats = useMemo(() => {
     const allFiles = coverageData.flatMap((c) => c.files);
     if (allFiles.length === 0) {
-      return { percentage: 0, totalTraced: 0, totalTests: 0, testFiles: 0, coveredFiles: 0, partialFiles: 0, uncoveredFiles: 0 };
+      return {
+        percentage: 0,
+        totalTraced: 0,
+        totalTests: 0,
+        testFiles: 0,
+        coveredFiles: 0,
+        partialFiles: 0,
+        uncoveredFiles: 0,
+      };
     }
     return calculateTelemetryCoverageStats(allFiles);
   }, [coverageData]);
@@ -379,7 +409,12 @@ export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps
             <div style={{ fontWeight: 600, color: theme.colors.text }}>
               {pkg.packageData.name}
             </div>
-            <div style={{ fontSize: theme.fontSizes[0], color: theme.colors.textSecondary }}>
+            <div
+              style={{
+                fontSize: theme.fontSizes[0],
+                color: theme.colors.textSecondary,
+              }}
+            >
               {overallStats.totalTraced}/{overallStats.totalTests} tests traced
             </div>
           </div>
@@ -459,18 +494,29 @@ export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps
             }}
           >
             <Activity size={16} color={theme.colors.primary} />
-            <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
+            <span
+              style={{
+                fontSize: theme.fontSizes[1],
+                color: theme.colors.textSecondary,
+              }}
+            >
               {packages.length} packages
             </span>
             <div style={{ flex: 1 }} />
-            <span style={{ fontSize: theme.fontSizes[0], color: theme.colors.textSecondary }}>
+            <span
+              style={{
+                fontSize: theme.fontSizes[0],
+                color: theme.colors.textSecondary,
+              }}
+            >
               Overall:
             </span>
             <CoverageBar percentage={overallStats.percentage} />
             <span
               style={{
                 padding: '2px 8px',
-                backgroundColor: getCoverageColor(overallStats.percentage) + '20',
+                backgroundColor:
+                  getCoverageColor(overallStats.percentage) + '20',
                 color: getCoverageColor(overallStats.percentage),
                 borderRadius: '4px',
                 fontSize: theme.fontSizes[0],
@@ -545,7 +591,8 @@ export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps
                 transition: 'background-color 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                e.currentTarget.style.backgroundColor =
+                  theme.colors.backgroundTertiary;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
@@ -600,14 +647,22 @@ export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps
                 <div style={{ fontWeight: 600, color: theme.colors.text }}>
                   {selectedPackage.packageData.name}
                 </div>
-                <div style={{ fontSize: theme.fontSizes[0], color: theme.colors.textSecondary }}>
+                <div
+                  style={{
+                    fontSize: theme.fontSizes[0],
+                    color: theme.colors.textSecondary,
+                  }}
+                >
                   {selectedPackage.packageData.path || '/'}
                 </div>
               </div>
               {selectedCoverage && (
                 <>
                   <CoverageBar
-                    percentage={calculateTelemetryCoverageStats(selectedCoverage.files).percentage}
+                    percentage={
+                      calculateTelemetryCoverageStats(selectedCoverage.files)
+                        .percentage
+                    }
                     width={60}
                   />
                   <span
@@ -615,10 +670,13 @@ export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps
                       padding: '2px 8px',
                       backgroundColor:
                         getCoverageColor(
-                          calculateTelemetryCoverageStats(selectedCoverage.files).percentage
+                          calculateTelemetryCoverageStats(
+                            selectedCoverage.files
+                          ).percentage
                         ) + '20',
                       color: getCoverageColor(
-                        calculateTelemetryCoverageStats(selectedCoverage.files).percentage
+                        calculateTelemetryCoverageStats(selectedCoverage.files)
+                          .percentage
                       ),
                       borderRadius: '4px',
                       fontSize: theme.fontSizes[0],
@@ -626,7 +684,11 @@ export const TelemetryCoveragePanelContent: React.FC<TelemetryCoveragePanelProps
                       fontFamily: 'monospace',
                     }}
                   >
-                    {calculateTelemetryCoverageStats(selectedCoverage.files).percentage}%
+                    {
+                      calculateTelemetryCoverageStats(selectedCoverage.files)
+                        .percentage
+                    }
+                    %
                   </span>
                 </>
               )}
@@ -675,11 +737,27 @@ export const TelemetryCoveragePanelPreview: React.FC = () => {
         <Activity size={14} color={theme.colors.primary} />
         <span>Telemetry Coverage</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '8px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          paddingLeft: '8px',
+        }}
+      >
         <TestTube size={12} color={theme.colors.textSecondary} />
-        <span style={{ color: theme.colors.textSecondary }}>8/14 tests traced</span>
+        <span style={{ color: theme.colors.textSecondary }}>
+          8/14 tests traced
+        </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '8px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          paddingLeft: '8px',
+        }}
+      >
         <CoverageBar percentage={57} width={40} />
         <span
           style={{
@@ -699,12 +777,19 @@ export const TelemetryCoveragePanelPreview: React.FC = () => {
  * TelemetryCoveragePanel - Panel Framework compatible component
  * Uses context.getSlice('packages') and context.getSlice('fileTree') to get data
  */
-export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({ context, events }) => {
+export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({
+  context,
+  events,
+}) => {
   // Get packages and fileTree slices from context
   const packagesSlice = context.getSlice<PackagesSliceData>('packages');
   const fileTreeSlice = context.getSlice<FileTree>('fileTree');
 
-  const packages = packagesSlice?.data?.packages ?? [];
+  // Wrap in useMemo to maintain stable reference when undefined
+  const packages = useMemo(
+    () => packagesSlice?.data?.packages ?? [],
+    [packagesSlice?.data?.packages]
+  );
   const fileTree = fileTreeSlice?.data ?? undefined;
   const isLoading = packagesSlice?.loading || fileTreeSlice?.loading || false;
 
@@ -714,22 +799,6 @@ export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({ context,
     const allFiles = fileTree?.allFiles ?? [];
 
     // Debug: Log sample file paths to understand structure
-    if (allFiles.length > 0) {
-      const traceFiles = allFiles.filter(f =>
-        (f.relativePath || f.path || '').includes('__traces__')
-      );
-      console.log('[TelemetryCoveragePanel] Total files:', allFiles.length);
-      console.log('[TelemetryCoveragePanel] Trace files found:', traceFiles.length);
-      if (traceFiles.length > 0) {
-        console.log('[TelemetryCoveragePanel] Sample trace file:', {
-          path: traceFiles[0].path,
-          relativePath: traceFiles[0].relativePath,
-          name: traceFiles[0].name,
-        });
-      }
-      // Log a sample of file paths to see the format
-      console.log('[TelemetryCoveragePanel] Sample paths:', allFiles.slice(0, 3).map(f => f.relativePath || f.path));
-    }
 
     // Find all trace canvas files and map them to package paths
     const traceFilesByPackage = new Map<string, string>();
@@ -741,7 +810,9 @@ export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({ context,
       // - packages/{pkg}/__traces__/*.canvas.json
       // - packages/{pkg}/**/__traces__/*.canvas.json (nested)
       // - __traces__/*.canvas.json (root)
-      const packageMatch = filePath.match(/^packages\/([^/]+)(?:\/.*)?__traces__\/[^/]+\.canvas\.json$/);
+      const packageMatch = filePath.match(
+        /^packages\/([^/]+)(?:\/.*)?__traces__\/[^/]+\.canvas\.json$/
+      );
       const rootMatch = filePath.match(/^__traces__\/[^/]+\.canvas\.json$/);
 
       if (packageMatch) {
@@ -760,8 +831,6 @@ export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({ context,
     }
 
     // Debug: Log what we found
-    console.log('[TelemetryCoveragePanel] Trace files by package:', Object.fromEntries(traceFilesByPackage));
-    console.log('[TelemetryCoveragePanel] Packages:', packages.map(p => ({ name: p.packageData.name, path: p.packageData.path })));
 
     // Build coverage data for each package
     return packages.map((pkg) => {
@@ -774,9 +843,11 @@ export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({ context,
       const packageTestFiles = allFiles.filter((file) => {
         const filePath = file.relativePath || file.path || '';
         // Check if file is in this package and is a test file
-        const isInPackage = pkgPath === ''
-          ? !filePath.startsWith('packages/') // Root package
-          : filePath.startsWith(pkgPath + '/') || filePath.startsWith(pkgPath.replace(/^\//, '') + '/');
+        const isInPackage =
+          pkgPath === ''
+            ? !filePath.startsWith('packages/') // Root package
+            : filePath.startsWith(pkgPath + '/') ||
+              filePath.startsWith(pkgPath.replace(/^\//, '') + '/');
         return isInPackage && testFilePattern.test(filePath);
       });
 
@@ -811,7 +882,7 @@ export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({ context,
     });
 
     // Find the coverage data for this package to get the trace file path
-    const pkgCoverage = coverageData.find(c => c.packagePath === packagePath);
+    const pkgCoverage = coverageData.find((c) => c.packagePath === packagePath);
     if (pkgCoverage?.traceFilePath) {
       // Also emit trace:load to update the TraceViewerPanel
       events?.emit({
@@ -841,7 +912,9 @@ export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({ context,
 
     // When selecting a package with a trace file, load that trace
     if (pkg) {
-      const pkgCoverage = coverageData.find(c => c.packagePath === pkg.packageData.path);
+      const pkgCoverage = coverageData.find(
+        (c) => c.packagePath === pkg.packageData.path
+      );
       if (pkgCoverage?.traceFilePath) {
         events?.emit({
           type: 'trace:load',

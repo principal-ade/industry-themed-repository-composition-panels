@@ -15,15 +15,15 @@ import type { OverworldMap } from './types';
  * Language-to-color mapping (from genericMapper.ts)
  */
 const LANGUAGE_COLORS: Record<string, string> = {
-  node: '#06b6d4',       // cyan
+  node: '#06b6d4', // cyan
   javascript: '#06b6d4',
   typescript: '#06b6d4',
-  python: '#fbbf24',     // yellow
-  rust: '#ef4444',       // red
+  python: '#fbbf24', // yellow
+  rust: '#ef4444', // red
   cargo: '#ef4444',
-  go: '#22c55e',         // green
-  java: '#f97316',       // orange
-  default: '#94a3b8',    // gray
+  go: '#22c55e', // green
+  java: '#f97316', // orange
+  default: '#94a3b8', // gray
 };
 
 export interface SpriteConfig {
@@ -75,7 +75,8 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
       const height = window.innerHeight;
 
       // 1. Create sprites using either sprites prop or size distribution
-      const inputNodes: Array<{ id: string; size: number; language?: string }> = [];
+      const inputNodes: Array<{ id: string; size: number; language?: string }> =
+        [];
       let nodeId = 0;
 
       if (sprites) {
@@ -114,15 +115,13 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
       }
 
       // 2. Use layout engine to position sprites across multiple regions
-      const regions = layoutSpritesMultiRegion(
-        inputNodes,
-        regionSize,
-        { spacing: 0.5 }
-      );
+      const regions = layoutSpritesMultiRegion(inputNodes, regionSize, {
+        spacing: 0.5,
+      });
 
       // Calculate world size based on regions layout
-      const maxCol = Math.max(...regions.map(r => r.gridPosition.col));
-      const maxRow = Math.max(...regions.map(r => r.gridPosition.row));
+      const maxCol = Math.max(...regions.map((r) => r.gridPosition.col));
+      const maxRow = Math.max(...regions.map((r) => r.gridPosition.row));
       const totalCols = maxCol + 1;
       const totalRows = maxRow + 1;
       const gridWidth = totalCols * regionSize;
@@ -148,14 +147,9 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
       // Calculate total placed and overflow
       const totalPlaced = regions.reduce((sum, r) => sum + r.nodes.length, 0);
       const totalOverflow = inputNodes.length - totalPlaced;
-      const avgUtilization = regions.reduce((sum, r) => sum + r.capacity.utilization, 0) / regions.length;
-
-      console.log('Layout result:', {
-        regions: regions.length,
-        placed: totalPlaced,
-        overflow: totalOverflow,
-        avgUtilization,
-      });
+      const avgUtilization =
+        regions.reduce((sum, r) => sum + r.capacity.utilization, 0) /
+        regions.length;
 
       // Update stats for UI display
       setStats({
@@ -171,7 +165,7 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
 
       // 4. Create sprite textures for each unique size+language combination
       const atlas: Record<string, Texture> = {};
-      const allNodes = regions.flatMap(r => r.nodes);
+      const allNodes = regions.flatMap((r) => r.nodes);
 
       // Create set of unique size+language combinations
       const uniqueCombos = new Set<string>();
@@ -185,7 +179,8 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
       for (const combo of uniqueCombos) {
         const [sizeStr, language] = combo.split('-');
         const size = parseFloat(sizeStr);
-        const colorHex = LANGUAGE_COLORS[language.toLowerCase()] || LANGUAGE_COLORS.default;
+        const colorHex =
+          LANGUAGE_COLORS[language.toLowerCase()] || LANGUAGE_COLORS.default;
         const color = parseInt(colorHex.replace('#', ''), 16);
 
         const buildingGraphics = generateBuildingSprite({ size, color });
@@ -199,7 +194,8 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
       // 5. Create map data with laid out sprites from all regions
       const nodes = allNodes.map((node) => {
         const language = node.language || 'default';
-        const color = LANGUAGE_COLORS[language.toLowerCase()] || LANGUAGE_COLORS.default;
+        const color =
+          LANGUAGE_COLORS[language.toLowerCase()] || LANGUAGE_COLORS.default;
         const label = node.language
           ? `${node.size.toFixed(1)}x ${node.language}`
           : `${node.size.toFixed(1)}x`;
@@ -228,13 +224,13 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
         tiles: [],
         nodes,
         paths: [],
-        regions: regions.map(region => ({
+        regions: regions.map((region) => ({
           id: region.regionId,
           name: `Region ${region.gridPosition.row}-${region.gridPosition.col}`,
           bounds: region.bounds,
           centerX: region.bounds.x + region.bounds.width / 2,
           centerY: region.bounds.y + region.bounds.height / 2,
-          nodeIds: region.nodes.map(n => n.id),
+          nodeIds: region.nodes.map((n) => n.id),
         })),
         name: 'Layout Engine Test',
       };
@@ -297,15 +293,9 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
           },
         },
         {
-          onDragStart: (nodeId) => {
-            console.log('Drag start:', nodeId);
-          },
-          onDragMove: (nodeId, gridX, gridY) => {
-            console.log('Drag move:', nodeId, gridX, gridY);
-          },
-          onDragEnd: (nodeId, gridX, gridY) => {
-            console.log('Drag end:', nodeId, 'at', gridX, gridY);
-          },
+          onDragStart: (_nodeId) => {},
+          onDragMove: (_nodeId, _gridX, _gridY) => {},
+          onDragEnd: (_nodeId, _gridX, _gridY) => {},
         }
       );
 
@@ -349,7 +339,8 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
             borderRadius: '8px',
             fontFamily: 'monospace',
             fontSize: '14px',
-            border: stats.overflow > 0 ? '2px solid #ef4444' : '2px solid #22c55e',
+            border:
+              stats.overflow > 0 ? '2px solid #ef4444' : '2px solid #22c55e',
           }}
         >
           <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>

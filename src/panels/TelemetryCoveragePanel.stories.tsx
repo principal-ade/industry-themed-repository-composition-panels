@@ -1,7 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import type { FileTelemetryCoverage } from '@principal-ade/dynamic-file-tree';
-import type { FileTree, DirectoryInfo, FileInfo } from '@principal-ai/repository-abstraction';
+import type {
+  FileTree,
+  DirectoryInfo,
+  FileInfo,
+} from '@principal-ai/repository-abstraction';
 import {
   TelemetryCoveragePanelContent,
   TelemetryCoveragePanelPreview,
@@ -62,7 +66,10 @@ const createDirectory = (
   name,
   children,
   fileCount: children.filter((c) => 'size' in c).length,
-  totalSize: children.reduce((sum, c) => sum + ('size' in c ? c.size : c.totalSize), 0),
+  totalSize: children.reduce(
+    (sum, c) => sum + ('size' in c ? c.size : c.totalSize),
+    0
+  ),
   depth,
   relativePath: path,
 });
@@ -99,25 +106,45 @@ const createMockPackage = (config: {
 // Mock FileTree
 const mockFileTree: FileTree = {
   sha: 'mock-sha',
-  root: createDirectory('', 'root', [
-    createDirectory('src', 'src', [
-      createDirectory('src/components', 'components', [
-        createFile('src/components/Button.tsx', 'Button.tsx'),
-        createFile('src/components/Button.test.tsx', 'Button.test.tsx'),
-        createFile('src/components/Modal.tsx', 'Modal.tsx'),
-        createFile('src/components/Modal.test.tsx', 'Modal.test.tsx'),
-        createFile('src/components/Form.tsx', 'Form.tsx'),
-        createFile('src/components/Form.test.tsx', 'Form.test.tsx'),
-      ], 2),
-      createDirectory('src/hooks', 'hooks', [
-        createFile('src/hooks/useAuth.ts', 'useAuth.ts'),
-        createFile('src/hooks/useAuth.test.ts', 'useAuth.test.ts'),
-        createFile('src/hooks/useApi.ts', 'useApi.ts'),
-        createFile('src/hooks/useApi.test.ts', 'useApi.test.ts'),
-      ], 2),
-    ], 1),
-    createFile('package.json', 'package.json'),
-  ], 0),
+  root: createDirectory(
+    '',
+    'root',
+    [
+      createDirectory(
+        'src',
+        'src',
+        [
+          createDirectory(
+            'src/components',
+            'components',
+            [
+              createFile('src/components/Button.tsx', 'Button.tsx'),
+              createFile('src/components/Button.test.tsx', 'Button.test.tsx'),
+              createFile('src/components/Modal.tsx', 'Modal.tsx'),
+              createFile('src/components/Modal.test.tsx', 'Modal.test.tsx'),
+              createFile('src/components/Form.tsx', 'Form.tsx'),
+              createFile('src/components/Form.test.tsx', 'Form.test.tsx'),
+            ],
+            2
+          ),
+          createDirectory(
+            'src/hooks',
+            'hooks',
+            [
+              createFile('src/hooks/useAuth.ts', 'useAuth.ts'),
+              createFile('src/hooks/useAuth.test.ts', 'useAuth.test.ts'),
+              createFile('src/hooks/useApi.ts', 'useApi.ts'),
+              createFile('src/hooks/useApi.test.ts', 'useApi.test.ts'),
+            ],
+            2
+          ),
+        ],
+        1
+      ),
+      createFile('package.json', 'package.json'),
+    ],
+    0
+  ),
   allFiles: [],
   allDirectories: [],
   stats: {
@@ -141,7 +168,13 @@ const mockSingleCoverage: FileTelemetryCoverage[] = [
     status: 'covered',
     tracedTestCount: 5,
     totalTestCount: 5,
-    tracedTests: ['renders button', 'handles click', 'applies styles', 'shows loading', 'is disabled'],
+    tracedTests: [
+      'renders button',
+      'handles click',
+      'applies styles',
+      'shows loading',
+      'is disabled',
+    ],
   },
   {
     filePath: 'src/components/Modal.test.tsx',
@@ -174,9 +207,21 @@ const mockSingleCoverage: FileTelemetryCoverage[] = [
 // Sample packages for monorepo
 const samplePackages: PackageLayer[] = [
   createMockPackage({ name: 'my-app', path: '', version: '1.0.0' }),
-  createMockPackage({ name: '@my-app/ui', path: 'packages/ui', version: '0.1.0' }),
-  createMockPackage({ name: '@my-app/utils', path: 'packages/utils', version: '0.1.0' }),
-  createMockPackage({ name: '@my-app/api', path: 'packages/api', version: '0.2.0' }),
+  createMockPackage({
+    name: '@my-app/ui',
+    path: 'packages/ui',
+    version: '0.1.0',
+  }),
+  createMockPackage({
+    name: '@my-app/utils',
+    path: 'packages/utils',
+    version: '0.1.0',
+  }),
+  createMockPackage({
+    name: '@my-app/api',
+    path: 'packages/api',
+    version: '0.2.0',
+  }),
 ];
 
 // Sample coverage data for monorepo
@@ -187,8 +232,18 @@ const sampleCoverageData: PackageTelemetryCoverage[] = [
     packagePath: '',
     traceFilePath: '__traces__/test-run.canvas.json',
     files: [
-      { filePath: 'src/App.test.tsx', status: 'covered', tracedTestCount: 8, totalTestCount: 8 },
-      { filePath: 'src/index.test.ts', status: 'partial', tracedTestCount: 2, totalTestCount: 5 },
+      {
+        filePath: 'src/App.test.tsx',
+        status: 'covered',
+        tracedTestCount: 8,
+        totalTestCount: 8,
+      },
+      {
+        filePath: 'src/index.test.ts',
+        status: 'partial',
+        tracedTestCount: 2,
+        totalTestCount: 5,
+      },
     ],
   },
   {
@@ -197,9 +252,24 @@ const sampleCoverageData: PackageTelemetryCoverage[] = [
     packagePath: 'packages/ui',
     traceFilePath: 'packages/ui/__traces__/test-run.canvas.json',
     files: [
-      { filePath: 'packages/ui/src/Button.test.tsx', status: 'covered', tracedTestCount: 12, totalTestCount: 12 },
-      { filePath: 'packages/ui/src/Modal.test.tsx', status: 'covered', tracedTestCount: 6, totalTestCount: 6 },
-      { filePath: 'packages/ui/src/Form.test.tsx', status: 'partial', tracedTestCount: 4, totalTestCount: 10 },
+      {
+        filePath: 'packages/ui/src/Button.test.tsx',
+        status: 'covered',
+        tracedTestCount: 12,
+        totalTestCount: 12,
+      },
+      {
+        filePath: 'packages/ui/src/Modal.test.tsx',
+        status: 'covered',
+        tracedTestCount: 6,
+        totalTestCount: 6,
+      },
+      {
+        filePath: 'packages/ui/src/Form.test.tsx',
+        status: 'partial',
+        tracedTestCount: 4,
+        totalTestCount: 10,
+      },
     ],
   },
   {
@@ -207,8 +277,18 @@ const sampleCoverageData: PackageTelemetryCoverage[] = [
     packageName: '@my-app/utils',
     packagePath: 'packages/utils',
     files: [
-      { filePath: 'packages/utils/src/helpers.test.ts', status: 'none', tracedTestCount: 0, totalTestCount: 15 },
-      { filePath: 'packages/utils/src/format.test.ts', status: 'none', tracedTestCount: 0, totalTestCount: 8 },
+      {
+        filePath: 'packages/utils/src/helpers.test.ts',
+        status: 'none',
+        tracedTestCount: 0,
+        totalTestCount: 15,
+      },
+      {
+        filePath: 'packages/utils/src/format.test.ts',
+        status: 'none',
+        tracedTestCount: 0,
+        totalTestCount: 8,
+      },
     ],
   },
   {
@@ -217,8 +297,18 @@ const sampleCoverageData: PackageTelemetryCoverage[] = [
     packagePath: 'packages/api',
     traceFilePath: 'packages/api/__traces__/integration.canvas.json',
     files: [
-      { filePath: 'packages/api/src/routes.test.ts', status: 'covered', tracedTestCount: 20, totalTestCount: 20 },
-      { filePath: 'packages/api/src/middleware.test.ts', status: 'partial', tracedTestCount: 5, totalTestCount: 12 },
+      {
+        filePath: 'packages/api/src/routes.test.ts',
+        status: 'covered',
+        tracedTestCount: 20,
+        totalTestCount: 20,
+      },
+      {
+        filePath: 'packages/api/src/middleware.test.ts',
+        status: 'partial',
+        tracedTestCount: 5,
+        totalTestCount: 12,
+      },
     ],
   },
 ];
@@ -231,15 +321,9 @@ export const Default: Story = {
     packages: samplePackages,
     coverageData: sampleCoverageData,
     fileTree: mockFileTree,
-    onFileSelect: (filePath, packagePath) => {
-      console.log('File selected:', filePath, 'in package:', packagePath || 'root');
-    },
-    onPackageSelect: (pkg) => {
-      console.log('Package selected:', pkg?.packageData.name || 'none');
-    },
-    onViewTrace: (traceFilePath, packagePath) => {
-      console.log('View trace:', traceFilePath, 'in package:', packagePath || 'root');
-    },
+    onFileSelect: (_filePath, _packagePath) => {},
+    onPackageSelect: (_pkg) => {},
+    onViewTrace: (_traceFilePath, _packagePath) => {},
   },
 };
 
@@ -259,9 +343,7 @@ export const SinglePackage: Story = {
       },
     ],
     fileTree: mockFileTree,
-    onFileSelect: (filePath) => {
-      console.log('File selected:', filePath);
-    },
+    onFileSelect: (_filePath) => {},
   },
 };
 
@@ -283,7 +365,8 @@ export const Error: Story = {
   args: {
     packages: [],
     coverageData: [],
-    error: 'Failed to load telemetry coverage data. Please ensure tests have been run with OpenTelemetry instrumentation.',
+    error:
+      'Failed to load telemetry coverage data. Please ensure tests have been run with OpenTelemetry instrumentation.',
   },
 };
 
@@ -310,9 +393,24 @@ export const HighCoverage: Story = {
         packagePath: '',
         traceFilePath: '__traces__/test-run.canvas.json',
         files: [
-          { filePath: 'src/App.test.tsx', status: 'covered', tracedTestCount: 10, totalTestCount: 10 },
-          { filePath: 'src/index.test.ts', status: 'covered', tracedTestCount: 5, totalTestCount: 5 },
-          { filePath: 'src/utils.test.ts', status: 'covered', tracedTestCount: 8, totalTestCount: 8 },
+          {
+            filePath: 'src/App.test.tsx',
+            status: 'covered',
+            tracedTestCount: 10,
+            totalTestCount: 10,
+          },
+          {
+            filePath: 'src/index.test.ts',
+            status: 'covered',
+            tracedTestCount: 5,
+            totalTestCount: 5,
+          },
+          {
+            filePath: 'src/utils.test.ts',
+            status: 'covered',
+            tracedTestCount: 8,
+            totalTestCount: 8,
+          },
         ],
       },
       {
@@ -321,8 +419,18 @@ export const HighCoverage: Story = {
         packagePath: 'packages/ui',
         traceFilePath: 'packages/ui/__traces__/test-run.canvas.json',
         files: [
-          { filePath: 'packages/ui/src/Button.test.tsx', status: 'covered', tracedTestCount: 12, totalTestCount: 12 },
-          { filePath: 'packages/ui/src/Modal.test.tsx', status: 'covered', tracedTestCount: 8, totalTestCount: 8 },
+          {
+            filePath: 'packages/ui/src/Button.test.tsx',
+            status: 'covered',
+            tracedTestCount: 12,
+            totalTestCount: 12,
+          },
+          {
+            filePath: 'packages/ui/src/Modal.test.tsx',
+            status: 'covered',
+            tracedTestCount: 8,
+            totalTestCount: 8,
+          },
         ],
       },
     ],
@@ -342,8 +450,18 @@ export const LowCoverage: Story = {
         packageName: 'my-app',
         packagePath: '',
         files: [
-          { filePath: 'src/App.test.tsx', status: 'none', tracedTestCount: 0, totalTestCount: 10 },
-          { filePath: 'src/index.test.ts', status: 'none', tracedTestCount: 0, totalTestCount: 5 },
+          {
+            filePath: 'src/App.test.tsx',
+            status: 'none',
+            tracedTestCount: 0,
+            totalTestCount: 10,
+          },
+          {
+            filePath: 'src/index.test.ts',
+            status: 'none',
+            tracedTestCount: 0,
+            totalTestCount: 5,
+          },
         ],
       },
       {
@@ -351,8 +469,18 @@ export const LowCoverage: Story = {
         packageName: '@my-app/ui',
         packagePath: 'packages/ui',
         files: [
-          { filePath: 'packages/ui/src/Button.test.tsx', status: 'partial', tracedTestCount: 2, totalTestCount: 12 },
-          { filePath: 'packages/ui/src/Modal.test.tsx', status: 'none', tracedTestCount: 0, totalTestCount: 8 },
+          {
+            filePath: 'packages/ui/src/Button.test.tsx',
+            status: 'partial',
+            tracedTestCount: 2,
+            totalTestCount: 12,
+          },
+          {
+            filePath: 'packages/ui/src/Modal.test.tsx',
+            status: 'none',
+            tracedTestCount: 0,
+            totalTestCount: 8,
+          },
         ],
       },
     ],
@@ -404,14 +532,24 @@ export const ManyPackages: Story = {
       createMockPackage({ name: '@scope/testing', path: 'packages/testing' }),
     ],
     coverageData: [
-      { packageId: 'package-monorepo-root', packageName: 'monorepo-root', packagePath: '', files: [] },
+      {
+        packageId: 'package-monorepo-root',
+        packageName: 'monorepo-root',
+        packagePath: '',
+        files: [],
+      },
       {
         packageId: 'package-@scope/core',
         packageName: '@scope/core',
         packagePath: 'packages/core',
         traceFilePath: 'packages/core/__traces__/test.canvas.json',
         files: [
-          { filePath: 'packages/core/src/index.test.ts', status: 'covered', tracedTestCount: 20, totalTestCount: 20 },
+          {
+            filePath: 'packages/core/src/index.test.ts',
+            status: 'covered',
+            tracedTestCount: 20,
+            totalTestCount: 20,
+          },
         ],
       },
       {
@@ -420,8 +558,18 @@ export const ManyPackages: Story = {
         packagePath: 'packages/ui',
         traceFilePath: 'packages/ui/__traces__/test.canvas.json',
         files: [
-          { filePath: 'packages/ui/src/Button.test.tsx', status: 'covered', tracedTestCount: 15, totalTestCount: 15 },
-          { filePath: 'packages/ui/src/Modal.test.tsx', status: 'partial', tracedTestCount: 5, totalTestCount: 10 },
+          {
+            filePath: 'packages/ui/src/Button.test.tsx',
+            status: 'covered',
+            tracedTestCount: 15,
+            totalTestCount: 15,
+          },
+          {
+            filePath: 'packages/ui/src/Modal.test.tsx',
+            status: 'partial',
+            tracedTestCount: 5,
+            totalTestCount: 10,
+          },
         ],
       },
       {
@@ -429,7 +577,12 @@ export const ManyPackages: Story = {
         packageName: '@scope/utils',
         packagePath: 'packages/utils',
         files: [
-          { filePath: 'packages/utils/src/helpers.test.ts', status: 'none', tracedTestCount: 0, totalTestCount: 25 },
+          {
+            filePath: 'packages/utils/src/helpers.test.ts',
+            status: 'none',
+            tracedTestCount: 0,
+            totalTestCount: 25,
+          },
         ],
       },
       {
@@ -438,7 +591,12 @@ export const ManyPackages: Story = {
         packagePath: 'packages/api',
         traceFilePath: 'packages/api/__traces__/integration.canvas.json',
         files: [
-          { filePath: 'packages/api/src/routes.test.ts', status: 'covered', tracedTestCount: 30, totalTestCount: 30 },
+          {
+            filePath: 'packages/api/src/routes.test.ts',
+            status: 'covered',
+            tracedTestCount: 30,
+            totalTestCount: 30,
+          },
         ],
       },
       {
@@ -446,7 +604,12 @@ export const ManyPackages: Story = {
         packageName: '@scope/cli',
         packagePath: 'packages/cli',
         files: [
-          { filePath: 'packages/cli/src/commands.test.ts', status: 'partial', tracedTestCount: 8, totalTestCount: 20 },
+          {
+            filePath: 'packages/cli/src/commands.test.ts',
+            status: 'partial',
+            tracedTestCount: 8,
+            totalTestCount: 20,
+          },
         ],
       },
       {
@@ -461,7 +624,12 @@ export const ManyPackages: Story = {
         packagePath: 'packages/config',
         traceFilePath: 'packages/config/__traces__/test.canvas.json',
         files: [
-          { filePath: 'packages/config/src/loader.test.ts', status: 'covered', tracedTestCount: 12, totalTestCount: 12 },
+          {
+            filePath: 'packages/config/src/loader.test.ts',
+            status: 'covered',
+            tracedTestCount: 12,
+            totalTestCount: 12,
+          },
         ],
       },
       {
@@ -469,7 +637,12 @@ export const ManyPackages: Story = {
         packageName: '@scope/testing',
         packagePath: 'packages/testing',
         files: [
-          { filePath: 'packages/testing/src/mocks.test.ts', status: 'partial', tracedTestCount: 3, totalTestCount: 10 },
+          {
+            filePath: 'packages/testing/src/mocks.test.ts',
+            status: 'partial',
+            tracedTestCount: 3,
+            totalTestCount: 10,
+          },
         ],
       },
     ],
@@ -483,7 +656,9 @@ export const ManyPackages: Story = {
 export const Preview: StoryObj<typeof TelemetryCoveragePanelPreview> = {
   render: () => (
     <ThemeProvider>
-      <div style={{ width: '200px', background: '#1a1a1a', borderRadius: '8px' }}>
+      <div
+        style={{ width: '200px', background: '#1a1a1a', borderRadius: '8px' }}
+      >
         <TelemetryCoveragePanelPreview />
       </div>
     </ThemeProvider>

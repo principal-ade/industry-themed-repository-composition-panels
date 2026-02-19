@@ -1,10 +1,24 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { CollectionMapPanel, CollectionMapPanelActions, CollectionMapPanelContext } from './CollectionMapPanel';
-import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
-import type { Collection, CollectionMembership, CustomRegion } from '@principal-ai/alexandria-collections';
+import {
+  CollectionMapPanel,
+  CollectionMapPanelActions,
+  CollectionMapPanelContext,
+} from './CollectionMapPanel';
+import type {
+  PanelComponentProps,
+  RepositoryMetadata,
+} from '@principal-ade/panel-framework-core';
+import type {
+  Collection,
+  CollectionMembership,
+  CustomRegion,
+  RepositoryLayoutData,
+} from '@principal-ai/alexandria-collections';
+import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library/types';
 
 // Browser-compatible EventEmitter
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EventListener = (...args: any[]) => void;
 
 class SimpleEventEmitter {
@@ -24,6 +38,7 @@ class SimpleEventEmitter {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   emit(event: string, ...args: any[]) {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
@@ -44,11 +59,21 @@ export default meta;
 type Story = StoryObj<typeof CollectionMapPanel>;
 
 // Mock Alexandria repository entries
-const createMockRepository = (name: string, language: string, fileCount: number, lineCount: number, daysAgo: number) => ({
+const createMockRepository = (
+  name: string,
+  language: string,
+  fileCount: number,
+  lineCount: number,
+  daysAgo: number
+) => ({
   name,
   path: `/Users/mock/${name}`,
-  registeredAt: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
-  lastEditedAt: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
+  registeredAt: new Date(
+    Date.now() - daysAgo * 24 * 60 * 60 * 1000
+  ).toISOString(),
+  lastEditedAt: new Date(
+    Date.now() - daysAgo * 24 * 60 * 60 * 1000
+  ).toISOString(),
   provider: {
     type: 'github' as const,
     url: `https://github.com/mock/${name}`,
@@ -88,179 +113,263 @@ const IntegrationHarness: React.FC<{
   const [eventLog, setEventLog] = useState<string[]>([]);
 
   const logEvent = useCallback((message: string) => {
-    setEventLog((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    setEventLog((prev) => [
+      ...prev,
+      `${new Date().toLocaleTimeString()}: ${message}`,
+    ]);
   }, []);
 
   // Create event emitter
   const eventEmitter = useMemo(() => new SimpleEventEmitter(), []);
 
   // Region management callbacks
-  const onRegionCreated = useCallback(async (collectionId: string, region: Omit<CustomRegion, 'id'>) => {
-    logEvent(`Creating region: ${region.name}`);
+  const onRegionCreated = useCallback(
+    async (collectionId: string, region: Omit<CustomRegion, 'id'>) => {
+      logEvent(`Creating region: ${region.name}`);
 
-    // Generate deterministic ID from order (row-major: row * 10 + col)
-    const row = Math.floor(region.order / 10);
-    const col = region.order % 10;
+      // Generate deterministic ID from order (row-major: row * 10 + col)
+      const row = Math.floor(region.order / 10);
+      const col = region.order % 10;
 
-    const newRegion: CustomRegion = {
-      ...region,
-      id: `region-${row}-${col}`,
-    };
+      const newRegion: CustomRegion = {
+        ...region,
+        id: `region-${row}-${col}`,
+      };
 
-    setCollection((prev) => ({
-      ...prev,
-      metadata: {
-        ...prev.metadata,
-        customRegions: [...(prev.metadata?.customRegions || []), newRegion],
-      },
-    }));
-
-    eventEmitter.emit('industry-theme.user-collections:collection:updated', { collectionId, region: newRegion });
-    logEvent(`Region created: ${newRegion.id}`);
-
-    return newRegion;
-  }, [logEvent, eventEmitter]);
-
-  const onRegionUpdated = useCallback(async (collectionId: string, regionId: string, updates: Partial<CustomRegion>) => {
-    logEvent(`Updating region ${regionId}: ${JSON.stringify(updates)}`);
-
-    setCollection((prev) => ({
-      ...prev,
-      metadata: {
-        ...prev.metadata,
-        customRegions: prev.metadata?.customRegions?.map((r) =>
-          r.id === regionId ? { ...r, ...updates } : r
-        ),
-      },
-    }));
-
-    eventEmitter.emit('industry-theme.user-collections:collection:updated', { collectionId, regionId, updates });
-    logEvent(`Region updated: ${regionId}`);
-  }, [logEvent, eventEmitter]);
-
-  const onRegionDeleted = useCallback(async (collectionId: string, regionId: string) => {
-    logEvent(`Deleting region: ${regionId}`);
-
-    setCollection((prev) => ({
-      ...prev,
-      metadata: {
-        ...prev.metadata,
-        customRegions: prev.metadata?.customRegions?.filter((r) => r.id !== regionId),
-      },
-    }));
-
-    // Remove region assignments from memberships
-    setMemberships((prev) =>
-      prev.map((m) => {
-        if (m.metadata?.regionId === regionId) {
-          const { regionId: _, ...restMetadata } = m.metadata;
-          return { ...m, metadata: restMetadata };
-        }
-        return m;
-      })
-    );
-
-    eventEmitter.emit('industry-theme.user-collections:collection:updated', { collectionId, regionId, deleted: true });
-    logEvent(`Region deleted: ${regionId}`);
-  }, [logEvent, eventEmitter]);
-
-  const onRepositoryAssigned = useCallback(async (collectionId: string, repositoryId: string, regionId: string | null) => {
-    logEvent(`Assigning repository ${repositoryId} to region ${regionId || 'none'}`);
-
-    setMemberships((prev) =>
-      prev.map((m) =>
-        m.repositoryId === repositoryId
-          ? {
-              ...m,
-              metadata: regionId ? { ...m.metadata, regionId } : { ...m.metadata, regionId: undefined },
-            }
-          : m
-      )
-    );
-
-    eventEmitter.emit('industry-theme.user-collections:collection:repository-assigned', { collectionId, repositoryId, regionId });
-    logEvent(`Repository assigned: ${repositoryId} -> ${regionId || 'auto'}`);
-  }, [logEvent, eventEmitter]);
-
-  const onRepositoryPositionUpdated = useCallback(async (collectionId: string, repositoryId: string, layout: any) => {
-    logEvent(`Updating position for ${repositoryId}: (${layout.gridX}, ${layout.gridY})`);
-
-    setMemberships((prev) =>
-      prev.map((m) =>
-        m.repositoryId === repositoryId
-          ? {
-              ...m,
-              metadata: { ...m.metadata, layout },
-            }
-          : m
-      )
-    );
-
-    eventEmitter.emit('industry-theme.user-collections:collection:repository-position-updated', { collectionId, repositoryId, layout });
-    logEvent(`Position saved: ${repositoryId} at (${layout.gridX}, ${layout.gridY})`);
-  }, [logEvent, eventEmitter]);
-
-  const onBatchLayoutInitialized = useCallback(async (
-    collectionId: string,
-    updates: {
-      regions?: CustomRegion[];
-      assignments?: Array<{ repositoryId: string; regionId: string }>;
-      positions?: Array<{ repositoryId: string; layout: any }>;
-    }
-  ) => {
-    logEvent(`Batch layout initialized: ${updates.regions?.length || 0} regions, ${updates.assignments?.length || 0} assignments, ${updates.positions?.length || 0} positions`);
-
-    // Update collection with regions (if provided)
-    if (updates.regions && updates.regions.length > 0) {
       setCollection((prev) => ({
         ...prev,
         metadata: {
           ...prev.metadata,
-          customRegions: [...(prev.metadata?.customRegions || []), ...updates.regions!],
+          customRegions: [...(prev.metadata?.customRegions || []), newRegion],
         },
       }));
-    }
 
-    // Update memberships with assignments and positions in ONE setState
-    setMemberships((prev) =>
-      prev.map((m) => {
-        const assignment = updates.assignments?.find((a) => a.repositoryId === m.repositoryId);
-        const position = updates.positions?.find((p) => p.repositoryId === m.repositoryId);
+      eventEmitter.emit('industry-theme.user-collections:collection:updated', {
+        collectionId,
+        region: newRegion,
+      });
+      logEvent(`Region created: ${newRegion.id}`);
 
-        if (!assignment && !position) return m; // No changes for this membership
+      return newRegion;
+    },
+    [logEvent, eventEmitter]
+  );
 
-        return {
-          ...m,
+  const onRegionUpdated = useCallback(
+    async (
+      collectionId: string,
+      regionId: string,
+      updates: Partial<CustomRegion>
+    ) => {
+      logEvent(`Updating region ${regionId}: ${JSON.stringify(updates)}`);
+
+      setCollection((prev) => ({
+        ...prev,
+        metadata: {
+          ...prev.metadata,
+          customRegions: prev.metadata?.customRegions?.map((r) =>
+            r.id === regionId ? { ...r, ...updates } : r
+          ),
+        },
+      }));
+
+      eventEmitter.emit('industry-theme.user-collections:collection:updated', {
+        collectionId,
+        regionId,
+        updates,
+      });
+      logEvent(`Region updated: ${regionId}`);
+    },
+    [logEvent, eventEmitter]
+  );
+
+  const onRegionDeleted = useCallback(
+    async (collectionId: string, regionId: string) => {
+      logEvent(`Deleting region: ${regionId}`);
+
+      setCollection((prev) => ({
+        ...prev,
+        metadata: {
+          ...prev.metadata,
+          customRegions: prev.metadata?.customRegions?.filter(
+            (r) => r.id !== regionId
+          ),
+        },
+      }));
+
+      // Remove region assignments from memberships
+      setMemberships((prev) =>
+        prev.map((m) => {
+          if (m.metadata?.regionId === regionId) {
+            const { regionId: _, ...restMetadata } = m.metadata;
+            return { ...m, metadata: restMetadata };
+          }
+          return m;
+        })
+      );
+
+      eventEmitter.emit('industry-theme.user-collections:collection:updated', {
+        collectionId,
+        regionId,
+        deleted: true,
+      });
+      logEvent(`Region deleted: ${regionId}`);
+    },
+    [logEvent, eventEmitter]
+  );
+
+  const onRepositoryAssigned = useCallback(
+    async (
+      collectionId: string,
+      repositoryId: string,
+      regionId: string | null
+    ) => {
+      logEvent(
+        `Assigning repository ${repositoryId} to region ${regionId || 'none'}`
+      );
+
+      setMemberships((prev) =>
+        prev.map((m) =>
+          m.repositoryId === repositoryId
+            ? {
+                ...m,
+                metadata: regionId
+                  ? { ...m.metadata, regionId }
+                  : { ...m.metadata, regionId: undefined },
+              }
+            : m
+        )
+      );
+
+      eventEmitter.emit(
+        'industry-theme.user-collections:collection:repository-assigned',
+        { collectionId, repositoryId, regionId }
+      );
+      logEvent(`Repository assigned: ${repositoryId} -> ${regionId || 'auto'}`);
+    },
+    [logEvent, eventEmitter]
+  );
+
+  const onRepositoryPositionUpdated = useCallback(
+    async (
+      collectionId: string,
+      repositoryId: string,
+      layout: RepositoryLayoutData
+    ) => {
+      logEvent(
+        `Updating position for ${repositoryId}: (${layout.gridX}, ${layout.gridY})`
+      );
+
+      setMemberships((prev) =>
+        prev.map((m) =>
+          m.repositoryId === repositoryId
+            ? {
+                ...m,
+                metadata: { ...m.metadata, layout },
+              }
+            : m
+        )
+      );
+
+      eventEmitter.emit(
+        'industry-theme.user-collections:collection:repository-position-updated',
+        { collectionId, repositoryId, layout }
+      );
+      logEvent(
+        `Position saved: ${repositoryId} at (${layout.gridX}, ${layout.gridY})`
+      );
+    },
+    [logEvent, eventEmitter]
+  );
+
+  const onBatchLayoutInitialized = useCallback(
+    async (
+      collectionId: string,
+      updates: {
+        regions?: CustomRegion[];
+        assignments?: Array<{ repositoryId: string; regionId: string }>;
+        positions?: Array<{
+          repositoryId: string;
+          layout: RepositoryLayoutData;
+        }>;
+      }
+    ) => {
+      logEvent(
+        `Batch layout initialized: ${updates.regions?.length || 0} regions, ${updates.assignments?.length || 0} assignments, ${updates.positions?.length || 0} positions`
+      );
+
+      // Update collection with regions (if provided)
+      if (updates.regions && updates.regions.length > 0) {
+        setCollection((prev) => ({
+          ...prev,
           metadata: {
-            ...m.metadata,
-            ...(assignment && { regionId: assignment.regionId }),
-            ...(position && { layout: position.layout }),
+            ...prev.metadata,
+            customRegions: [
+              ...(prev.metadata?.customRegions || []),
+              ...updates.regions!,
+            ],
           },
-        };
-      })
-    );
+        }));
+      }
 
-    eventEmitter.emit('industry-theme.user-collections:collection:batch-layout-initialized', { collectionId, updates });
-    logEvent(`Batch layout complete`);
-  }, [logEvent, eventEmitter]);
+      // Update memberships with assignments and positions in ONE setState
+      setMemberships((prev) =>
+        prev.map((m) => {
+          const assignment = updates.assignments?.find(
+            (a) => a.repositoryId === m.repositoryId
+          );
+          const position = updates.positions?.find(
+            (p) => p.repositoryId === m.repositoryId
+          );
 
-  const onInitializeDefaultRegions = useCallback(async (collectionId: string, regions: CustomRegion[]) => {
-    logEvent(`Initializing ${regions.length} default regions`);
+          if (!assignment && !position) return m; // No changes for this membership
 
-    setCollection((prev) => ({
-      ...prev,
-      metadata: {
-        ...prev.metadata,
-        customRegions: regions,
-      },
-    }));
+          return {
+            ...m,
+            metadata: {
+              ...m.metadata,
+              ...(assignment && { regionId: assignment.regionId }),
+              ...(position && { layout: position.layout }),
+            },
+          };
+        })
+      );
 
-    eventEmitter.emit('industry-theme.user-collections:collection:updated', { collectionId, regions });
-    logEvent(`Default regions initialized`);
-  }, [logEvent, eventEmitter]);
+      eventEmitter.emit(
+        'industry-theme.user-collections:collection:batch-layout-initialized',
+        { collectionId, updates }
+      );
+      logEvent(`Batch layout complete`);
+    },
+    [logEvent, eventEmitter]
+  );
+
+  const onInitializeDefaultRegions = useCallback(
+    async (collectionId: string, regions: CustomRegion[]) => {
+      logEvent(`Initializing ${regions.length} default regions`);
+
+      setCollection((prev) => ({
+        ...prev,
+        metadata: {
+          ...prev.metadata,
+          customRegions: regions,
+        },
+      }));
+
+      eventEmitter.emit('industry-theme.user-collections:collection:updated', {
+        collectionId,
+        regions,
+      });
+      logEvent(`Default regions initialized`);
+    },
+    [logEvent, eventEmitter]
+  );
 
   // Mock context, actions, and events
-  const mockProps: PanelComponentProps<CollectionMapPanelActions, CollectionMapPanelContext> = useMemo(
+  const mockProps: PanelComponentProps<
+    CollectionMapPanelActions,
+    CollectionMapPanelContext
+  > = useMemo(
     () => ({
       context: {
         selectedCollection: collection,
@@ -281,6 +390,7 @@ const IntegrationHarness: React.FC<{
         refresh: async () => {
           logEvent('Context refresh requested');
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       actions: {
         onRegionCreated,
@@ -290,13 +400,18 @@ const IntegrationHarness: React.FC<{
         onRepositoryPositionUpdated,
         onInitializeDefaultRegions,
         onBatchLayoutInitialized,
-        openRepository: async (entry: any) => {
+        openRepository: async (entry: AlexandriaEntry) => {
           logEvent(`Opening repository: ${entry.name}`);
         },
-        addRepositoryToCollection: async (collectionId: string, repositoryPath: string) => {
+        addRepositoryToCollection: async (
+          collectionId: string,
+          repositoryPath: string
+        ) => {
           logEvent(`Adding repository to collection: ${repositoryPath}`);
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       events: eventEmitter as any,
     }),
     [
@@ -330,7 +445,9 @@ const IntegrationHarness: React.FC<{
           fontSize: '12px',
         }}
       >
-        <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>Event Log:</div>
+        <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
+          Event Log:
+        </div>
         {eventLog.map((log, i) => (
           <div key={i} style={{ marginBottom: '2px' }}>
             {log}
@@ -377,7 +494,9 @@ export const ActiveProjects: Story = {
         }}
         initialMemberships={mockRepositories.slice(0, 10).map((repo, idx) => {
           // Extract days ago from repo (it was created with daysAgo parameter)
-          const daysAgo = (Date.now() - new Date(repo.lastEditedAt).getTime()) / (1000 * 60 * 60 * 24);
+          const daysAgo =
+            (Date.now() - new Date(repo.lastEditedAt).getTime()) /
+            (1000 * 60 * 60 * 24);
           return {
             id: `mem-${idx}`,
             repositoryId: repo.name,
@@ -478,18 +597,63 @@ export const CustomRegionsOrganized: Story = {
       }}
       initialMemberships={[
         // Frontend
-        {  repositoryId: 'active-frontend', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
-        {  repositoryId: 'old-frontend', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
-        {  repositoryId: 'design-system', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-frontend' } },
+        {
+          repositoryId: 'active-frontend',
+          collectionId: 'col-manual',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-frontend' },
+        },
+        {
+          repositoryId: 'old-frontend',
+          collectionId: 'col-manual',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-frontend' },
+        },
+        {
+          repositoryId: 'design-system',
+          collectionId: 'col-manual',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-frontend' },
+        },
         // Backend
-        {  repositoryId: 'api-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
-        {  repositoryId: 'auth-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
-        {  repositoryId: 'notification-service', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-backend' } },
+        {
+          repositoryId: 'api-service',
+          collectionId: 'col-manual',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-backend' },
+        },
+        {
+          repositoryId: 'auth-service',
+          collectionId: 'col-manual',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-backend' },
+        },
+        {
+          repositoryId: 'notification-service',
+          collectionId: 'col-manual',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-backend' },
+        },
         // Mobile
-        {  repositoryId: 'mobile-app', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-0-2' } },
+        {
+          repositoryId: 'mobile-app',
+          collectionId: 'col-manual',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-0-2' },
+        },
         // Infrastructure
-        {  repositoryId: 'data-pipeline', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-0-3' } },
-        {  repositoryId: 'deployment-scripts', collectionId: 'col-manual', addedAt: Date.now(), metadata: { regionId: 'region-0-3' } },
+        {
+          repositoryId: 'data-pipeline',
+          collectionId: 'col-manual',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-0-3' },
+        },
+        {
+          repositoryId: 'deployment-scripts',
+          collectionId: 'col-manual',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-0-3' },
+        },
       ]}
     />
   ),
@@ -528,8 +692,7 @@ export const LargeCollection: Story = {
         icon: 'Database',
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        metadata: {
-        },
+        metadata: {},
       }}
       initialMemberships={mockRepositories.map((repo, idx) => ({
         id: `mem-${idx}`,
@@ -583,7 +746,8 @@ export const SavedPositionsTest: Story = {
       initialCollection={{
         id: 'col-saved',
         name: 'Saved Positions Test',
-        description: 'Repositories with pre-saved positions - drag to update positions',
+        description:
+          'Repositories with pre-saved positions - drag to update positions',
         theme: 'industry',
         icon: 'Save',
         createdAt: Date.now(),
@@ -737,138 +901,225 @@ export const DragDropDemo: Story = {
 
       const [eventLog, setEventLog] = useState<string[]>([]);
 
-      const logEvent = (message: string) => {
-        setEventLog(prev => [...prev.slice(-9), `${new Date().toLocaleTimeString()}: ${message}`]);
-      };
+      const logEvent = useCallback((message: string) => {
+        setEventLog((prev) => [
+          ...prev.slice(-9),
+          `${new Date().toLocaleTimeString()}: ${message}`,
+        ]);
+      }, []);
 
       // Only include repos not already in the collection
-      const draggableProjects = [
-        mockRepositories[3],
-        mockRepositories[4],
-      ];
+      const draggableProjects = [mockRepositories[3], mockRepositories[4]];
 
-      const onRegionCreated = useCallback(async (collectionId: string, region: Omit<CustomRegion, 'id'>) => {
-        logEvent(`Creating region: ${region.name}`);
-        const row = Math.floor(region.order / 10);
-        const col = region.order % 10;
-        const newRegion: CustomRegion = { ...region, id: `region-${row}-${col}` };
-        setCollection(prev => ({
-          ...prev,
-          metadata: {
-            ...prev.metadata,
-            customRegions: [...(prev.metadata?.customRegions || []), newRegion],
-          },
-        }));
-        return newRegion;
-      }, []);
-
-      const onRegionUpdated = useCallback(async (collectionId: string, regionId: string, updates: Partial<CustomRegion>) => {
-        logEvent(`Updating region: ${regionId}`);
-        setCollection(prev => ({
-          ...prev,
-          metadata: {
-            ...prev.metadata,
-            customRegions: prev.metadata?.customRegions?.map(r =>
-              r.id === regionId ? { ...r, ...updates } : r
-            ),
-          },
-        }));
-      }, []);
-
-      const onRegionDeleted = useCallback(async (collectionId: string, regionId: string) => {
-        logEvent(`Deleting region: ${regionId}`);
-        setCollection(prev => ({
-          ...prev,
-          metadata: {
-            ...prev.metadata,
-            customRegions: prev.metadata?.customRegions?.filter(r => r.id !== regionId),
-          },
-        }));
-      }, []);
-
-      const onRepositoryAssigned = useCallback(async (collectionId: string, repositoryId: string, regionId: string) => {
-        logEvent(`Assigned ${repositoryId} → ${regionId}`);
-        setMemberships(prev =>
-          prev.map(m =>
-            m.repositoryId === repositoryId
-              ? { ...m, metadata: { ...m.metadata, regionId } }
-              : m
-          )
-        );
-      }, []);
-
-      const onRepositoryPositionUpdated = useCallback(async (collectionId: string, repositoryId: string, layout: any) => {
-        logEvent(`Position updated: ${repositoryId} → (${layout.gridX}, ${layout.gridY})`);
-        setMemberships(prev =>
-          prev.map(m =>
-            m.repositoryId === repositoryId
-              ? { ...m, metadata: { ...m.metadata, layout } }
-              : m
-          )
-        );
-      }, []);
-
-      const onBatchLayoutInitialized = useCallback(async (collectionId: string, updates: any) => {
-        logEvent(`Batch init: ${updates.regions?.length || 0} regions, ${updates.positions?.length || 0} positions`);
-        if (updates.regions) {
-          setCollection(prev => ({
+      const onRegionCreated = useCallback(
+        async (collectionId: string, region: Omit<CustomRegion, 'id'>) => {
+          logEvent(`Creating region: ${region.name}`);
+          const row = Math.floor(region.order / 10);
+          const col = region.order % 10;
+          const newRegion: CustomRegion = {
+            ...region,
+            id: `region-${row}-${col}`,
+          };
+          setCollection((prev) => ({
             ...prev,
-            metadata: { ...prev.metadata, customRegions: updates.regions },
+            metadata: {
+              ...prev.metadata,
+              customRegions: [
+                ...(prev.metadata?.customRegions || []),
+                newRegion,
+              ],
+            },
           }));
-        }
-        if (updates.positions || updates.assignments) {
-          setMemberships(prev => {
-            const updated = prev.map(m => {
-              const assignment = updates.assignments?.find((a: any) => a.repositoryId === m.repositoryId);
-              const position = updates.positions?.find((p: any) => p.repositoryId === m.repositoryId);
+          return newRegion;
+        },
+        [logEvent]
+      );
 
-              if (!assignment && !position) return m;
+      const onRegionUpdated = useCallback(
+        async (
+          collectionId: string,
+          regionId: string,
+          updates: Partial<CustomRegion>
+        ) => {
+          logEvent(`Updating region: ${regionId}`);
+          setCollection((prev) => ({
+            ...prev,
+            metadata: {
+              ...prev.metadata,
+              customRegions: prev.metadata?.customRegions?.map((r) =>
+                r.id === regionId ? { ...r, ...updates } : r
+              ),
+            },
+          }));
+        },
+        [logEvent]
+      );
 
-              return {
-                ...m,
-                metadata: {
-                  ...m.metadata,
-                  ...(assignment && { regionId: assignment.regionId }),
-                  ...(position && { layout: position.layout }),
-                },
-              };
+      const onRegionDeleted = useCallback(
+        async (collectionId: string, regionId: string) => {
+          logEvent(`Deleting region: ${regionId}`);
+          setCollection((prev) => ({
+            ...prev,
+            metadata: {
+              ...prev.metadata,
+              customRegions: prev.metadata?.customRegions?.filter(
+                (r) => r.id !== regionId
+              ),
+            },
+          }));
+        },
+        [logEvent]
+      );
+
+      const onRepositoryAssigned = useCallback(
+        async (
+          collectionId: string,
+          repositoryId: string,
+          regionId: string
+        ) => {
+          logEvent(`Assigned ${repositoryId} → ${regionId}`);
+          setMemberships((prev) =>
+            prev.map((m) =>
+              m.repositoryId === repositoryId
+                ? { ...m, metadata: { ...m.metadata, regionId } }
+                : m
+            )
+          );
+        },
+        [logEvent]
+      );
+
+      const onRepositoryPositionUpdated = useCallback(
+        async (
+          collectionId: string,
+          repositoryId: string,
+          layout: RepositoryLayoutData
+        ) => {
+          logEvent(
+            `Position updated: ${repositoryId} → (${layout.gridX}, ${layout.gridY})`
+          );
+          setMemberships((prev) =>
+            prev.map((m) =>
+              m.repositoryId === repositoryId
+                ? { ...m, metadata: { ...m.metadata, layout } }
+                : m
+            )
+          );
+        },
+        [logEvent]
+      );
+
+      const onBatchLayoutInitialized = useCallback(
+        async (
+          collectionId: string,
+          updates: {
+            regions?: CustomRegion[];
+            assignments?: Array<{ repositoryId: string; regionId: string }>;
+            positions?: Array<{
+              repositoryId: string;
+              layout: RepositoryLayoutData;
+            }>;
+          }
+        ) => {
+          logEvent(
+            `Batch init: ${updates.regions?.length || 0} regions, ${updates.positions?.length || 0} positions`
+          );
+          if (updates.regions) {
+            setCollection((prev) => ({
+              ...prev,
+              metadata: { ...prev.metadata, customRegions: updates.regions },
+            }));
+          }
+          if (updates.positions || updates.assignments) {
+            setMemberships((prev) => {
+              const updated = prev.map((m) => {
+                const assignment = updates.assignments?.find(
+                  (a) => a.repositoryId === m.repositoryId
+                );
+                const position = updates.positions?.find(
+                  (p) => p.repositoryId === m.repositoryId
+                );
+
+                if (!assignment && !position) return m;
+
+                return {
+                  ...m,
+                  metadata: {
+                    ...m.metadata,
+                    ...(assignment && { regionId: assignment.regionId }),
+                    ...(position && { layout: position.layout }),
+                  },
+                };
+              });
+              return updated;
             });
+          }
+        },
+        [logEvent]
+      );
+
+      const addRepositoryToCollection = useCallback(
+        async (
+          collectionId: string,
+          repositoryPath: string,
+          metadata: RepositoryMetadata
+        ) => {
+          logEvent(`Added repo: ${metadata?.name || repositoryPath}`);
+          const newMembership: CollectionMembership = {
+            repositoryId: metadata?.name || repositoryPath,
+            collectionId: 'col-dragdrop',
+            addedAt: Date.now(),
+          };
+          setMemberships((prev) => {
+            const updated = [...prev, newMembership];
             return updated;
           });
-        }
-      }, []);
-
-      const addRepositoryToCollection = useCallback(async (collectionId: string, repositoryPath: string, metadata: any) => {
-        console.log('[addRepositoryToCollection] Called with:', { collectionId, repositoryPath, metadata });
-        logEvent(`Added repo: ${metadata?.name || repositoryPath}`);
-        const newMembership: CollectionMembership = {
-          repositoryId: metadata?.name || repositoryPath,
-          collectionId: 'col-dragdrop',
-          addedAt: Date.now(),
-        };
-        console.log('[addRepositoryToCollection] Creating membership:', newMembership);
-        setMemberships(prev => {
-          console.log('[addRepositoryToCollection] Previous memberships:', prev);
-          const updated = [...prev, newMembership];
-          console.log('[addRepositoryToCollection] Updated memberships:', updated);
-          return updated;
-        });
-      }, [logEvent]);
+        },
+        [logEvent]
+      );
 
       const eventEmitter = useMemo(() => new SimpleEventEmitter(), []);
 
-      const panelProps = useMemo<PanelComponentProps<CollectionMapPanelActions, CollectionMapPanelContext>>(() => ({
-        context: {
-          selectedCollection: collection,
-          selectedCollectionView: {
-            data: { collection, memberships, repositories: mockRepositories as any, dependencies: {} },
-            loading: false,
-            error: null,
-          },
-          scope: { type: 'workspace', workspaceId: 'test-workspace' },
-          refresh: async () => {},
-        } as any,
-        actions: {
+      const panelProps = useMemo<
+        PanelComponentProps<
+          CollectionMapPanelActions,
+          CollectionMapPanelContext
+        >
+      >(
+        () => ({
+          context: {
+            selectedCollection: collection,
+            selectedCollectionView: {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              data: {
+                collection,
+                memberships,
+                repositories: mockRepositories as any,
+                dependencies: {},
+              },
+              loading: false,
+              error: null,
+            },
+            scope: { type: 'workspace', workspaceId: 'test-workspace' },
+            refresh: async () => {},
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+          actions: {
+            onRegionCreated,
+            onRegionUpdated,
+            onRegionDeleted,
+            onRepositoryAssigned,
+            onRepositoryPositionUpdated,
+            onBatchLayoutInitialized,
+            addRepositoryToCollection,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          events: eventEmitter as any,
+        }),
+        [
+          collection,
+          memberships,
           onRegionCreated,
           onRegionUpdated,
           onRegionDeleted,
@@ -876,32 +1127,83 @@ export const DragDropDemo: Story = {
           onRepositoryPositionUpdated,
           onBatchLayoutInitialized,
           addRepositoryToCollection,
-        } as any,
-        events: eventEmitter as any,
-      }), [collection, memberships, onRegionCreated, onRegionUpdated, onRegionDeleted, onRepositoryAssigned, onRepositoryPositionUpdated, onBatchLayoutInitialized, addRepositoryToCollection, eventEmitter]);
+          eventEmitter,
+        ]
+      );
 
       return (
-        <div style={{ display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#0a0a0f' }}>
-          <div style={{ width: '280px', flexShrink: 0, borderRight: '1px solid #333', display: 'flex', flexDirection: 'column', backgroundColor: '#1a1a2e' }}>
+        <div
+          style={{
+            display: 'flex',
+            height: '100vh',
+            width: '100vw',
+            backgroundColor: '#0a0a0f',
+          }}
+        >
+          <div
+            style={{
+              width: '280px',
+              flexShrink: 0,
+              borderRight: '1px solid #333',
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: '#1a1a2e',
+            }}
+          >
             <div style={{ padding: '16px', borderBottom: '1px solid #333' }}>
-              <h3 style={{ color: '#fff', margin: 0, fontSize: '14px', fontWeight: 600 }}>📦 Draggable Repos</h3>
-              <p style={{ color: '#888', fontSize: '11px', margin: '4px 0 0 0' }}>Drag onto map to add</p>
+              <h3
+                style={{
+                  color: '#fff',
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: 600,
+                }}
+              >
+                📦 Draggable Repos
+              </h3>
+              <p
+                style={{ color: '#888', fontSize: '11px', margin: '4px 0 0 0' }}
+              >
+                Drag onto map to add
+              </p>
             </div>
-            <div style={{ flex: 1, overflow: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {draggableProjects.map(repo => (
+            <div
+              style={{
+                flex: 1,
+                overflow: 'auto',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              {draggableProjects.map((repo) => (
                 <div
                   key={repo.name}
                   draggable
                   onDragStart={(e) => {
                     e.dataTransfer.setData('text/plain', repo.name);
-                    e.dataTransfer.setData('application/x-panel-data', JSON.stringify({
-                      dataType: 'repository-project',
-                      primaryData: repo.name,
-                      metadata: { name: repo.name, lastEditedAt: repo.lastEditedAt },
-                      sourcePanel: 'drag-source',
-                    }));
+                    e.dataTransfer.setData(
+                      'application/x-panel-data',
+                      JSON.stringify({
+                        dataType: 'repository-project',
+                        primaryData: repo.name,
+                        metadata: {
+                          name: repo.name,
+                          lastEditedAt: repo.lastEditedAt,
+                        },
+                        sourcePanel: 'drag-source',
+                      })
+                    );
                   }}
-                  style={{ padding: '10px', backgroundColor: '#16213e', border: '1px solid #333', borderRadius: '6px', cursor: 'grab', transition: 'all 0.2s' }}
+                  style={{
+                    padding: '10px',
+                    backgroundColor: '#16213e',
+                    border: '1px solid #333',
+                    borderRadius: '6px',
+                    cursor: 'grab',
+                    transition: 'all 0.2s',
+                  }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#1e2a47';
                     e.currentTarget.style.borderColor = '#444';
@@ -911,18 +1213,64 @@ export const DragDropDemo: Story = {
                     e.currentTarget.style.borderColor = '#333';
                   }}
                 >
-                  <div style={{ color: '#fff', fontSize: '13px', fontWeight: 500 }}>{repo.name}</div>
-                  <div style={{ color: '#888', fontSize: '11px', marginTop: '2px' }}>{repo.provider?.type || 'local'}</div>
+                  <div
+                    style={{ color: '#fff', fontSize: '13px', fontWeight: 500 }}
+                  >
+                    {repo.name}
+                  </div>
+                  <div
+                    style={{
+                      color: '#888',
+                      fontSize: '11px',
+                      marginTop: '2px',
+                    }}
+                  >
+                    {repo.provider?.type || 'local'}
+                  </div>
                 </div>
               ))}
             </div>
-            <div style={{ borderTop: '1px solid #333', padding: '12px', maxHeight: '200px', overflow: 'auto' }}>
-              <div style={{ color: '#888', fontSize: '11px', fontWeight: 600, marginBottom: '8px' }}>EVENT LOG</div>
+            <div
+              style={{
+                borderTop: '1px solid #333',
+                padding: '12px',
+                maxHeight: '200px',
+                overflow: 'auto',
+              }}
+            >
+              <div
+                style={{
+                  color: '#888',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  marginBottom: '8px',
+                }}
+              >
+                EVENT LOG
+              </div>
               {eventLog.length === 0 ? (
-                <div style={{ color: '#555', fontSize: '10px', fontStyle: 'italic' }}>No events yet</div>
+                <div
+                  style={{
+                    color: '#555',
+                    fontSize: '10px',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  No events yet
+                </div>
               ) : (
-                <div style={{ fontSize: '10px', color: '#888', fontFamily: 'monospace' }}>
-                  {eventLog.map((log, i) => (<div key={i} style={{ marginBottom: '4px' }}>{log}</div>))}
+                <div
+                  style={{
+                    fontSize: '10px',
+                    color: '#888',
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  {eventLog.map((log, i) => (
+                    <div key={i} style={{ marginBottom: '4px' }}>
+                      {log}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

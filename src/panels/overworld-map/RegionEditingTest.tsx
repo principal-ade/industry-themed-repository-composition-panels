@@ -4,6 +4,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Container, Graphics, Text, Texture } from 'pixi.js';
+import { Viewport } from 'pixi-viewport';
 import { IsometricPixiCanvas } from './components/IsometricPixiCanvas';
 import { IsometricRenderer } from './components/IsometricRenderer';
 import { gridToScreen } from './isometricUtils';
@@ -20,11 +21,20 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<IsometricPixiCanvas | null>(null);
   const rendererRef = useRef<IsometricRenderer | null>(null);
-  const viewportRef = useRef<any>(null);
+  const viewportRef = useRef<Viewport | null>(null);
   const [regions, setRegions] = useState<MapRegion[]>([]);
   const placeholdersRef = useRef<Container | null>(null);
-  const sceneContainersRef = useRef<{ background: Container; tiles: Container; bridges: Container; paths: Container; nodes: Container } | null>(null);
-  const offsetRef = useRef<{ offsetX: number; offsetY: number }>({ offsetX: 0, offsetY: 0 });
+  const sceneContainersRef = useRef<{
+    background: Container;
+    tiles: Container;
+    bridges: Container;
+    paths: Container;
+    nodes: Container;
+  } | null>(null);
+  const offsetRef = useRef<{ offsetX: number; offsetY: number }>({
+    offsetX: 0,
+    offsetY: 0,
+  });
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -57,8 +67,10 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
       setRegions(initialRegionData);
 
       // Calculate world size based on actual regions + 1 region buffer for placeholders
-      const maxCol = Math.max(...initialRegionData.map(r => r.bounds.x / regionSize)) + 1;
-      const maxRow = Math.max(...initialRegionData.map(r => r.bounds.y / regionSize)) + 1;
+      const maxCol =
+        Math.max(...initialRegionData.map((r) => r.bounds.x / regionSize)) + 1;
+      const maxRow =
+        Math.max(...initialRegionData.map((r) => r.bounds.y / regionSize)) + 1;
       const gridWidth = (maxCol + 1) * regionSize; // Add buffer for placeholders
       const gridHeight = (maxRow + 1) * regionSize; // Add buffer for placeholders
       const worldWidth = gridWidth * 64;
@@ -157,7 +169,7 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
       const renderRegionLabels = () => {
         labelsContainer.removeChildren();
 
-        initialRegionData.forEach(region => {
+        initialRegionData.forEach((region) => {
           const centerScreen = gridToScreen(region.centerX, region.centerY);
 
           const label = new Text({
@@ -198,13 +210,21 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
         setRegions([...initialRegionData]);
 
         // Re-render the grid with the new region
-        if (rendererRef.current && sceneContainersRef.current && viewportRef.current) {
+        if (
+          rendererRef.current &&
+          sceneContainersRef.current &&
+          viewportRef.current
+        ) {
           // Remove old background
           sceneContainersRef.current.background.removeChildren();
 
           // Recalculate world size based on all regions
-          const maxCol = Math.max(...initialRegionData.map(r => r.bounds.x / regionSize));
-          const maxRow = Math.max(...initialRegionData.map(r => r.bounds.y / regionSize));
+          const maxCol = Math.max(
+            ...initialRegionData.map((r) => r.bounds.x / regionSize)
+          );
+          const maxRow = Math.max(
+            ...initialRegionData.map((r) => r.bounds.y / regionSize)
+          );
           const newGridWidth = (maxCol + 2) * regionSize; // +2 for buffer
           const newGridHeight = (maxRow + 2) * regionSize;
 
@@ -220,7 +240,11 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
           };
 
           // Re-render grid
-          const newGrid = rendererRef.current.renderGrid(newGridWidth, newGridHeight, updatedMapData.regions);
+          const newGrid = rendererRef.current.renderGrid(
+            newGridWidth,
+            newGridHeight,
+            updatedMapData.regions
+          );
 
           // Grid is at (0,0) because it's a child of the background container which is already offset
           newGrid.x = 0;
@@ -235,9 +259,11 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
       };
 
       // Function to find adjacent empty positions
-      const findAdjacentEmptyPositions = (existingRegions: MapRegion[]): Array<{ row: number; col: number }> => {
+      const findAdjacentEmptyPositions = (
+        existingRegions: MapRegion[]
+      ): Array<{ row: number; col: number }> => {
         const occupied = new Set<string>();
-        existingRegions.forEach(r => {
+        existingRegions.forEach((r) => {
           const row = r.bounds.y / regionSize;
           const col = r.bounds.x / regionSize;
           occupied.add(`${row}-${col}`);
@@ -246,7 +272,7 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
         const adjacent: Array<{ row: number; col: number }> = [];
         const checked = new Set<string>();
 
-        existingRegions.forEach(r => {
+        existingRegions.forEach((r) => {
           const row = r.bounds.y / regionSize;
           const col = r.bounds.x / regionSize;
 
@@ -258,10 +284,15 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
             { row, col: col + 1 }, // right
           ];
 
-          directions.forEach(pos => {
+          directions.forEach((pos) => {
             const key = `${pos.row}-${pos.col}`;
             // Only constraint is that row/col must be >= 0 (no upper limit)
-            if (!occupied.has(key) && !checked.has(key) && pos.row >= 0 && pos.col >= 0) {
+            if (
+              !occupied.has(key) &&
+              !checked.has(key) &&
+              pos.row >= 0 &&
+              pos.col >= 0
+            ) {
               adjacent.push(pos);
               checked.add(key);
             }
@@ -277,17 +308,29 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
 
         const adjacentPositions = findAdjacentEmptyPositions(initialRegionData);
 
-        adjacentPositions.forEach(pos => {
+        adjacentPositions.forEach((pos) => {
           // Create placeholder graphics - draw only the outline boundary
           const placeholder = new Graphics();
 
           const placeholderColor = 0x22c55e; // Green color for placeholders
 
           // Calculate the four corner points of the region in screen space
-          const topLeft = gridToScreen(pos.col * regionSize, pos.row * regionSize);
-          const topRight = gridToScreen(pos.col * regionSize + regionSize, pos.row * regionSize);
-          const bottomLeft = gridToScreen(pos.col * regionSize, pos.row * regionSize + regionSize);
-          const bottomRight = gridToScreen(pos.col * regionSize + regionSize, pos.row * regionSize + regionSize);
+          const topLeft = gridToScreen(
+            pos.col * regionSize,
+            pos.row * regionSize
+          );
+          const topRight = gridToScreen(
+            pos.col * regionSize + regionSize,
+            pos.row * regionSize
+          );
+          const bottomLeft = gridToScreen(
+            pos.col * regionSize,
+            pos.row * regionSize + regionSize
+          );
+          const bottomRight = gridToScreen(
+            pos.col * regionSize + regionSize,
+            pos.row * regionSize + regionSize
+          );
 
           // Draw the diamond outline with transparent fill for clickability
           placeholder.setStrokeStyle({
@@ -319,10 +362,22 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
             color: placeholderColor,
             alpha: 0.8,
           });
-          placeholder.moveTo(centerScreen.screenX - iconSize / 2, centerScreen.screenY);
-          placeholder.lineTo(centerScreen.screenX + iconSize / 2, centerScreen.screenY);
-          placeholder.moveTo(centerScreen.screenX, centerScreen.screenY - iconSize / 2);
-          placeholder.lineTo(centerScreen.screenX, centerScreen.screenY + iconSize / 2);
+          placeholder.moveTo(
+            centerScreen.screenX - iconSize / 2,
+            centerScreen.screenY
+          );
+          placeholder.lineTo(
+            centerScreen.screenX + iconSize / 2,
+            centerScreen.screenY
+          );
+          placeholder.moveTo(
+            centerScreen.screenX,
+            centerScreen.screenY - iconSize / 2
+          );
+          placeholder.lineTo(
+            centerScreen.screenX,
+            centerScreen.screenY + iconSize / 2
+          );
           placeholder.stroke();
 
           placeholder.eventMode = 'static';
@@ -355,10 +410,22 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
               color: placeholderColor,
               alpha: 1.0,
             });
-            placeholder.moveTo(centerScreen.screenX - iconSize / 2, centerScreen.screenY);
-            placeholder.lineTo(centerScreen.screenX + iconSize / 2, centerScreen.screenY);
-            placeholder.moveTo(centerScreen.screenX, centerScreen.screenY - iconSize / 2);
-            placeholder.lineTo(centerScreen.screenX, centerScreen.screenY + iconSize / 2);
+            placeholder.moveTo(
+              centerScreen.screenX - iconSize / 2,
+              centerScreen.screenY
+            );
+            placeholder.lineTo(
+              centerScreen.screenX + iconSize / 2,
+              centerScreen.screenY
+            );
+            placeholder.moveTo(
+              centerScreen.screenX,
+              centerScreen.screenY - iconSize / 2
+            );
+            placeholder.lineTo(
+              centerScreen.screenX,
+              centerScreen.screenY + iconSize / 2
+            );
             placeholder.stroke();
           });
 
@@ -388,10 +455,22 @@ export const RegionEditingTest: React.FC<RegionEditingTestProps> = ({
               color: placeholderColor,
               alpha: 0.8,
             });
-            placeholder.moveTo(centerScreen.screenX - iconSize / 2, centerScreen.screenY);
-            placeholder.lineTo(centerScreen.screenX + iconSize / 2, centerScreen.screenY);
-            placeholder.moveTo(centerScreen.screenX, centerScreen.screenY - iconSize / 2);
-            placeholder.lineTo(centerScreen.screenX, centerScreen.screenY + iconSize / 2);
+            placeholder.moveTo(
+              centerScreen.screenX - iconSize / 2,
+              centerScreen.screenY
+            );
+            placeholder.lineTo(
+              centerScreen.screenX + iconSize / 2,
+              centerScreen.screenY
+            );
+            placeholder.moveTo(
+              centerScreen.screenX,
+              centerScreen.screenY - iconSize / 2
+            );
+            placeholder.lineTo(
+              centerScreen.screenX,
+              centerScreen.screenY + iconSize / 2
+            );
             placeholder.stroke();
           });
 

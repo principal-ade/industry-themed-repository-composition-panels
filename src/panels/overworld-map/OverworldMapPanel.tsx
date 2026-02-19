@@ -6,12 +6,17 @@ import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { Application, Container, Graphics, Texture } from 'pixi.js';
 import { Viewport } from 'pixi-viewport';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { CustomRegion } from '@principal-ai/alexandria-collections';
 import type { OverworldMap } from './types';
 import { generateBuildingSprite } from './components/buildingSpriteGenerator';
 import { IsometricRenderer } from './components/IsometricRenderer';
 import { IsometricInteractionManager } from './components/IsometricInteractionManager';
 import { IsometricPathManager } from './components/IsometricPathManager';
-import { gridToScreen, ISO_TILE_WIDTH, ISO_TILE_HEIGHT } from './isometricUtils';
+import {
+  gridToScreen,
+  ISO_TILE_WIDTH,
+  ISO_TILE_HEIGHT,
+} from './isometricUtils';
 import type { RegionLayout, GenericNode } from './genericMapper';
 import { nodesToUnifiedOverworldMap } from './genericMapper';
 
@@ -44,7 +49,7 @@ export interface OverworldMapPanelProps {
   isEditingRegions?: boolean;
 
   /** Custom regions defined in collection */
-  customRegions?: any[];
+  customRegions?: CustomRegion[];
 
   /** Callback to add a new region at a specific grid position */
   onAddRegion?: (position: { row: number; col: number }) => void;
@@ -93,8 +98,17 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const [isResizing, setIsResizing] = useState(false);
   const dimensionsRef = useRef({ width: width || 800, height: height || 600 });
   const placeholdersRef = useRef<Container | null>(null);
-  const sceneContainersRef = useRef<{ background: Container; tiles: Container; bridges: Container; paths: Container; nodes: Container } | null>(null);
-  const offsetRef = useRef<{ offsetX: number; offsetY: number }>({ offsetX: 0, offsetY: 0 });
+  const sceneContainersRef = useRef<{
+    background: Container;
+    tiles: Container;
+    bridges: Container;
+    paths: Container;
+    nodes: Container;
+  } | null>(null);
+  const offsetRef = useRef<{ offsetX: number; offsetY: number }>({
+    offsetX: 0,
+    offsetY: 0,
+  });
   const renderPlaceholdersRef = useRef<(() => void) | null>(null);
   const mapDataRef = useRef<OverworldMap | null>(null);
   const isEditingRegionsRef = useRef(isEditingRegions);
@@ -102,43 +116,57 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   // Region navigation state
   const [currentRegionIndex, setCurrentRegionIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const animationRef = useRef<{ startTime: number; startX: number; startY: number; targetX: number; targetY: number } | null>(null);
+  const animationRef = useRef<{
+    startTime: number;
+    startX: number;
+    startY: number;
+    targetX: number;
+    targetY: number;
+  } | null>(null);
   const hasInitializedCamera = useRef(false);
   const skipNextAnimation = useRef(false); // Skip animation when region changes from dragging
   const previousCollectionKeyRef = useRef<string | null>(null);
-  const savedCameraPosition = useRef<{ x: number; y: number; scale: number } | null>(null);
+  const savedCameraPosition = useRef<{
+    x: number;
+    y: number;
+    scale: number;
+  } | null>(null);
 
   // Create a stable collection key if not provided
   // This prevents full PIXI re-renders when only regions change (not the actual nodes)
   const stableCollectionKey = useMemo(() => {
     if (collectionKey) return collectionKey;
     // Fallback: create key from sorted node IDs
-    return nodes.map(n => n.id).sort().join(',');
+    return nodes
+      .map((n) => n.id)
+      .sort()
+      .join(',');
   }, [collectionKey, nodes]);
 
   // Convert nodes to unified overworld map
   const mapData = useMemo<OverworldMap>(() => {
-    console.log('[OverworldMapPanel] mapData memo recalculating', { nodeCount: nodes.length, customRegions: customRegions.length });
     const map = nodesToUnifiedOverworldMap(nodes, {
       includeDevDependencies,
       regionLayout,
       customRegions, // Pass through custom regions for manual layout
     });
-    console.log('[OverworldMapPanel] mapData created:', { mapNodeCount: map.nodes.length, mapRegions: map.regions.length });
     mapDataRef.current = map; // Store for placeholder rendering
     return map;
   }, [nodes, includeDevDependencies, regionLayout, customRegions]);
 
   // Get current region
-  const currentRegion = mapData.regions[currentRegionIndex] || mapData.regions[0];
+  const currentRegion =
+    mapData.regions[currentRegionIndex] || mapData.regions[0];
 
   // Initialize PixiJS and render the map
   useEffect(() => {
     if (!canvasRef.current) return;
 
     // Check if this is just a region update (not a collection change)
-    const isCollectionChange = previousCollectionKeyRef.current !== stableCollectionKey;
-    const isRegionOnlyUpdate = !isCollectionChange && previousCollectionKeyRef.current !== null;
+    const isCollectionChange =
+      previousCollectionKeyRef.current !== stableCollectionKey;
+    const isRegionOnlyUpdate =
+      !isCollectionChange && previousCollectionKeyRef.current !== null;
 
     previousCollectionKeyRef.current = stableCollectionKey;
 
@@ -195,7 +223,10 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       // Get initial dimensions from container
       const containerWidth = canvasRef.current?.clientWidth || width || 800;
       const containerHeight = canvasRef.current?.clientHeight || height || 600;
-      dimensionsRef.current = { width: containerWidth, height: containerHeight };
+      dimensionsRef.current = {
+        width: containerWidth,
+        height: containerHeight,
+      };
 
       // Create PixiJS application
       app = new Application();
@@ -280,10 +311,10 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
       // Add scene containers to viewport (layer order)
       viewport.addChild(scene.background); // Grid
-      viewport.addChild(scene.tiles);      // Terrain (empty for now)
-      viewport.addChild(scene.bridges);    // Bridges (empty for now)
-      viewport.addChild(scene.paths);      // Paths between nodes
-      viewport.addChild(scene.nodes);      // Sprites with highlights and labels
+      viewport.addChild(scene.tiles); // Terrain (empty for now)
+      viewport.addChild(scene.bridges); // Bridges (empty for now)
+      viewport.addChild(scene.paths); // Paths between nodes
+      viewport.addChild(scene.nodes); // Sprites with highlights and labels
 
       // Enable sorting for proper z-ordering
       scene.nodes.sortableChildren = true;
@@ -303,22 +334,30 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       // No need for inline rendering code
 
       // Create path manager for dynamic path updates during drag
-      const pathConnections = Array.from(scene.pathGraphics.entries()).map(([id, graphics]) => {
-        // Extract path data from mapData
-        const pathData = mapData.paths.find(p => `${p.from}-${p.to}` === id);
-        return {
-          id,
-          fromNodeId: pathData?.from || '',
-          toNodeId: pathData?.to || '',
-          graphics,
-        };
-      });
-
-      const nodePositions = new Map(
-        mapData.nodes.map(n => [n.id, { gridX: n.gridX, gridY: n.gridY }])
+      const pathConnections = Array.from(scene.pathGraphics.entries()).map(
+        ([id, graphics]) => {
+          // Extract path data from mapData
+          const pathData = mapData.paths.find(
+            (p) => `${p.from}-${p.to}` === id
+          );
+          return {
+            id,
+            fromNodeId: pathData?.from || '',
+            toNodeId: pathData?.to || '',
+            graphics,
+          };
+        }
       );
 
-      const pathManager = new IsometricPathManager(pathConnections, nodePositions, renderer);
+      const nodePositions = new Map(
+        mapData.nodes.map((n) => [n.id, { gridX: n.gridX, gridY: n.gridY }])
+      );
+
+      const pathManager = new IsometricPathManager(
+        pathConnections,
+        nodePositions,
+        renderer
+      );
 
       // Create interaction manager for drag-and-drop
       const interaction = new IsometricInteractionManager(
@@ -363,7 +402,10 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       // Restore camera position or center on first region
       if (savedCameraPosition.current) {
         // Restore saved camera position from before the recreate
-        viewport.moveCenter(savedCameraPosition.current.x, savedCameraPosition.current.y);
+        viewport.moveCenter(
+          savedCameraPosition.current.x,
+          savedCameraPosition.current.y
+        );
         viewport.setZoom(savedCameraPosition.current.scale);
       } else if (mapData.regions.length > 0 && !hasInitializedCamera.current) {
         // First initialization: center on first region
@@ -376,11 +418,13 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       }
 
       // Region placeholder rendering for edit mode
-      const findAdjacentEmptyPositions = (regions: typeof mapData.regions): Array<{ row: number; col: number }> => {
+      const findAdjacentEmptyPositions = (
+        regions: typeof mapData.regions
+      ): Array<{ row: number; col: number }> => {
         const regionSize = regions[0]?.bounds.width || 25; // Assume uniform region size
 
         const occupied = new Set<string>();
-        regions.forEach(r => {
+        regions.forEach((r) => {
           const row = r.bounds.y / regionSize;
           const col = r.bounds.x / regionSize;
           occupied.add(`${row}-${col}`);
@@ -389,7 +433,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         const adjacent: Array<{ row: number; col: number }> = [];
         const checked = new Set<string>();
 
-        regions.forEach(r => {
+        regions.forEach((r) => {
           const row = r.bounds.y / regionSize;
           const col = r.bounds.x / regionSize;
 
@@ -401,9 +445,14 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
             { row, col: col + 1 }, // right
           ];
 
-          directions.forEach(pos => {
+          directions.forEach((pos) => {
             const key = `${pos.row}-${pos.col}`;
-            if (!occupied.has(key) && !checked.has(key) && pos.row >= 0 && pos.col >= 0) {
+            if (
+              !occupied.has(key) &&
+              !checked.has(key) &&
+              pos.row >= 0 &&
+              pos.col >= 0
+            ) {
               adjacent.push(pos);
               checked.add(key);
             }
@@ -420,18 +469,32 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
         if (!isEditingRegionsRef.current || !onAddRegion) return;
 
-        const adjacentPositions = findAdjacentEmptyPositions(mapDataRef.current.regions);
+        const adjacentPositions = findAdjacentEmptyPositions(
+          mapDataRef.current.regions
+        );
         const regionSize = mapDataRef.current.regions[0]?.bounds.width || 25;
         const placeholderColor = 0x22c55e; // Green
 
-        adjacentPositions.forEach(pos => {
+        adjacentPositions.forEach((pos) => {
           const placeholder = new Graphics();
 
           // Calculate the four corner points of the region in screen space
-          const topLeft = gridToScreen(pos.col * regionSize, pos.row * regionSize);
-          const topRight = gridToScreen(pos.col * regionSize + regionSize, pos.row * regionSize);
-          const bottomLeft = gridToScreen(pos.col * regionSize, pos.row * regionSize + regionSize);
-          const bottomRight = gridToScreen(pos.col * regionSize + regionSize, pos.row * regionSize + regionSize);
+          const topLeft = gridToScreen(
+            pos.col * regionSize,
+            pos.row * regionSize
+          );
+          const topRight = gridToScreen(
+            pos.col * regionSize + regionSize,
+            pos.row * regionSize
+          );
+          const bottomLeft = gridToScreen(
+            pos.col * regionSize,
+            pos.row * regionSize + regionSize
+          );
+          const bottomRight = gridToScreen(
+            pos.col * regionSize + regionSize,
+            pos.row * regionSize + regionSize
+          );
 
           // Draw the diamond outline with transparent fill for clickability
           placeholder.setStrokeStyle({
@@ -463,10 +526,22 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
             color: placeholderColor,
             alpha: 0.8,
           });
-          placeholder.moveTo(centerScreen.screenX - iconSize / 2, centerScreen.screenY);
-          placeholder.lineTo(centerScreen.screenX + iconSize / 2, centerScreen.screenY);
-          placeholder.moveTo(centerScreen.screenX, centerScreen.screenY - iconSize / 2);
-          placeholder.lineTo(centerScreen.screenX, centerScreen.screenY + iconSize / 2);
+          placeholder.moveTo(
+            centerScreen.screenX - iconSize / 2,
+            centerScreen.screenY
+          );
+          placeholder.lineTo(
+            centerScreen.screenX + iconSize / 2,
+            centerScreen.screenY
+          );
+          placeholder.moveTo(
+            centerScreen.screenX,
+            centerScreen.screenY - iconSize / 2
+          );
+          placeholder.lineTo(
+            centerScreen.screenX,
+            centerScreen.screenY + iconSize / 2
+          );
           placeholder.stroke();
 
           placeholder.eventMode = 'static';
@@ -499,10 +574,22 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
               color: placeholderColor,
               alpha: 1.0,
             });
-            placeholder.moveTo(centerScreen.screenX - iconSize / 2, centerScreen.screenY);
-            placeholder.lineTo(centerScreen.screenX + iconSize / 2, centerScreen.screenY);
-            placeholder.moveTo(centerScreen.screenX, centerScreen.screenY - iconSize / 2);
-            placeholder.lineTo(centerScreen.screenX, centerScreen.screenY + iconSize / 2);
+            placeholder.moveTo(
+              centerScreen.screenX - iconSize / 2,
+              centerScreen.screenY
+            );
+            placeholder.lineTo(
+              centerScreen.screenX + iconSize / 2,
+              centerScreen.screenY
+            );
+            placeholder.moveTo(
+              centerScreen.screenX,
+              centerScreen.screenY - iconSize / 2
+            );
+            placeholder.lineTo(
+              centerScreen.screenX,
+              centerScreen.screenY + iconSize / 2
+            );
             placeholder.stroke();
           });
 
@@ -532,10 +619,22 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
               color: placeholderColor,
               alpha: 0.8,
             });
-            placeholder.moveTo(centerScreen.screenX - iconSize / 2, centerScreen.screenY);
-            placeholder.lineTo(centerScreen.screenX + iconSize / 2, centerScreen.screenY);
-            placeholder.moveTo(centerScreen.screenX, centerScreen.screenY - iconSize / 2);
-            placeholder.lineTo(centerScreen.screenX, centerScreen.screenY + iconSize / 2);
+            placeholder.moveTo(
+              centerScreen.screenX - iconSize / 2,
+              centerScreen.screenY
+            );
+            placeholder.lineTo(
+              centerScreen.screenX + iconSize / 2,
+              centerScreen.screenY
+            );
+            placeholder.moveTo(
+              centerScreen.screenX,
+              centerScreen.screenY - iconSize / 2
+            );
+            placeholder.lineTo(
+              centerScreen.screenX,
+              centerScreen.screenY + iconSize / 2
+            );
             placeholder.stroke();
           });
 
@@ -566,8 +665,12 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         const progress = Math.min(elapsed / animationDuration, 1);
         const eased = easeOutCubic(progress);
 
-        viewport.x = animationRef.current.startX + (animationRef.current.targetX - animationRef.current.startX) * eased;
-        viewport.y = animationRef.current.startY + (animationRef.current.targetY - animationRef.current.startY) * eased;
+        viewport.x =
+          animationRef.current.startX +
+          (animationRef.current.targetX - animationRef.current.startX) * eased;
+        viewport.y =
+          animationRef.current.startY +
+          (animationRef.current.targetY - animationRef.current.startY) * eased;
 
         if (progress >= 1) {
           animationRef.current = null;
@@ -649,26 +752,30 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       animationRef.current = null;
       rendererRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stableCollectionKey, width, height]); // Only recreate PIXI when collection or size changes
+  // Intentionally omit mapData, onAddRegion, onProjectMoved, onViewportReady - recreating PIXI on every change would be too expensive
 
   // Separate effect to update scene when mapData changes (without recreating PIXI)
   useEffect(() => {
-    console.log('[OverworldMapPanel] Scene render effect triggered', { hasViewport: !!viewportRef.current, hasRenderer: !!rendererRef.current, hasMapData: !!mapData });
-    if (!viewportRef.current || !rendererRef.current || !mapData || !appRef.current) return;
+    if (
+      !viewportRef.current ||
+      !rendererRef.current ||
+      !mapData ||
+      !appRef.current
+    )
+      return;
 
     // Skip re-render if actively dragging to prevent destroying sprites mid-drag
     if (interactionRef.current?.isDragging()) {
-      console.log('[OverworldMapPanel] Skipping scene re-render - drag in progress');
       return;
     }
 
-    console.log('[OverworldMapPanel] Re-rendering scene with', { nodes: mapData.nodes.length, regions: mapData.regions.length });
     const renderer = rendererRef.current;
     const viewport = viewportRef.current;
     const app = appRef.current;
 
     // Generate any missing building sprite textures for new size+color combinations
-    const existingKeys = new Set(renderer.getTextureKeys().filter(k => k.startsWith('building-')));
     const neededCombos = new Set<string>();
 
     for (const node of mapData.nodes) {
@@ -676,17 +783,13 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       neededCombos.add(key);
     }
 
-    console.log('[OverworldMapPanel] Checking sprites:', { existing: existingKeys.size, needed: neededCombos.size });
-
     // Generate missing textures
-    let generatedCount = 0;
     for (const key of neededCombos) {
       if (!renderer.hasTexture(key)) {
         const [, sizeStr, colorHex] = key.split('-');
         const size = parseFloat(sizeStr);
         const color = parseInt(colorHex.replace('#', ''), 16);
 
-        console.log('[OverworldMapPanel] Generating missing sprite:', { key, size, color });
         const buildingGraphics = generateBuildingSprite({ size, color });
         const texture = app.renderer.generateTexture({
           target: buildingGraphics,
@@ -694,12 +797,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         });
         renderer.addTexture(key, texture);
         buildingGraphics.destroy();
-        generatedCount++;
       }
-    }
-
-    if (generatedCount > 0) {
-      console.log('[OverworldMapPanel] Generated', generatedCount, 'new sprite textures');
     }
 
     // Remove and destroy old scene containers to prevent memory leaks
@@ -719,9 +817,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     }
 
     // Render new scene with updated mapData
-    console.log('[OverworldMapPanel] Calling renderer.renderScene...');
     const scene = renderer.renderScene(mapData, true);
-    console.log('[OverworldMapPanel] Scene rendered, sprite count:', scene.spriteInstances.size);
 
     // Re-add scene containers
     viewport.addChild(scene.background);
@@ -784,7 +880,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       targetX,
       targetY,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRegionIndex, isRendering]); // Only depend on index, not the region object itself
+  // Intentionally omit mapData - we only want to animate when user navigates (index changes), not when map content updates
 
   // Update ref and re-render placeholders when edit mode changes
   useEffect(() => {
@@ -795,7 +893,14 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   }, [isEditingRegions]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+      }}
+    >
       {(isLoading || isRendering) && (
         <div
           style={{
@@ -854,24 +959,49 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           }}
         >
           <button
-            onClick={() => !isAnimating && setCurrentRegionIndex((prev) => Math.max(0, prev - 1))}
+            onClick={() =>
+              !isAnimating &&
+              setCurrentRegionIndex((prev) => Math.max(0, prev - 1))
+            }
             disabled={currentRegionIndex === 0 || isAnimating}
             style={{
-              background: (currentRegionIndex === 0 || isAnimating) ? 'rgba(100, 100, 100, 0.3)' : 'rgba(251, 191, 36, 0.2)',
+              background:
+                currentRegionIndex === 0 || isAnimating
+                  ? 'rgba(100, 100, 100, 0.3)'
+                  : 'rgba(251, 191, 36, 0.2)',
               border: '1px solid #fbbf24',
               borderRadius: 4,
               padding: '4px 8px',
-              cursor: (currentRegionIndex === 0 || isAnimating) ? 'not-allowed' : 'pointer',
+              cursor:
+                currentRegionIndex === 0 || isAnimating
+                  ? 'not-allowed'
+                  : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              opacity: (currentRegionIndex === 0 || isAnimating) ? 0.5 : 1,
+              opacity: currentRegionIndex === 0 || isAnimating ? 0.5 : 1,
             }}
           >
             <ChevronLeft size={16} color="#fbbf24" />
           </button>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <div style={{ fontSize: 16, fontWeight: 'bold', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '2px',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                color: '#fbbf24',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               {currentRegion.name}
 
               {/* Edit mode controls */}
@@ -879,10 +1009,19 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
                 <>
                   <button
                     onClick={() => {
-                      const newName = prompt('Rename region:', currentRegion.name);
-                      if (newName && newName.trim() && newName !== currentRegion.name) {
+                      const newName = prompt(
+                        'Rename region:',
+                        currentRegion.name
+                      );
+                      if (
+                        newName &&
+                        newName.trim() &&
+                        newName !== currentRegion.name
+                      ) {
                         // Find the matching customRegion by name (since regions from layout engine may not have IDs)
-                        const matchingRegion = customRegions.find(r => r.name === currentRegion.name);
+                        const matchingRegion = customRegions.find(
+                          (r) => r.name === currentRegion.name
+                        );
                         if (matchingRegion && onRenameRegion) {
                           onRenameRegion(matchingRegion.id, newName.trim());
                         }
@@ -905,13 +1044,19 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
                   <button
                     onClick={() => {
-                      if (confirm(`Delete region "${currentRegion.name}"? Repositories will be unassigned.`)) {
-                        const matchingRegion = customRegions.find(r => r.name === currentRegion.name);
+                      if (
+                        confirm(
+                          `Delete region "${currentRegion.name}"? Repositories will be unassigned.`
+                        )
+                      ) {
+                        const matchingRegion = customRegions.find(
+                          (r) => r.name === currentRegion.name
+                        );
                         if (matchingRegion && onDeleteRegion) {
                           onDeleteRegion(matchingRegion.id);
                           // Navigate to previous region if we deleted the current one
                           if (currentRegionIndex > 0) {
-                            setCurrentRegionIndex(prev => prev - 1);
+                            setCurrentRegionIndex((prev) => prev - 1);
                           }
                         }
                       }
@@ -934,29 +1079,45 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
               )}
             </div>
             <div style={{ fontSize: 10, color: '#94a3b8' }}>
-              Region {currentRegionIndex + 1} of {mapData.regions.length} | {currentRegion.nodeIds.length} packages
+              Region {currentRegionIndex + 1} of {mapData.regions.length} |{' '}
+              {currentRegion.nodeIds.length} packages
             </div>
           </div>
 
           <button
-            onClick={() => !isAnimating && setCurrentRegionIndex((prev) => Math.min(mapData.regions.length - 1, prev + 1))}
-            disabled={currentRegionIndex === mapData.regions.length - 1 || isAnimating}
+            onClick={() =>
+              !isAnimating &&
+              setCurrentRegionIndex((prev) =>
+                Math.min(mapData.regions.length - 1, prev + 1)
+              )
+            }
+            disabled={
+              currentRegionIndex === mapData.regions.length - 1 || isAnimating
+            }
             style={{
-              background: (currentRegionIndex === mapData.regions.length - 1 || isAnimating) ? 'rgba(100, 100, 100, 0.3)' : 'rgba(251, 191, 36, 0.2)',
+              background:
+                currentRegionIndex === mapData.regions.length - 1 || isAnimating
+                  ? 'rgba(100, 100, 100, 0.3)'
+                  : 'rgba(251, 191, 36, 0.2)',
               border: '1px solid #fbbf24',
               borderRadius: 4,
               padding: '4px 8px',
-              cursor: (currentRegionIndex === mapData.regions.length - 1 || isAnimating) ? 'not-allowed' : 'pointer',
+              cursor:
+                currentRegionIndex === mapData.regions.length - 1 || isAnimating
+                  ? 'not-allowed'
+                  : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              opacity: (currentRegionIndex === mapData.regions.length - 1 || isAnimating) ? 0.5 : 1,
+              opacity:
+                currentRegionIndex === mapData.regions.length - 1 || isAnimating
+                  ? 0.5
+                  : 1,
             }}
           >
             <ChevronRight size={16} color="#fbbf24" />
           </button>
         </div>
       )}
-
     </div>
   );
 };
@@ -983,4 +1144,3 @@ export const OverworldMapPanelPreview: React.FC = () => {
     </div>
   );
 };
-

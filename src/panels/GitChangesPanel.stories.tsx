@@ -1,9 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState, useCallback } from 'react';
 import { ThemeProvider } from '@principal-ade/industry-theme';
-import { GitChangesPanelContent, GitChangesPanelPreview } from './GitChangesPanel';
+import {
+  GitChangesPanelContent,
+  GitChangesPanelPreview,
+} from './GitChangesPanel';
 import type { GitChangeSelectionStatus } from '../types';
-import type { FileTree, GitStatusWithFiles } from '@principal-ai/repository-abstraction';
+import type {
+  FileTree,
+  GitStatusWithFiles,
+} from '@principal-ai/repository-abstraction';
 
 /**
  * GitChangesPanelContent displays git status changes in a full file tree format with git status overlays.
@@ -47,22 +53,10 @@ const sampleGitStatus: GitStatusWithFiles = {
   ahead: 0,
   behind: 0,
   watchingEnabled: false,
-  stagedFiles: [
-    'src/components/Button.tsx',
-    'src/styles/theme.css',
-  ],
-  modifiedFiles: [
-    'README.md',
-    'package.json',
-    'src/utils/helpers.ts',
-  ],
-  untrackedFiles: [
-    'src/new-feature.tsx',
-    'src/components/NewComponent.tsx',
-  ],
-  deletedFiles: [
-    'src/deprecated/old-file.ts',
-  ],
+  stagedFiles: ['src/components/Button.tsx', 'src/styles/theme.css'],
+  modifiedFiles: ['README.md', 'package.json', 'src/utils/helpers.ts'],
+  untrackedFiles: ['src/new-feature.tsx', 'src/components/NewComponent.tsx'],
+  deletedFiles: ['src/deprecated/old-file.ts'],
   createdFiles: [],
   hash: 'mock-hash-123',
 };
@@ -316,9 +310,7 @@ export const Default: Story = {
     gitStatus: sampleGitStatus,
     fileTree: sampleFileTree,
     rootPath: '/Users/developer/my-project',
-    onFileClick: (filePath: string, status?: GitChangeSelectionStatus) => {
-      console.log('File clicked:', filePath, 'Status:', status);
-    },
+    onFileClick: (_filePath: string, _status?: GitChangeSelectionStatus) => {},
   },
 };
 
@@ -391,11 +383,7 @@ export const OnlyUnstaged: Story = {
       behind: 0,
       watchingEnabled: false,
       stagedFiles: [],
-      modifiedFiles: [
-        'package.json',
-        'tsconfig.json',
-        'src/config.ts',
-      ],
+      modifiedFiles: ['package.json', 'tsconfig.json', 'src/config.ts'],
       untrackedFiles: [],
       deletedFiles: [],
       createdFiles: [],
@@ -481,13 +469,19 @@ export const ManyChanges: Story = {
       ahead: 0,
       behind: 0,
       watchingEnabled: false,
-      stagedFiles: Array.from({ length: 10 }, (_, i) => `src/components/Component${i}.tsx`),
-      modifiedFiles: Array.from({ length: 15 }, (_, i) => `src/utils/util${i}.ts`),
-      untrackedFiles: Array.from({ length: 8 }, (_, i) => `src/new/file${i}.tsx`),
-      deletedFiles: [
-        'src/old/deprecated.ts',
-        'src/old/legacy.ts',
-      ],
+      stagedFiles: Array.from(
+        { length: 10 },
+        (_, i) => `src/components/Component${i}.tsx`
+      ),
+      modifiedFiles: Array.from(
+        { length: 15 },
+        (_, i) => `src/utils/util${i}.ts`
+      ),
+      untrackedFiles: Array.from(
+        { length: 8 },
+        (_, i) => `src/new/file${i}.tsx`
+      ),
+      deletedFiles: ['src/old/deprecated.ts', 'src/old/legacy.ts'],
       createdFiles: [],
       hash: 'many-changes',
     },
@@ -514,7 +508,9 @@ export const WithSelectedFile: Story = {
 export const Preview: StoryObj<typeof GitChangesPanelPreview> = {
   render: () => (
     <ThemeProvider>
-      <div style={{ width: '200px', background: '#1a1a1a', borderRadius: '8px' }}>
+      <div
+        style={{ width: '200px', background: '#1a1a1a', borderRadius: '8px' }}
+      >
         <GitChangesPanelPreview />
       </div>
     </ThemeProvider>
@@ -544,36 +540,48 @@ const InteractiveGitChangesPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const addStagedFile = useCallback(() => {
-    setGitStatus(prev => ({
+    setGitStatus((prev) => ({
       ...prev,
       isDirty: true,
       hasStaged: true,
-      stagedFiles: [...prev.stagedFiles, `src/components/NewComponent${prev.stagedFiles.length + 1}.tsx`],
+      stagedFiles: [
+        ...prev.stagedFiles,
+        `src/components/NewComponent${prev.stagedFiles.length + 1}.tsx`,
+      ],
     }));
   }, []);
 
   const addUnstagedFile = useCallback(() => {
-    setGitStatus(prev => ({
+    setGitStatus((prev) => ({
       ...prev,
       isDirty: true,
-      modifiedFiles: [...prev.modifiedFiles, `src/utils/helper${prev.modifiedFiles.length + 1}.ts`],
+      modifiedFiles: [
+        ...prev.modifiedFiles,
+        `src/utils/helper${prev.modifiedFiles.length + 1}.ts`,
+      ],
     }));
   }, []);
 
   const addUntrackedFile = useCallback(() => {
-    setGitStatus(prev => ({
+    setGitStatus((prev) => ({
       ...prev,
       isDirty: true,
       hasUntracked: true,
-      untrackedFiles: [...prev.untrackedFiles, `src/new/file${prev.untrackedFiles.length + 1}.tsx`],
+      untrackedFiles: [
+        ...prev.untrackedFiles,
+        `src/new/file${prev.untrackedFiles.length + 1}.tsx`,
+      ],
     }));
   }, []);
 
   const addDeletedFile = useCallback(() => {
-    setGitStatus(prev => ({
+    setGitStatus((prev) => ({
       ...prev,
       isDirty: true,
-      deletedFiles: [...prev.deletedFiles, `src/old/deprecated${prev.deletedFiles.length + 1}.ts`],
+      deletedFiles: [
+        ...prev.deletedFiles,
+        `src/old/deprecated${prev.deletedFiles.length + 1}.ts`,
+      ],
     }));
   }, []);
 
@@ -662,27 +670,50 @@ const InteractiveGitChangesPanel = () => {
 
   return (
     <ThemeProvider>
-      <div style={{ height: '100vh', background: '#1a1a1a', display: 'flex', flexDirection: 'column' }}>
-        {/* Control Panel */}
-        <div style={{
-          padding: '12px',
-          background: '#2a2a2a',
-          borderBottom: '1px solid #444',
+      <div
+        style={{
+          height: '100vh',
+          background: '#1a1a1a',
           display: 'flex',
-          gap: '8px',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-        }}>
+          flexDirection: 'column',
+        }}
+      >
+        {/* Control Panel */}
+        <div
+          style={{
+            padding: '12px',
+            background: '#2a2a2a',
+            borderBottom: '1px solid #444',
+            display: 'flex',
+            gap: '8px',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}
+        >
           <span style={{ color: '#888', fontSize: '12px', marginRight: '8px' }}>
             Changes: {totalChanges} | Loading: {isLoading ? 'Yes' : 'No'}
           </span>
-          <button onClick={addStagedFile} style={buttonStyle('#22c55e')}>+ Staged</button>
-          <button onClick={addUnstagedFile} style={buttonStyle('#f59e0b')}>+ Unstaged</button>
-          <button onClick={addUntrackedFile} style={buttonStyle('#3b82f6')}>+ Untracked</button>
-          <button onClick={addDeletedFile} style={buttonStyle('#ef4444')}>+ Deleted</button>
-          <button onClick={addMultipleChanges} style={buttonStyle('#8b5cf6')}>Add Multiple</button>
-          <button onClick={clearAllChanges} style={buttonStyle('#666')}>Clear All</button>
-          <button onClick={simulateLoading} style={buttonStyle('#0ea5e9')}>Simulate Load</button>
+          <button onClick={addStagedFile} style={buttonStyle('#22c55e')}>
+            + Staged
+          </button>
+          <button onClick={addUnstagedFile} style={buttonStyle('#f59e0b')}>
+            + Unstaged
+          </button>
+          <button onClick={addUntrackedFile} style={buttonStyle('#3b82f6')}>
+            + Untracked
+          </button>
+          <button onClick={addDeletedFile} style={buttonStyle('#ef4444')}>
+            + Deleted
+          </button>
+          <button onClick={addMultipleChanges} style={buttonStyle('#8b5cf6')}>
+            Add Multiple
+          </button>
+          <button onClick={clearAllChanges} style={buttonStyle('#666')}>
+            Clear All
+          </button>
+          <button onClick={simulateLoading} style={buttonStyle('#0ea5e9')}>
+            Simulate Load
+          </button>
         </div>
 
         {/* Panel */}
@@ -692,7 +723,6 @@ const InteractiveGitChangesPanel = () => {
             fileTree={sampleFileTree}
             rootPath="/Users/developer/my-project"
             isLoading={isLoading}
-            onFileClick={(filePath, status) => console.log('Clicked:', filePath, status)}
           />
         </div>
       </div>
@@ -715,7 +745,8 @@ export const Interactive: StoryObj = {
   parameters: {
     docs: {
       description: {
-        story: 'Interactive story to test dynamic git status changes and view switching behavior.',
+        story:
+          'Interactive story to test dynamic git status changes and view switching behavior.',
       },
     },
   },
@@ -727,44 +758,66 @@ export const Interactive: StoryObj = {
 const TwoPanelsDemo = () => {
   return (
     <ThemeProvider>
-      <div style={{ height: '100vh', background: '#1a1a1a', display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          height: '100vh',
+          background: '#1a1a1a',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         {/* Header with info */}
-        <div style={{
-          padding: '16px',
-          background: '#e8f5e9',
-          borderBottom: '2px solid #4caf50',
-          color: '#1b5e20',
-        }}>
+        <div
+          style={{
+            padding: '16px',
+            background: '#e8f5e9',
+            borderBottom: '2px solid #4caf50',
+            color: '#1b5e20',
+          }}
+        >
           <h3 style={{ margin: '0 0 8px 0', color: '#2e7d32' }}>
             ✅ DnD Backend Conflict Test - Multiple Git Changes Panels
           </h3>
           <p style={{ margin: '0 0 8px 0', fontSize: '14px' }}>
-            <strong>Testing:</strong> Two GitChangesPanel instances rendered simultaneously
+            <strong>Testing:</strong> Two GitChangesPanel instances rendered
+            simultaneously
           </p>
           <p style={{ margin: '0', fontSize: '14px' }}>
-            <strong>Expected:</strong> No "Cannot have two HTML5 backends at the same time" error
+            <strong>Expected:</strong> No "Cannot have two HTML5 backends at the
+            same time" error
           </p>
         </div>
 
         {/* Two panels side-by-side */}
-        <div style={{
-          flex: 1,
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '1px',
-          background: '#444',
-          overflow: 'hidden'
-        }}>
+        <div
+          style={{
+            flex: 1,
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '1px',
+            background: '#444',
+            overflow: 'hidden',
+          }}
+        >
           {/* Left Panel */}
-          <div style={{ background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{
-              padding: '8px',
-              background: '#2a2a2a',
-              borderBottom: '1px solid #444',
-              fontSize: '12px',
-              color: '#888',
-              fontWeight: 'bold'
-            }}>
+          <div
+            style={{
+              background: '#1a1a1a',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div
+              style={{
+                padding: '8px',
+                background: '#2a2a2a',
+                borderBottom: '1px solid #444',
+                fontSize: '12px',
+                color: '#888',
+                fontWeight: 'bold',
+              }}
+            >
               Panel 1 - Repository A
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -783,37 +836,40 @@ const TwoPanelsDemo = () => {
                     'src/styles/theme.css',
                     'src/utils/helpers.ts',
                   ],
-                  modifiedFiles: [
-                    'README.md',
-                    'package.json',
-                  ],
+                  modifiedFiles: ['README.md', 'package.json'],
                   untrackedFiles: [
                     'src/new-feature.tsx',
                     'src/components/NewComponent.tsx',
                   ],
-                  deletedFiles: [
-                    'src/deprecated/old-file.ts',
-                  ],
+                  deletedFiles: ['src/deprecated/old-file.ts'],
                   createdFiles: [],
                   hash: 'panel-1',
                 }}
                 fileTree={sampleFileTree}
                 rootPath="/Users/developer/repository-a"
-                onFileClick={(filePath, status) => console.log('Panel 1:', filePath, status)}
               />
             </div>
           </div>
 
           {/* Right Panel */}
-          <div style={{ background: '#1a1a1a', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{
-              padding: '8px',
-              background: '#2a2a2a',
-              borderBottom: '1px solid #444',
-              fontSize: '12px',
-              color: '#888',
-              fontWeight: 'bold'
-            }}>
+          <div
+            style={{
+              background: '#1a1a1a',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div
+              style={{
+                padding: '8px',
+                background: '#2a2a2a',
+                borderBottom: '1px solid #444',
+                fontSize: '12px',
+                color: '#888',
+                fontWeight: 'bold',
+              }}
+            >
               Panel 2 - Repository B
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -827,39 +883,35 @@ const TwoPanelsDemo = () => {
                   ahead: 2,
                   behind: 0,
                   watchingEnabled: false,
-                  stagedFiles: [
-                    'docs/API.md',
-                    'src/index.ts',
-                  ],
+                  stagedFiles: ['docs/API.md', 'src/index.ts'],
                   modifiedFiles: [
                     'tsconfig.json',
                     'webpack.config.js',
                     'src/App.tsx',
                     'src/config.ts',
                   ],
-                  untrackedFiles: [
-                    'src/experimental/feature.tsx',
-                  ],
+                  untrackedFiles: ['src/experimental/feature.tsx'],
                   deletedFiles: [],
                   createdFiles: [],
                   hash: 'panel-2',
                 }}
                 fileTree={sampleFileTree}
                 rootPath="/Users/developer/repository-b"
-                onFileClick={(filePath, status) => console.log('Panel 2:', filePath, status)}
               />
             </div>
           </div>
         </div>
 
         {/* Footer with test instructions */}
-        <div style={{
-          padding: '12px',
-          background: '#2a2a2a',
-          borderTop: '1px solid #444',
-          fontSize: '12px',
-          color: '#888',
-        }}>
+        <div
+          style={{
+            padding: '12px',
+            background: '#2a2a2a',
+            borderTop: '1px solid #444',
+            fontSize: '12px',
+            color: '#888',
+          }}
+        >
           <strong>Test Actions:</strong>
           <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
             <li>✅ Both panels should render without errors</li>

@@ -14,6 +14,7 @@ import type { PanelDefinition, PanelContextValue } from './types';
  * panels with different action and context type requirements (e.g., CollectionMapPanelActions, CollectionMapPanelContext).
  * Each panel definition is still individually type-checked.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
   {
     metadata: {
@@ -32,10 +33,7 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       console.log('Git Changes Panel mounted');
 
       // Refresh git status if available
-      if (
-        context.hasSlice('git') &&
-        !context.isSliceLoading('git')
-      ) {
+      if (context.hasSlice('git') && !context.isSliceLoading('git')) {
         await context.refresh('repository', 'git');
       }
     },
@@ -52,7 +50,8 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       icon: 'Package',
       version: '0.1.0',
       author: 'Industry Theme',
-      description: 'View detected packages, dependencies, configs, and available commands',
+      description:
+        'View detected packages, dependencies, configs, and available commands',
       slices: ['packages'],
     },
     component: PackageCompositionPanel,
@@ -62,10 +61,7 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       console.log('Package Composition Panel mounted');
 
       // Refresh packages if available
-      if (
-        context.hasSlice('packages') &&
-        !context.isSliceLoading('packages')
-      ) {
+      if (context.hasSlice('packages') && !context.isSliceLoading('packages')) {
         await context.refresh('repository', 'packages');
       }
     },
@@ -92,10 +88,7 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       console.log('Search Panel mounted');
 
       // Refresh fileTree if available
-      if (
-        context.hasSlice('fileTree') &&
-        !context.isSliceLoading('fileTree')
-      ) {
+      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
         await context.refresh('repository', 'fileTree');
       }
     },
@@ -112,7 +105,8 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       icon: 'GitBranch',
       version: '0.1.0',
       author: 'Industry Theme',
-      description: 'Visualize monorepo package dependencies as an interactive graph',
+      description:
+        'Visualize monorepo package dependencies as an interactive graph',
       slices: ['packages'],
     },
     component: DependencyGraphPanel,
@@ -122,10 +116,7 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       console.log('Dependency Graph Panel mounted');
 
       // Refresh packages if available
-      if (
-        context.hasSlice('packages') &&
-        !context.isSliceLoading('packages')
-      ) {
+      if (context.hasSlice('packages') && !context.isSliceLoading('packages')) {
         await context.refresh('repository', 'packages');
       }
     },
@@ -174,16 +165,10 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       console.log('Telemetry Coverage Panel mounted');
 
       // Refresh packages and fileTree if available
-      if (
-        context.hasSlice('packages') &&
-        !context.isSliceLoading('packages')
-      ) {
+      if (context.hasSlice('packages') && !context.isSliceLoading('packages')) {
         await context.refresh('repository', 'packages');
       }
-      if (
-        context.hasSlice('fileTree') &&
-        !context.isSliceLoading('fileTree')
-      ) {
+      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
         await context.refresh('repository', 'fileTree');
       }
     },
@@ -212,11 +197,26 @@ export const onPackageUnload = async () => {
 };
 
 // Re-export components for direct usage (e.g., in Storybook)
-export { GitChangesPanel, GitChangesPanelContent, GitChangesPanelPreview } from './panels/GitChangesPanel';
-export type { GitChangesPanelProps, ContextMenuAction } from './panels/GitChangesPanel';
-export { PackageCompositionPanel, PackageCompositionPanelContent, PackageCompositionPanelPreview } from './panels/PackageCompositionPanel';
+export {
+  GitChangesPanel,
+  GitChangesPanelContent,
+  GitChangesPanelPreview,
+} from './panels/GitChangesPanel';
+export type {
+  GitChangesPanelProps,
+  ContextMenuAction,
+} from './panels/GitChangesPanel';
+export {
+  PackageCompositionPanel,
+  PackageCompositionPanelContent,
+  PackageCompositionPanelPreview,
+} from './panels/PackageCompositionPanel';
 export type { PackageCompositionPanelProps } from './panels/PackageCompositionPanel';
-export { SearchPanel, SearchPanelContent, SearchPanelPreview } from './panels/SearchPanel';
+export {
+  SearchPanel,
+  SearchPanelContent,
+  SearchPanelPreview,
+} from './panels/SearchPanel';
 export type { SearchPanelProps } from './panels/SearchPanel';
 export {
   DependencyGraphPanel,
