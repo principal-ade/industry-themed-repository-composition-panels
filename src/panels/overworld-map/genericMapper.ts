@@ -23,6 +23,12 @@ import {
 /**
  * Generic node - represents any entity (package, repo, service, etc.)
  */
+export interface PackageInfo {
+  name: string;
+  size: number; // Size multiplier for this individual package
+  language?: string;
+}
+
 export interface GenericNode {
   id: string;
   name: string;
@@ -34,6 +40,13 @@ export interface GenericNode {
   importance?: number; // 0-100, affects building size
   size?: number; // Size multiplier (1.5x - 4.0x) for sprite scaling based on metrics
   aging?: AgingMetrics; // Aging metrics for weathering and color fade
+
+  // Package subdivision (for monorepos with multiple packages)
+  packages?: PackageInfo[]; // If present, render multiple buildings in same footprint
+
+  // GitHub popularity
+  stars?: number; // GitHub star count for decorations
+  collaborators?: number; // Contributor count for community space decoration
 
   // Connections to other nodes
   dependencies?: string[]; // IDs of nodes this depends on
@@ -666,8 +679,8 @@ export function nodesToUnifiedOverworldMap(
       ? options.getNodeColor(node)
       : getCategoryColor(node.category || node.language, isRoot);
 
-    // Generate sprite key for building sprites: building-{size}-{color}
-    const spriteKey = `building-${size.toFixed(2)}-${color}`;
+    // Generate sprite key for building sprites: building-{size}-{color}-{stars}-{collaborators}
+    const spriteKey = `building-${size.toFixed(2)}-${color}-${node.stars || 0}-${node.collaborators || 0}`;
 
     // Validate packageType
     const validPackageTypes = [
@@ -684,6 +697,17 @@ export function nodesToUnifiedOverworldMap(
       ? (node.category as PackageType)
       : 'package';
 
+    // Convert package subdivision data if present
+    // Each package gets its own color based on its language
+    const subdivisions = node.packages?.map((pkg) => {
+      const pkgColor = getCategoryColor(pkg.language, false);
+      return {
+        name: pkg.name,
+        size: pkg.size,
+        sprite: `building-${pkg.size.toFixed(2)}-${pkgColor}-0-0`, // Subdivisions don't have individual decorations
+      };
+    });
+
     return {
       id: node.id,
       gridX: pos.gridX,
@@ -697,6 +721,9 @@ export function nodesToUnifiedOverworldMap(
       isRoot,
       color,
       aging: node.aging,
+      subdivisions,
+      stars: node.stars,
+      collaborators: node.collaborators,
     };
   });
 

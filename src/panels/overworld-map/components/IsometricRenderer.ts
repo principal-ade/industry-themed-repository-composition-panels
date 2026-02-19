@@ -19,6 +19,22 @@ import type {
   GridPoint,
 } from '../types';
 import { gridToScreen, getIsometricZIndex } from '../isometricUtils';
+import { getStarTier, formatStarCount } from '../starDecoration';
+import {
+  generateFlagSprite,
+  generateTrophySprite,
+  generateStatueSprite,
+} from './starDecorationSprites';
+import {
+  getCollaboratorTier,
+  formatCollaboratorCount,
+} from '../collaboratorDecoration';
+import {
+  generateBenchSprite,
+  generatePavilionSprite,
+  generateGazeboSprite,
+  generateBandstandSprite,
+} from './collaboratorDecorationSprites';
 
 // Isometric tile constants (must match isometricUtils.ts)
 const ISO_TILE_WIDTH = 64;
@@ -105,7 +121,11 @@ export class IsometricRenderer {
 
     // Render grid if enabled
     if (showGrid) {
-      const grid = this.renderGrid(mapData.width, mapData.height, mapData.regions);
+      const grid = this.renderGrid(
+        mapData.width,
+        mapData.height,
+        mapData.regions
+      );
       background.addChild(grid);
     }
 
@@ -129,12 +149,12 @@ export class IsometricRenderer {
     const spriteInstances = this.renderSprites(mapData.nodes);
     for (const instance of spriteInstances.values()) {
       // Add in render order (bottom to top)
-      nodes.addChild(instance.highlight);      // Background: yellow diamond
-      nodes.addChild(instance.sprite);         // Middle: building/sprite
+      nodes.addChild(instance.highlight); // Background: yellow diamond
+      nodes.addChild(instance.sprite); // Middle: building/sprite (with baked decoration)
       if (instance.weathering) {
-        nodes.addChild(instance.weathering);   // Top: weathering overlay
+        nodes.addChild(instance.weathering); // Top: weathering overlay
       }
-      nodes.addChild(instance.label);          // Top: text label
+      nodes.addChild(instance.label); // Top: text label
     }
 
     return {
@@ -152,7 +172,11 @@ export class IsometricRenderer {
    * Render isometric grid with region boundaries
    * Only draws grid cells for existing regions (not the entire world)
    */
-  renderGrid(gridWidth: number, gridHeight: number, regions: OverworldMap['regions']): Graphics {
+  renderGrid(
+    gridWidth: number,
+    gridHeight: number,
+    regions: OverworldMap['regions']
+  ): Graphics {
     const grid = new Graphics();
 
     // Helper to check if a grid coordinate is inside any existing region
@@ -205,9 +229,15 @@ export class IsometricRenderer {
         };
         grid.beginPath();
         grid.moveTo(screenX, screenY); // Top
-        grid.lineTo(screenX + this.tileWidth / 2, screenY + this.tileHeight / 2); // Right
+        grid.lineTo(
+          screenX + this.tileWidth / 2,
+          screenY + this.tileHeight / 2
+        ); // Right
         grid.lineTo(screenX, screenY + this.tileHeight); // Bottom
-        grid.lineTo(screenX - this.tileWidth / 2, screenY + this.tileHeight / 2); // Left
+        grid.lineTo(
+          screenX - this.tileWidth / 2,
+          screenY + this.tileHeight / 2
+        ); // Left
         grid.closePath();
         grid.stroke();
       }
@@ -317,22 +347,331 @@ export class IsometricRenderer {
     const dashLength = 8;
     const gapLength = 4;
     const totalLength = Math.sqrt(
-      Math.pow(to.screenX - from.screenX, 2) + Math.pow(to.screenY - from.screenY, 2)
+      Math.pow(to.screenX - from.screenX, 2) +
+        Math.pow(to.screenY - from.screenY, 2)
     );
-    const angle = Math.atan2(to.screenY - from.screenY, to.screenX - from.screenX);
+    const angle = Math.atan2(
+      to.screenY - from.screenY,
+      to.screenX - from.screenX
+    );
 
     let currentLength = 0;
     while (currentLength < totalLength) {
       const startX = from.screenX + Math.cos(angle) * currentLength;
       const startY = from.screenY + Math.sin(angle) * currentLength;
-      const endX = from.screenX + Math.cos(angle) * Math.min(currentLength + dashLength, totalLength);
-      const endY = from.screenY + Math.sin(angle) * Math.min(currentLength + dashLength, totalLength);
+      const endX =
+        from.screenX +
+        Math.cos(angle) * Math.min(currentLength + dashLength, totalLength);
+      const endY =
+        from.screenY +
+        Math.sin(angle) * Math.min(currentLength + dashLength, totalLength);
 
       graphics.moveTo(startX, startY);
       graphics.lineTo(endX, endY);
 
       currentLength += dashLength + gapLength;
     }
+  }
+
+  /**
+   * Render a node with multiple sub-packages as a grouped cluster
+   */
+  private renderSubdividedNode(node: LocationNode): SpriteInstance {
+    const { screenX, screenY } = gridToScreen(node.gridX, node.gridY);
+    const sizeMultiplier = node.size || 1.0;
+
+    // Create a container to hold all sub-packages
+    const container = new Container();
+    container.x = screenX;
+    container.y = screenY;
+
+    // Calculate the footprint size in screen space
+    const footprintTiles = 4 * sizeMultiplier; // Boundary is 4 × size tiles
+    const footprintWidth = (footprintTiles * this.tileWidth) / 2; // Half tile width for screen space
+    const footprintHeight = (footprintTiles * this.tileHeight) / 2;
+
+    // Determine arrangement pattern based on package count
+    const subCount = node.subdivisions!.length;
+    const positions: Array<{ x: number; y: number }> = [];
+    const spacing = 0.35; // How much of the footprint to use (35%)
+
+    if (subCount === 2) {
+      positions.push(
+        { x: -footprintWidth * spacing, y: 0 },
+        { x: footprintWidth * spacing, y: 0 }
+      );
+    } else if (subCount === 3) {
+      positions.push(
+        {
+          x: -footprintWidth * spacing * 0.6,
+          y: -footprintHeight * spacing * 0.6,
+        },
+        {
+          x: footprintWidth * spacing * 0.6,
+          y: -footprintHeight * spacing * 0.6,
+        },
+        { x: 0, y: footprintHeight * spacing * 0.8 }
+      );
+    } else if (subCount === 4) {
+      positions.push(
+        { x: -footprintWidth * spacing, y: -footprintHeight * spacing },
+        { x: footprintWidth * spacing, y: -footprintHeight * spacing },
+        { x: -footprintWidth * spacing, y: footprintHeight * spacing },
+        { x: footprintWidth * spacing, y: footprintHeight * spacing }
+      );
+    } else {
+      // For larger counts, arrange in compact grid
+      const cols = Math.ceil(Math.sqrt(subCount));
+      const rows = Math.ceil(subCount / cols);
+      for (let i = 0; i < subCount; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const offsetX =
+          (col - (cols - 1) / 2) * ((footprintWidth * 2 * spacing) / cols);
+        const offsetY =
+          (row - (rows - 1) / 2) * ((footprintHeight * 2 * spacing) / rows);
+        positions.push({ x: offsetX, y: offsetY });
+      }
+    }
+
+    // Render each sub-package
+    for (let i = 0; i < node.subdivisions!.length; i++) {
+      const sub = node.subdivisions![i];
+      const texture = this.atlas[sub.sprite];
+      if (!texture) continue;
+
+      const sprite = new Sprite(texture);
+      const offset = positions[i] || { x: 0, y: 0 };
+
+      // Scale to fit smaller size
+      const padding = 0.7;
+      const boundarySize = 4 * sub.size;
+      const boundaryWidth = boundarySize * this.tileWidth;
+      const boundaryHeight = boundarySize * this.tileHeight;
+      const baseScale = Math.min(
+        (boundaryWidth * padding) / texture.width,
+        (boundaryHeight * padding) / texture.height
+      );
+
+      sprite.scale.set(baseScale * 0.5); // Scale down for tighter fit
+      sprite.x = offset.x;
+      sprite.y = offset.y;
+      sprite.anchor.set(0.5, 0.85);
+
+      // Apply aging if present
+      if (node.aging && node.aging.colorFade > 0) {
+        const fadeAmount = node.aging.colorFade;
+        const grayValue = Math.floor((1 - fadeAmount + fadeAmount * 0.6) * 255);
+        sprite.tint = (grayValue << 16) | (grayValue << 8) | grayValue;
+      }
+
+      container.addChild(sprite);
+
+      // Create individual label for this sub-package
+      const subLabel = new Text({
+        text: sub.name,
+        style: {
+          fontSize: 10,
+          fill: 0xffffff,
+          fontFamily: 'Arial',
+          fontWeight: '400',
+        },
+        resolution: 2,
+      });
+      subLabel.x = offset.x;
+      subLabel.y = offset.y + sprite.height * 0.15 + 4;
+      subLabel.anchor.set(0.5, 0);
+
+      container.addChild(subLabel);
+    }
+
+    // Add star decoration if node has stars
+    if (node.stars && node.stars > 0) {
+      const tier = getStarTier(node.stars);
+      if (tier) {
+        // Generate decoration graphic based on type
+        let decoration: Graphics;
+        switch (tier.decorationType) {
+          case 'flag':
+            decoration = generateFlagSprite(tier.color);
+            break;
+          case 'trophy':
+            decoration = generateTrophySprite(tier.color);
+            break;
+          case 'statue':
+            decoration = generateStatueSprite(tier.color);
+            break;
+        }
+
+        // Position decoration in the center, towards the top of the sprite cluster
+        const decorationX = 0; // Centered
+        const decorationY = -footprintHeight * 0.35; // Towards the top
+        decoration.x = decorationX;
+        decoration.y = decorationY;
+        decoration.scale.set(2.5);
+
+        container.addChild(decoration);
+
+        // Add star count text
+        const countText = new Text({
+          text: formatStarCount(node.stars),
+          style: {
+            fontSize: 11,
+            fill: 0xffffff,
+            fontFamily: 'Arial',
+            fontWeight: 'bold',
+            stroke: { color: 0x000000, width: 3 },
+          },
+          resolution: 2,
+        });
+        countText.x = decorationX;
+        countText.y = decorationY + 20;
+        countText.anchor.set(0.5, 0);
+
+        container.addChild(countText);
+      }
+    }
+
+    // Add collaborator decoration if node has collaborators
+    if (node.collaborators && node.collaborators > 0) {
+      const tier = getCollaboratorTier(node.collaborators);
+      if (tier) {
+        // Generate decoration graphic based on type
+        let decoration: Graphics;
+        switch (tier.decorationType) {
+          case 'bench':
+            decoration = generateBenchSprite(tier.color);
+            break;
+          case 'pavilion':
+            decoration = generatePavilionSprite(tier.color);
+            break;
+          case 'gazebo':
+            decoration = generateGazeboSprite(tier.color);
+            break;
+          case 'bandstand':
+            decoration = generateBandstandSprite(tier.color);
+            break;
+        }
+
+        // Position decoration to the left side of the footprint (opposite of stars)
+        const decorationX = -footprintWidth * 0.4; // 40% to the left from center
+        const decorationY = -footprintHeight * 0.35; // Towards the top
+        decoration.x = decorationX;
+        decoration.y = decorationY;
+        decoration.scale.set(2.5);
+
+        container.addChild(decoration);
+
+        // Add collaborator count text
+        const countText = new Text({
+          text: formatCollaboratorCount(node.collaborators),
+          style: {
+            fontSize: 11,
+            fill: 0xffffff,
+            fontFamily: 'Arial',
+            fontWeight: 'bold',
+            stroke: { color: 0x000000, width: 3 },
+          },
+          resolution: 2,
+        });
+        countText.x = decorationX;
+        countText.y = decorationY + 20;
+        countText.anchor.set(0.5, 0);
+
+        container.addChild(countText);
+      }
+    }
+
+    // Create highlight boundary (for the entire group)
+    const highlight = this.createHighlight(
+      node.gridX,
+      node.gridY,
+      sizeMultiplier
+    );
+    highlight.visible = false;
+    highlight.zIndex = getIsometricZIndex(node.gridX, node.gridY);
+
+    // Create main repository label (centered below all packages)
+    const label = new Text({
+      text: node.label,
+      style: {
+        fontSize: 11,
+        fill: 0xaaaaaa, // Lighter gray to distinguish from package labels
+        fontFamily: 'Arial',
+        fontWeight: '500',
+        fontStyle: 'italic',
+      },
+      resolution: 2,
+    });
+    label.x = screenX;
+    label.y = screenY + footprintHeight * 0.6 + 12;
+    label.anchor.set(0.5, 0);
+    label.zIndex = highlight.zIndex + 0.2;
+
+    // Set z-index for the container
+    container.zIndex = highlight.zIndex;
+
+    // Create weathering if needed
+    let weathering: Graphics | undefined;
+    if (node.aging && node.aging.weatheringLevel > 0.3) {
+      weathering = this.createWeathering(
+        screenX,
+        screenY,
+        80,
+        80,
+        node.aging.weatheringLevel
+      );
+      weathering.zIndex = container.zIndex + 0.1;
+    }
+
+    // Create sprite instance
+    const instance: SpriteInstance = {
+      sprite: container as unknown as Sprite, // Container acts as the sprite
+      highlight,
+      label,
+      weathering,
+      gridPosition: { gridX: node.gridX, gridY: node.gridY },
+      size: sizeMultiplier,
+      update: (gridX: number, gridY: number) => {
+        const pos = gridToScreen(gridX, gridY);
+        container.x = pos.screenX;
+        container.y = pos.screenY;
+        label.x = pos.screenX;
+        label.y = pos.screenY + footprintHeight * 0.6 + 12;
+
+        // Update highlight
+        highlight.clear();
+        const hoverSize = 4 * sizeMultiplier;
+        const tileWidth = hoverSize * this.tileWidth;
+        const tileHeight = hoverSize * this.tileHeight;
+
+        highlight.strokeStyle = { width: 3, color: 0xffff00 };
+        highlight.fillStyle = { color: 0xffff00, alpha: 0.1 };
+        highlight.beginPath();
+        highlight.moveTo(pos.screenX, pos.screenY - tileHeight / 2);
+        highlight.lineTo(pos.screenX + tileWidth / 2, pos.screenY);
+        highlight.lineTo(pos.screenX, pos.screenY + tileHeight / 2);
+        highlight.lineTo(pos.screenX - tileWidth / 2, pos.screenY);
+        highlight.closePath();
+        highlight.fill();
+        highlight.stroke();
+
+        if (weathering) {
+          weathering.x = pos.screenX;
+          weathering.y = pos.screenY;
+        }
+
+        instance.gridPosition = { gridX, gridY };
+      },
+      destroy: () => {
+        container.destroy({ children: true });
+        highlight.destroy();
+        label.destroy();
+        weathering?.destroy();
+      },
+    };
+
+    return instance;
   }
 
   /**
@@ -343,6 +682,13 @@ export class IsometricRenderer {
     const spriteInstances = new Map<string, SpriteInstance>();
 
     for (const node of nodes) {
+      // Check if this node has subdivisions (multiple packages)
+      if (node.subdivisions && node.subdivisions.length > 1) {
+        const instance = this.renderSubdividedNode(node);
+        spriteInstances.set(node.id, instance);
+        continue;
+      }
+
       const texture = this.atlas[node.sprite];
       if (!texture) continue;
 
@@ -383,7 +729,11 @@ export class IsometricRenderer {
       sprite.zIndex = getIsometricZIndex(node.gridX, node.gridY);
 
       // Create highlight boundary (4 × size formula)
-      const highlight = this.createHighlight(node.gridX, node.gridY, sizeMultiplier);
+      const highlight = this.createHighlight(
+        node.gridX,
+        node.gridY,
+        sizeMultiplier
+      );
       highlight.visible = false; // Hidden by default, shown on hover by interaction manager
       highlight.zIndex = sprite.zIndex;
 
@@ -474,7 +824,11 @@ export class IsometricRenderer {
    * Create highlight boundary for a sprite
    * Extracted from IsometricGridTest.tsx lines 144-158
    */
-  private createHighlight(gridX: number, gridY: number, sizeMultiplier: number): Graphics {
+  private createHighlight(
+    gridX: number,
+    gridY: number,
+    sizeMultiplier: number
+  ): Graphics {
     const highlight = new Graphics();
     const { screenX, screenY } = gridToScreen(gridX, gridY);
 
@@ -532,7 +886,11 @@ export class IsometricRenderer {
    * Update a path between two positions
    * Used during sprite dragging
    */
-  updatePath(pathGraphics: Graphics, fromPos: GridPoint, toPos: GridPoint): void {
+  updatePath(
+    pathGraphics: Graphics,
+    fromPos: GridPoint,
+    toPos: GridPoint
+  ): void {
     pathGraphics.clear();
     this.drawPath(pathGraphics, fromPos, toPos, false);
   }
@@ -540,7 +898,11 @@ export class IsometricRenderer {
   /**
    * Update sprite position
    */
-  updateSpritePosition(instance: SpriteInstance, gridX: number, gridY: number): void {
+  updateSpritePosition(
+    instance: SpriteInstance,
+    gridX: number,
+    gridY: number
+  ): void {
     instance.update(gridX, gridY);
   }
 

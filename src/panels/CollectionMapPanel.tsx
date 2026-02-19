@@ -19,9 +19,13 @@ import type { RegionLayout, GenericNode } from './overworld-map/genericMapper';
 import { nodesToUnifiedOverworldMap } from './overworld-map/genericMapper';
 import { REGION_SIZE_TILES } from './overworld-map/types';
 import { domEventToGridCoords } from './overworld-map/isometricUtils';
+import { extractPackageInfo } from './overworld-map/packageExpansion';
+import { getDecorationSizeBonus } from './overworld-map/starDecoration';
+import { getCollaboratorDecorationSizeBonus } from './overworld-map/collaboratorDecoration';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library/types';
 import { calculateRepositorySize } from '../utils/repositoryScaling';
 import { calculateAgingMetrics } from '../utils/repositoryAging';
+import type { PackageLayer } from '../types/composition';
 import type {
   CustomRegion,
   RepositoryLayoutData,
@@ -46,6 +50,9 @@ export interface AlexandriaEntryWithMetrics extends AlexandriaEntry {
     lastEditedAt?: string; // ISO timestamp of last edit (for aging/weathering)
     createdAt?: string; // ISO timestamp of creation (for future architectural style)
   };
+
+  /** Optional array of packages for monorepos */
+  packages?: PackageLayer[];
 }
 
 /**
@@ -483,10 +490,28 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
             const importance = membership.metadata?.pinned ? 95 : 75;
 
             // Calculate sprite size from repository metrics (logarithmic scaling)
-            const size = calculateRepositorySize(repo.metrics);
+            let size = calculateRepositorySize(repo.metrics);
 
             // Calculate aging metrics for weathering and color fade
             const aging = calculateAgingMetrics(repo.metrics?.lastEditedAt);
+
+            // NEW: Extract package info for subdivision rendering
+            const packages = extractPackageInfo(repo);
+
+            // Extract GitHub stars from metadata and add extra layout space for decorations
+            const stars = repo.github?.stars;
+            if (stars && stars > 0) {
+              const decorationBonus = getDecorationSizeBonus(stars);
+              size = size + decorationBonus; // Increase size to accommodate decoration
+            }
+
+            // Extract contributor count from metrics
+            const collaborators = repo.metrics?.contributors;
+            if (collaborators && collaborators > 0) {
+              const decorationBonus =
+                getCollaboratorDecorationSizeBonus(collaborators);
+              size = size + decorationBonus; // Increase size to accommodate decoration
+            }
 
             const node: GenericNode = {
               id: membership.repositoryId,
@@ -496,6 +521,9 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
               importance,
               size,
               aging, // Pass aging metrics for visual weathering
+              packages, // Package subdivision data
+              stars, // GitHub star count for decorations
+              collaborators, // Contributor count for community space decorations
               dependencies: dependencies[membership.repositoryId] || [],
               isRoot: membership.metadata?.pinned || false,
               regionId: membership.metadata?.regionId, // Preserve region assignment

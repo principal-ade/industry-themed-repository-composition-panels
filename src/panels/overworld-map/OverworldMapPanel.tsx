@@ -96,6 +96,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const rendererRef = useRef<IsometricRenderer | null>(null);
   const [isRendering, setIsRendering] = useState(true);
   const [isResizing, setIsResizing] = useState(false);
+  const [initializationComplete, setInitializationComplete] = useState(0);
   const dimensionsRef = useRef({ width: width || 800, height: height || 600 });
   const placeholdersRef = useRef<Container | null>(null);
   const sceneContainersRef = useRef<{
@@ -112,6 +113,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const renderPlaceholdersRef = useRef<(() => void) | null>(null);
   const mapDataRef = useRef<OverworldMap | null>(null);
   const isEditingRegionsRef = useRef(isEditingRegions);
+  const isInitializedRef = useRef(false);
 
   // Region navigation state
   const [currentRegionIndex, setCurrentRegionIndex] = useState(0);
@@ -150,6 +152,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       regionLayout,
       customRegions, // Pass through custom regions for manual layout
     });
+
     mapDataRef.current = map; // Store for placeholder rendering
     return map;
   }, [nodes, includeDevDependencies, regionLayout, customRegions]);
@@ -169,6 +172,11 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       !isCollectionChange && previousCollectionKeyRef.current !== null;
 
     previousCollectionKeyRef.current = stableCollectionKey;
+
+    // Reset initialization flag on collection change
+    if (isCollectionChange) {
+      isInitializedRef.current = false;
+    }
 
     // If it's only a region update, skip full PIXI recreate
     // We'll update the scene incrementally instead
@@ -679,6 +687,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       });
 
       setIsRendering(false);
+      isInitializedRef.current = true;
+      // Trigger scene update effect to run
+      setInitializationComplete((prev) => prev + 1);
     };
 
     let resizeObserver: ResizeObserver | null = null;
@@ -729,6 +740,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
     return () => {
       cleanup = true;
+      isInitializedRef.current = false;
       if (resizeTimeout) {
         clearTimeout(resizeTimeout);
       }
@@ -758,13 +770,19 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
   // Separate effect to update scene when mapData changes (without recreating PIXI)
   useEffect(() => {
+    // Wait for initialization to complete
+    if (!isInitializedRef.current) {
+      return;
+    }
+
     if (
       !viewportRef.current ||
       !rendererRef.current ||
       !mapData ||
       !appRef.current
-    )
+    ) {
       return;
+    }
 
     // Skip re-render if actively dragging to prevent destroying sprites mid-drag
     if (interactionRef.current?.isDragging()) {
@@ -775,22 +793,37 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     const viewport = viewportRef.current;
     const app = appRef.current;
 
-    // Generate any missing building sprite textures for new size+color combinations
+    // Generate any missing building sprite textures for new size+color+stars+collaborators combinations
     const neededCombos = new Set<string>();
 
     for (const node of mapData.nodes) {
-      const key = `building-${node.size.toFixed(2)}-${node.color}`;
-      neededCombos.add(key);
+      // Use the sprite key directly from the node (which includes all decoration params)
+      neededCombos.add(node.sprite);
+
+      // Also add textures for subdivisions if present
+      if (node.subdivisions) {
+        for (const sub of node.subdivisions) {
+          neededCombos.add(sub.sprite);
+        }
+      }
     }
 
     // Generate missing textures
     for (const key of neededCombos) {
       if (!renderer.hasTexture(key)) {
-        const [, sizeStr, colorHex] = key.split('-');
+        const [, sizeStr, colorHex, starsStr, collaboratorsStr] =
+          key.split('-');
         const size = parseFloat(sizeStr);
         const color = parseInt(colorHex.replace('#', ''), 16);
+        const stars = parseInt(starsStr) || 0;
+        const collaborators = parseInt(collaboratorsStr) || 0;
 
-        const buildingGraphics = generateBuildingSprite({ size, color });
+        const buildingGraphics = generateBuildingSprite({
+          size,
+          color,
+          stars,
+          collaborators,
+        });
         const texture = app.renderer.generateTexture({
           target: buildingGraphics,
           resolution: 2,
@@ -843,7 +876,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     if (renderPlaceholdersRef.current) {
       renderPlaceholdersRef.current();
     }
-  }, [mapData]);
+  }, [mapData, initializationComplete]);
 
   // Handle region changes with animation (only when user navigates, not when content updates)
   useEffect(() => {

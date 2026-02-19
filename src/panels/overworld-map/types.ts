@@ -41,8 +41,8 @@ export type TileType =
  * Individual tile in the grid
  */
 export interface Tile {
-  x: number;           // Grid X position
-  y: number;           // Grid Y position
+  x: number; // Grid X position
+  y: number; // Grid Y position
   type: TileType;
   spriteIndex: number; // Which sprite variant to use
   biome: BiomeTheme;
@@ -52,35 +52,48 @@ export interface Tile {
  * Location node types (different building/landmark types)
  */
 export type LocationNodeType =
-  | 'castle'       // Main package/root
-  | 'fortress'     // Large package
-  | 'house'        // Regular package
-  | 'tower'        // Special package
-  | 'pipe'         // Entry point
-  | 'git-repo'     // Single package git repository
-  | 'monorepo';    // Multi-package monorepo
+  | 'castle' // Main package/root
+  | 'fortress' // Large package
+  | 'house' // Regular package
+  | 'tower' // Special package
+  | 'pipe' // Entry point
+  | 'git-repo' // Single package git repository
+  | 'monorepo'; // Multi-package monorepo
 
 /**
  * Location node representing a package on the map
  */
+export interface PackageSubdivision {
+  name: string;
+  size: number;
+  sprite: string; // Sprite key for this sub-package
+}
+
 export interface LocationNode {
   id: string;
   gridX: number;
   gridY: number;
   type: LocationNodeType;
   sprite: string;
-  size: number;        // Size in tiles (2 = 2x2 tiles)
+  size: number; // Size in tiles (2 = 2x2 tiles)
   theme: BiomeTheme;
 
   // Package metadata
-  label: string;       // Package name
+  label: string; // Package name
   packageType: 'node' | 'python' | 'cargo' | 'go' | 'package';
   isRoot: boolean;
-  color: string;       // Accent color
+  color: string; // Accent color
   aging?: AgingMetrics; // Aging metrics for weathering and color fade
 
+  // Package subdivision (for monorepos)
+  subdivisions?: PackageSubdivision[]; // If present, render as grouped cluster
+
   // Custom sprite support
-  customSpritePath?: string;  // Optional path to custom sprite PNG (e.g., file://.claude/repo-sprite.png)
+  customSpritePath?: string; // Optional path to custom sprite PNG (e.g., file://.claude/repo-sprite.png)
+
+  // GitHub popularity
+  stars?: number; // GitHub star count for decoration
+  collaborators?: number; // Contributor count for community space decoration
 }
 
 /**
@@ -98,8 +111,8 @@ export type PathConnectionType = 'dependency' | 'dev-dependency';
  */
 export interface PathConnection {
   id: string;
-  from: string;        // Source node ID
-  to: string;          // Target node ID
+  from: string; // Source node ID
+  to: string; // Target node ID
   points: GridPoint[]; // Waypoints for the path
   type: PathConnectionType;
   style: PathStyle;
@@ -141,10 +154,10 @@ export interface DecorativeSprite {
 export interface BiomeZone {
   id: string;
   bounds: {
-    x: number;         // Grid coordinates
+    x: number; // Grid coordinates
     y: number;
-    width: number;     // In tiles
-    height: number;    // In tiles
+    width: number; // In tiles
+    height: number; // In tiles
   };
   theme: BiomeTheme;
   backgroundColor: string;
@@ -154,7 +167,7 @@ export interface BiomeZone {
  * Camera/viewport configuration
  */
 export interface Camera {
-  x: number;           // World position in pixels
+  x: number; // World position in pixels
   y: number;
   viewportWidth: number;
   viewportHeight: number;
@@ -177,16 +190,16 @@ export interface MapRegion {
 
   // Grid position (which cell in the region grid)
   gridPosition?: {
-    row: number;      // Grid row (0-based)
-    col: number;      // Grid column (0-based)
+    row: number; // Grid row (0-based)
+    col: number; // Grid column (0-based)
   };
 
   // Spatial bounds in grid coordinates
   bounds: {
-    x: number;        // Start X in grid
-    y: number;        // Start Y in grid
-    width: number;    // Width in tiles
-    height: number;   // Height in tiles
+    x: number; // Start X in grid
+    y: number; // Start Y in grid
+    width: number; // Width in tiles
+    height: number; // Height in tiles
   };
 
   // Center point for camera focus
@@ -202,8 +215,8 @@ export interface MapRegion {
  */
 export interface OverworldMap {
   // Grid dimensions (entire map)
-  width: number;       // Width in tiles
-  height: number;      // Height in tiles
+  width: number; // Width in tiles
+  height: number; // Height in tiles
 
   // Core elements (all regions combined)
   tiles: Tile[];
@@ -245,7 +258,7 @@ export interface IsometricCoords {
  */
 export interface SpriteDefinition {
   name: string;
-  x: number;          // Position in atlas
+  x: number; // Position in atlas
   y: number;
   width: number;
   height: number;

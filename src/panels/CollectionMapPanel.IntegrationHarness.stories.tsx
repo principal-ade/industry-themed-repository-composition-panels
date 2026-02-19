@@ -5,6 +5,7 @@ import {
   CollectionMapPanelActions,
   CollectionMapPanelContext,
 } from './CollectionMapPanel';
+import type { AlexandriaEntryWithMetrics } from './CollectionMapPanel';
 import type {
   PanelComponentProps,
   RepositoryMetadata,
@@ -16,6 +17,7 @@ import type {
   RepositoryLayoutData,
 } from '@principal-ai/alexandria-collections';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library/types';
+import type { PackageLayer } from '../types/composition';
 
 // Browser-compatible EventEmitter
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,7 +66,9 @@ const createMockRepository = (
   language: string,
   fileCount: number,
   lineCount: number,
-  daysAgo: number
+  daysAgo: number,
+  stars: number = 0,
+  collaborators: number = 0
 ) => ({
   name,
   path: `/Users/mock/${name}`,
@@ -78,36 +82,209 @@ const createMockRepository = (
     type: 'github' as const,
     url: `https://github.com/mock/${name}`,
   },
+  github: {
+    id: `mock/${name}`,
+    primaryLanguage: language,
+    stars,
+    contributors: collaborators,
+  },
   theme: language,
   metrics: {
     fileCount,
     lineCount,
+    contributors: collaborators,
   },
 });
 
 const mockRepositories = [
-  createMockRepository('active-frontend', 'typescript', 450, 25000, 2),
-  createMockRepository('api-service', 'python', 120, 15000, 5),
-  createMockRepository('mobile-app', 'kotlin', 380, 32000, 7),
-  createMockRepository('data-pipeline', 'rust', 95, 12000, 10),
-  createMockRepository('analytics-dashboard', 'typescript', 220, 18000, 15),
-  createMockRepository('auth-service', 'go', 85, 8500, 20),
-  createMockRepository('notification-service', 'javascript', 110, 9200, 25),
-  createMockRepository('legacy-monolith', 'java', 1200, 95000, 45),
-  createMockRepository('old-frontend', 'javascript', 340, 28000, 60),
-  createMockRepository('prototype-ml', 'python', 75, 6500, 90),
-  createMockRepository('archived-experiment', 'ruby', 45, 3200, 180),
-  createMockRepository('design-system', 'typescript', 180, 14000, 8),
-  createMockRepository('testing-framework', 'typescript', 95, 7800, 30),
-  createMockRepository('deployment-scripts', 'shell', 25, 1500, 12),
-  createMockRepository('documentation', 'markdown', 60, 4500, 20),
+  createMockRepository(
+    'active-frontend',
+    'typescript',
+    450,
+    25000,
+    2,
+    45000,
+    180
+  ), // Epic statue + Major Project gazebo
+  createMockRepository('api-service', 'python', 120, 15000, 5, 12500, 85), // Famous statue + Community gazebo
+  createMockRepository('mobile-app', 'kotlin', 380, 32000, 7, 7200, 42), // Renowned trophy + Large Team pavilion
+  createMockRepository('data-pipeline', 'rust', 95, 12000, 10, 2500, 28), // Notable trophy + Large Team pavilion
+  createMockRepository(
+    'analytics-dashboard',
+    'typescript',
+    220,
+    18000,
+    15,
+    850,
+    15
+  ), // Popular flag + Active Team pavilion
+  createMockRepository('auth-service', 'go', 85, 8500, 20, 320, 8), // Growing flag + Small Team bench
+  createMockRepository(
+    'notification-service',
+    'javascript',
+    110,
+    9200,
+    25,
+    75,
+    5
+  ), // New flag + Small Team bench
+  createMockRepository('legacy-monolith', 'java', 1200, 95000, 45, 150000, 320), // Mythic statue + Open Source Hub bandstand
+  createMockRepository('old-frontend', 'javascript', 340, 28000, 60, 3200, 18), // Notable trophy + Active Team pavilion
+  createMockRepository('prototype-ml', 'python', 75, 6500, 90, 42, 3), // New flag + Solo bench
+  createMockRepository('archived-experiment', 'ruby', 45, 3200, 180, 0, 1), // No star decoration + Solo bench
+  createMockRepository(
+    'design-system',
+    'typescript',
+    180,
+    14000,
+    8,
+    600000,
+    450
+  ), // Celestial statue + Open Source Hub bandstand
+  createMockRepository(
+    'testing-framework',
+    'typescript',
+    95,
+    7800,
+    30,
+    1200,
+    22
+  ), // Notable trophy + Active Team pavilion
+  createMockRepository('deployment-scripts', 'shell', 25, 1500, 12, 250, 6), // Growing flag + Small Team bench
+  createMockRepository('documentation', 'markdown', 60, 4500, 20, 18000, 95), // Famous statue + Community gazebo
+];
+
+// Create mock monorepo with packages
+const createMockMonorepo = (
+  name: string,
+  language: string,
+  daysAgo: number,
+  packages: Array<{ name: string; fileCount: number; language?: string }>,
+  stars: number = 0,
+  collaborators: number = 0
+) => {
+  const mockPackages: PackageLayer[] = packages.map((pkg) => {
+    const pkgLanguage = pkg.language || language;
+    // Map language to package type
+    const languageToType: Record<
+      string,
+      'node' | 'python' | 'cargo' | 'go' | 'package'
+    > = {
+      typescript: 'node',
+      javascript: 'node',
+      python: 'python',
+      rust: 'cargo',
+      go: 'go',
+    };
+    const pkgType = languageToType[pkgLanguage] || 'package';
+
+    return {
+      id: `${name}-${pkg.name}`,
+      name: pkg.name,
+      type: pkgType,
+      enabled: true,
+      derivedFrom: {
+        fileSets: [
+          {
+            id: `${pkg.name}-files`,
+            name: 'Source Files',
+            patterns: [],
+            fileCount: pkg.fileCount,
+          },
+        ],
+        derivationType: 'presence' as const,
+        description: 'Package files',
+      },
+      packageData: {
+        name: pkg.name,
+        path: `/Users/mock/${name}/packages/${pkg.name}`,
+        manifestPath: `/Users/mock/${name}/packages/${pkg.name}/package.json`,
+        packageManager: 'npm' as const,
+        dependencies: {},
+        devDependencies: {},
+        peerDependencies: {},
+        isMonorepoRoot: false,
+        isWorkspace: true,
+      },
+    };
+  });
+
+  const totalFileCount = packages.reduce((sum, pkg) => sum + pkg.fileCount, 0);
+
+  return {
+    name,
+    path: `/Users/mock/${name}`,
+    registeredAt: new Date(
+      Date.now() - daysAgo * 24 * 60 * 60 * 1000
+    ).toISOString(),
+    lastEditedAt: new Date(
+      Date.now() - daysAgo * 24 * 60 * 60 * 1000
+    ).toISOString(),
+    provider: {
+      type: 'github' as const,
+      url: `https://github.com/mock/${name}`,
+    },
+    github: {
+      id: `mock/${name}`,
+      primaryLanguage: language,
+      stars,
+      contributors: collaborators,
+    },
+    theme: language,
+    metrics: {
+      fileCount: totalFileCount,
+      lineCount: totalFileCount * 50,
+      contributors: collaborators,
+    },
+    packages: mockPackages,
+  };
+};
+
+const mockMonorepos = [
+  createMockMonorepo(
+    'fullstack-app',
+    'typescript',
+    5,
+    [
+      { name: 'web', fileCount: 450, language: 'typescript' },
+      { name: 'api', fileCount: 320, language: 'python' },
+      { name: 'shared', fileCount: 180, language: 'typescript' },
+    ],
+    28000,
+    120
+  ), // Legendary statue + Major Project gazebo
+  createMockMonorepo(
+    'backend-services',
+    'python',
+    10,
+    [
+      { name: 'auth', fileCount: 220, language: 'rust' },
+      { name: 'users', fileCount: 280, language: 'python' },
+    ],
+    4200,
+    35
+  ), // Notable trophy + Large Team pavilion
+  createMockMonorepo(
+    'mobile-suite',
+    'typescript',
+    15,
+    [
+      { name: 'ios', fileCount: 520, language: 'typescript' },
+      { name: 'android', fileCount: 480, language: 'typescript' },
+      { name: 'shared-components', fileCount: 150, language: 'rust' },
+      { name: 'shared-utils', fileCount: 90, language: 'go' },
+    ],
+    125000,
+    280
+  ), // Mythic statue + Open Source Hub bandstand
 ];
 
 // Integration Harness Component
 const IntegrationHarness: React.FC<{
   initialCollection: Collection;
   initialMemberships: CollectionMembership[];
-}> = ({ initialCollection, initialMemberships }) => {
+  initialRepositories?: AlexandriaEntryWithMetrics[];
+}> = ({ initialCollection, initialMemberships, initialRepositories }) => {
   const [collection, setCollection] = useState(initialCollection);
   const [memberships, setMemberships] = useState(initialMemberships);
   const [eventLog, setEventLog] = useState<string[]>([]);
@@ -377,7 +554,7 @@ const IntegrationHarness: React.FC<{
           data: {
             collection,
             memberships,
-            repositories: mockRepositories,
+            repositories: initialRepositories || mockRepositories,
             dependencies: {},
           },
           loading: false,
@@ -417,6 +594,7 @@ const IntegrationHarness: React.FC<{
     [
       collection,
       memberships,
+      initialRepositories,
       logEvent,
       onRegionCreated,
       onRegionUpdated,
@@ -1090,11 +1268,10 @@ export const DragDropDemo: Story = {
           context: {
             selectedCollection: collection,
             selectedCollectionView: {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               data: {
                 collection,
                 memberships,
-                repositories: mockRepositories as any,
+                repositories: mockRepositories,
                 dependencies: {},
               },
               loading: false,
@@ -1284,4 +1461,62 @@ export const DragDropDemo: Story = {
 
     return <TestHarnessWithDragSource />;
   },
+};
+
+// Story: Monorepo Packages (demonstrates package subdivision)
+// Shows repositories with multiple packages rendered as clustered buildings
+export const MonorepoPackages: Story = {
+  render: () => (
+    <IntegrationHarness
+      initialCollection={{
+        id: 'col-monorepos',
+        name: 'Monorepo Collection',
+        description: 'Repositories with multiple packages',
+        theme: 'industry',
+        icon: 'Layers',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        metadata: {
+          customRegions: [
+            {
+              id: 'region-0-0',
+              name: 'Active Monorepos',
+              order: 0,
+              createdAt: 0,
+            },
+            {
+              id: 'region-0-1',
+              name: 'Single Repos',
+              order: 1,
+              createdAt: 0,
+            },
+          ],
+        },
+      }}
+      initialMemberships={[
+        // Monorepos with packages
+        ...mockMonorepos.map((repo, idx) => ({
+          id: `mem-mono-${idx}`,
+          repositoryId: repo.github?.id || repo.name,
+          collectionId: 'col-monorepos',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-0-0' },
+        })),
+        // Single repos for comparison
+        ...mockRepositories.slice(0, 3).map((repo, idx) => ({
+          id: `mem-single-${idx}`,
+          repositoryId: repo.github?.id || repo.name,
+          collectionId: 'col-monorepos',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-0-1' },
+        })),
+      ]}
+      initialRepositories={
+        [
+          ...mockMonorepos,
+          ...mockRepositories,
+        ] as unknown as AlexandriaEntryWithMetrics[]
+      }
+    />
+  ),
 };
