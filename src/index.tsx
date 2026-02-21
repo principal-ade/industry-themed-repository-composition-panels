@@ -32,10 +32,8 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       // eslint-disable-next-line no-console
       console.log('Git Changes Panel mounted');
 
-      // Refresh git status if available
-      if (context.hasSlice('git') && !context.isSliceLoading('git')) {
-        await context.refresh('repository', 'git');
-      }
+      // Slice availability is enforced by panel metadata slices declaration
+      await context.refresh('repository', 'git');
     },
 
     onUnmount: async (_context: PanelContextValue) => {
@@ -60,10 +58,8 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       // eslint-disable-next-line no-console
       console.log('Package Composition Panel mounted');
 
-      // Refresh packages if available
-      if (context.hasSlice('packages') && !context.isSliceLoading('packages')) {
-        await context.refresh('repository', 'packages');
-      }
+      // Slice availability is enforced by panel metadata slices declaration
+      await context.refresh('repository', 'packages');
     },
 
     onUnmount: async (_context: PanelContextValue) => {
@@ -87,10 +83,8 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       // eslint-disable-next-line no-console
       console.log('Search Panel mounted');
 
-      // Refresh fileTree if available
-      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
-        await context.refresh('repository', 'fileTree');
-      }
+      // Slice availability is enforced by panel metadata slices declaration
+      await context.refresh('repository', 'fileTree');
     },
 
     onUnmount: async (_context: PanelContextValue) => {
@@ -115,10 +109,8 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       // eslint-disable-next-line no-console
       console.log('Dependency Graph Panel mounted');
 
-      // Refresh packages if available
-      if (context.hasSlice('packages') && !context.isSliceLoading('packages')) {
-        await context.refresh('repository', 'packages');
-      }
+      // Slice availability is enforced by panel metadata slices declaration
+      await context.refresh('repository', 'packages');
     },
 
     onUnmount: async (_context: PanelContextValue) => {
@@ -164,13 +156,9 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       // eslint-disable-next-line no-console
       console.log('Telemetry Coverage Panel mounted');
 
-      // Refresh packages and fileTree if available
-      if (context.hasSlice('packages') && !context.isSliceLoading('packages')) {
-        await context.refresh('repository', 'packages');
-      }
-      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
-        await context.refresh('repository', 'fileTree');
-      }
+      // Slice availability is enforced by panel metadata slices declaration
+      await context.refresh('repository', 'packages');
+      await context.refresh('repository', 'fileTree');
     },
 
     onUnmount: async (_context: PanelContextValue) => {

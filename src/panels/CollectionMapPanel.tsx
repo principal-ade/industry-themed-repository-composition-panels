@@ -13,6 +13,7 @@ import type {
   PanelComponentProps,
   PanelActions,
   RepositoryMetadata,
+  DataSlice,
 } from '../types';
 import { OverworldMapPanelContent } from './overworld-map/OverworldMapPanel';
 import type { RegionLayout, GenericNode } from './overworld-map/genericMapper';
@@ -123,20 +124,14 @@ export interface CollectionMapPanelActions
  * The panel expects the host to provide data for the SELECTED collection only
  */
 export interface CollectionMapPanelContext {
-  selectedCollectionView: {
-    data: {
-      /** The selected collection to display (null when no collection is selected) */
-      collection: Collection | null;
-      /** Memberships ONLY for the selected collection (already filtered by host) */
-      memberships: CollectionMembership[];
-      /** Repositories ONLY for the selected collection (already filtered by host) */
-      repositories: AlexandriaEntryWithMetrics[];
-      /** Optional dependency graph for connections between repos */
-      dependencies?: Record<string, string[]>;
-    };
-    loading: boolean;
-    error: string | null;
-  };
+  selectedCollectionView: DataSlice<{
+    /** The selected collection to display (null when no collection is selected) */
+    collection: Collection | null;
+    /** Repositories ONLY for the selected collection (already filtered by host) */
+    repositories: AlexandriaEntryWithMetrics[];
+    /** Optional dependency graph for connections between repos */
+    dependencies?: Record<string, string[]>;
+  }>;
 }
 
 /**
@@ -149,9 +144,6 @@ export type SelectedCollectionView =
 export interface CollectionMapPanelProps {
   /** The collection to visualize as an overworld map */
   collection: Collection;
-
-  /** Repositories in this collection */
-  memberships: CollectionMembership[];
 
   /** Full repository data */
   repositories: AlexandriaEntryWithMetrics[];
@@ -190,7 +182,6 @@ export interface CollectionMapPanelProps {
  */
 export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   collection,
-  memberships,
   repositories,
   dependencies = {},
   regionLayout,
@@ -251,7 +242,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     ) => {
       // Check if this is a repo being added for the first time (from drag-drop)
       const isNewRepo = !!metadata;
-      const existingMembership = memberships.find(
+      const existingMembership = collection.members.find(
         (m) => m.repositoryId === projectId
       );
 
@@ -259,7 +250,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       if (!isNewRepo && !existingMembership) {
         const error = new Error(
           `[handleProjectMoved] FATAL ERROR: Attempting to move repo "${projectId}" that doesn't exist in collection!\n` +
-            `Memberships (${memberships.length}): [${memberships.map((m) => m.repositoryId).join(', ')}]\n` +
+            `Memberships (${collection.members.length}): [${collection.members.map((m) => m.repositoryId).join(', ')}]\n` +
             `This indicates a sprite was rendered without valid backing data.`
         );
         console.error(error);
@@ -353,7 +344,9 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       );
 
       // Check if region changed and update assignment if needed
-      const membership = memberships.find((m) => m.repositoryId === projectId);
+      const membership = collection.members.find(
+        (m) => m.repositoryId === projectId
+      );
       const oldRegionId = membership?.metadata?.regionId;
 
       if (oldRegionId !== newRegionId) {
@@ -364,7 +357,13 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         );
       }
     },
-    [collection.id, regionCallbacks, memberships, customRegions, onProjectAdded]
+    [
+      collection.id,
+      collection.members,
+      regionCallbacks,
+      customRegions,
+      onProjectAdded,
+    ]
   );
 
   // Handle dropped projects
@@ -447,16 +446,11 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     return tracer.startActiveSpan('collection-map.convert-nodes', (span) => {
       try {
         span.setAttribute('collection.id', collection.id);
-        span.setAttribute('memberships.count', memberships.length);
+        span.setAttribute('memberships.count', collection.members.length);
         span.setAttribute('repositories.count', repositories.length);
 
-        // Filter memberships for this collection
-        const collectionMemberships = memberships.filter(
-          (m) => m.collectionId === collection.id
-        );
-
         // Map collection members to generic nodes
-        const memberNodes = collectionMemberships
+        const memberNodes = collection.members
           .map((membership) => {
             // Match against github.id (owner/repo format) or name as fallback
             const repo = repositories.find((r) => {
@@ -543,7 +537,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         throw error;
       }
     });
-  }, [collection.id, memberships, repositories, dependencies]);
+  }, [collection.id, collection.members, repositories, dependencies]);
 
   // Split nodes into valid (can render) and unplaced (need user placement)
   const { validNodes, unplacedNodes } = useMemo(() => {
@@ -959,10 +953,9 @@ export const CollectionMapPanel: React.FC<
 > = ({ context, actions }) => {
   // Get data from typed context - host provides filtered data for selected collection only
   const { selectedCollectionView } = context;
-  const selectedCollection = selectedCollectionView.data.collection;
-  const memberships = selectedCollectionView.data.memberships;
-  const repositories = selectedCollectionView.data.repositories;
-  const dependencies = selectedCollectionView.data.dependencies || {};
+  const selectedCollection = selectedCollectionView.data?.collection ?? null;
+  const repositories = selectedCollectionView.data?.repositories ?? [];
+  const dependencies = selectedCollectionView.data?.dependencies || {};
   const isLoading = selectedCollectionView.loading;
 
   // Handle adding a project to the collection
@@ -1031,7 +1024,6 @@ export const CollectionMapPanel: React.FC<
     <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
       <CollectionMapPanelContent
         collection={selectedCollection}
-        memberships={memberships}
         repositories={repositories}
         dependencies={dependencies}
         isLoading={isLoading}

@@ -16,9 +16,24 @@ import {
   GitBranch,
 } from 'lucide-react';
 import { PackageManagerIcon } from './components/PackageManagerIcon';
-import { DependencyRow, FilterBar, DependencyInfoModal, LensReadinessSection, OtherScriptsSection, OrchestratorBadge, ConfigList } from './components';
-import type { PanelComponentProps, PanelEventEmitter } from '../types';
-import type { PackageLayer, ConfigFile, PackageCommand } from '../types/composition';
+import {
+  DependencyRow,
+  FilterBar,
+  DependencyInfoModal,
+  LensReadinessSection,
+  OtherScriptsSection,
+  OrchestratorBadge,
+  ConfigList,
+} from './components';
+import type {
+  PackageCompositionPanelPropsTyped,
+  PanelEventEmitter,
+} from '../types';
+import type {
+  PackageLayer,
+  ConfigFile,
+  PackageCommand,
+} from '../types/composition';
 import type { PackagesSliceData, DependencyItem } from '../types/dependencies';
 
 /**
@@ -34,7 +49,8 @@ const dependencyTypeOrder: Record<DependencyItem['dependencyType'], number> = {
  * Extract dependencies from a PackageLayer into DependencyItems
  */
 function extractDependencies(packageLayer: PackageLayer): DependencyItem[] {
-  const { dependencies, devDependencies, peerDependencies } = packageLayer.packageData;
+  const { dependencies, devDependencies, peerDependencies } =
+    packageLayer.packageData;
 
   const items: DependencyItem[] = [];
 
@@ -58,7 +74,9 @@ function extractDependencies(packageLayer: PackageLayer): DependencyItem[] {
 
   // Sort by type (peer, prod, dev) then by name
   return items.sort((a, b) => {
-    const typeCompare = dependencyTypeOrder[a.dependencyType] - dependencyTypeOrder[b.dependencyType];
+    const typeCompare =
+      dependencyTypeOrder[a.dependencyType] -
+      dependencyTypeOrder[b.dependencyType];
     if (typeCompare !== 0) return typeCompare;
     return a.name.localeCompare(b.name);
   });
@@ -106,19 +124,29 @@ interface PackageSummaryCardProps {
   onHover?: (pkg: PackageLayer | null) => void;
 }
 
-const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackages, onClick, onHover }) => {
+const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
+  pkg,
+  allPackages,
+  onClick,
+  onHover,
+}) => {
   const { theme } = useTheme();
 
   const deps = pkg.packageData.dependencies || {};
   const devDeps = pkg.packageData.devDependencies || {};
   const peerDeps = pkg.packageData.peerDependencies || {};
-  const totalDeps = Object.keys(deps).length + Object.keys(devDeps).length + Object.keys(peerDeps).length;
+  const totalDeps =
+    Object.keys(deps).length +
+    Object.keys(devDeps).length +
+    Object.keys(peerDeps).length;
 
   const configFilesArray = pkg.configFiles
     ? Object.values(pkg.configFiles).filter((c) => c?.exists)
     : [];
   const _localConfigs = configFilesArray.filter((c) => !c?.isInherited).length;
-  const inheritedConfigs = configFilesArray.filter((c) => c?.isInherited).length;
+  const inheritedConfigs = configFilesArray.filter(
+    (c) => c?.isInherited
+  ).length;
 
   const commands = pkg.packageData.availableCommands?.length || 0;
 
@@ -166,13 +194,17 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = theme.colors.border;
-        e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+        e.currentTarget.style.backgroundColor =
+          theme.colors.backgroundSecondary;
         onHover?.(null);
       }}
     >
       {/* Package Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <PackageManagerIcon packageManager={pkg.packageData.packageManager} size={20} />
+        <PackageManagerIcon
+          packageManager={pkg.packageData.packageManager}
+          size={20}
+        />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
@@ -199,13 +231,14 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
           </div>
         </div>
         {/* Orchestrator badge for monorepo root packages */}
-        {pkg.packageData.isMonorepoRoot && pkg.packageData.monorepoMetadata?.orchestrator && (
-          <OrchestratorBadge
-            orchestrator={pkg.packageData.monorepoMetadata.orchestrator}
-            rootRole={pkg.packageData.monorepoMetadata.rootRole}
-            size="sm"
-          />
-        )}
+        {pkg.packageData.isMonorepoRoot &&
+          pkg.packageData.monorepoMetadata?.orchestrator && (
+            <OrchestratorBadge
+              orchestrator={pkg.packageData.monorepoMetadata.orchestrator}
+              rootRole={pkg.packageData.monorepoMetadata.rootRole}
+              size="sm"
+            />
+          )}
         {packageRole && (
           <span
             style={{
@@ -291,8 +324,23 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
           }}
         >
           {dependsOn.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ color: theme.colors.textSecondary, fontFamily: theme.fonts.body, display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <span
+                style={{
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fonts.body,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '2px',
+                }}
+              >
                 <ArrowRight size={10} />
                 uses
               </span>
@@ -314,8 +362,22 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
             </div>
           )}
           {usedBy.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ color: theme.colors.textSecondary, fontFamily: theme.fonts.body }}>used by</span>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <span
+                style={{
+                  color: theme.colors.textSecondary,
+                  fontFamily: theme.fonts.body,
+                }}
+              >
+                used by
+              </span>
               {usedBy.map((dep) => (
                 <span
                   key={dep.id}
@@ -355,7 +417,10 @@ const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({ pkg, allPackage
           <span>
             {configFilesArray.length} configs
             {inheritedConfigs > 0 && (
-              <span style={{ color: theme.colors.primary }}> ({inheritedConfigs}↑)</span>
+              <span style={{ color: theme.colors.primary }}>
+                {' '}
+                ({inheritedConfigs}↑)
+              </span>
             )}
           </span>
         </div>
@@ -410,8 +475,12 @@ const PackageCard: React.FC<PackageCardProps> = ({
   standalone = false,
 }) => {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'dependencies' | 'configs' | 'lenses'>('dependencies');
-  const [activeFilters, setActiveFilters] = useState<Set<'production' | 'development' | 'peer'>>(new Set());
+  const [activeTab, setActiveTab] = useState<
+    'dependencies' | 'configs' | 'lenses'
+  >('dependencies');
+  const [activeFilters, setActiveFilters] = useState<
+    Set<'production' | 'development' | 'peer'>
+  >(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [showInfoModal, setShowInfoModal] = useState(false);
 
@@ -433,12 +502,19 @@ const PackageCard: React.FC<PackageCardProps> = ({
   // Extract and process dependencies
   const dependencyItems = useMemo(() => extractDependencies(pkg), [pkg]);
 
-  const depCounts = useMemo(() => ({
-    all: dependencyItems.length,
-    production: dependencyItems.filter((d) => d.dependencyType === 'production').length,
-    development: dependencyItems.filter((d) => d.dependencyType === 'development').length,
-    peer: dependencyItems.filter((d) => d.dependencyType === 'peer').length,
-  }), [dependencyItems]);
+  const depCounts = useMemo(
+    () => ({
+      all: dependencyItems.length,
+      production: dependencyItems.filter(
+        (d) => d.dependencyType === 'production'
+      ).length,
+      development: dependencyItems.filter(
+        (d) => d.dependencyType === 'development'
+      ).length,
+      peer: dependencyItems.filter((d) => d.dependencyType === 'peer').length,
+    }),
+    [dependencyItems]
+  );
 
   const handleToggleFilter = (type: 'production' | 'development' | 'peer') => {
     setActiveFilters((prev) => {
@@ -457,15 +533,25 @@ const PackageCard: React.FC<PackageCardProps> = ({
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((dep) => dep.name.toLowerCase().includes(query));
+      filtered = filtered.filter((dep) =>
+        dep.name.toLowerCase().includes(query)
+      );
     }
 
-    const allTypes: Array<'production' | 'development' | 'peer'> = ['production', 'development', 'peer'];
+    const allTypes: Array<'production' | 'development' | 'peer'> = [
+      'production',
+      'development',
+      'peer',
+    ];
     const availableTypes = allTypes.filter((t) => depCounts[t] > 0);
-    const isAllSelected = activeFilters.size === 0 || availableTypes.every((t) => activeFilters.has(t));
+    const isAllSelected =
+      activeFilters.size === 0 ||
+      availableTypes.every((t) => activeFilters.has(t));
 
     if (!isAllSelected && activeFilters.size > 0) {
-      filtered = filtered.filter((dep) => activeFilters.has(dep.dependencyType));
+      filtered = filtered.filter((dep) =>
+        activeFilters.has(dep.dependencyType)
+      );
     }
 
     return filtered;
@@ -485,7 +571,10 @@ const PackageCard: React.FC<PackageCardProps> = ({
             borderBottom: `1px solid ${theme.colors.border}`,
           }}
         >
-          <PackageManagerIcon packageManager={pkg.packageData.packageManager} size={18} />
+          <PackageManagerIcon
+            packageManager={pkg.packageData.packageManager}
+            size={18}
+          />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
@@ -537,7 +626,9 @@ const PackageCard: React.FC<PackageCardProps> = ({
         </div>
 
         {/* Package Metadata */}
-        {(pkg.packageData.description || pkg.packageData.license || pkg.packageData.author) && (
+        {(pkg.packageData.description ||
+          pkg.packageData.license ||
+          pkg.packageData.author) && (
           <div
             style={{
               padding: '8px 16px 12px',
@@ -559,7 +650,14 @@ const PackageCard: React.FC<PackageCardProps> = ({
                 {pkg.packageData.description}
               </div>
             )}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
               {pkg.packageData.license && (
                 <span
                   style={{
@@ -599,9 +697,29 @@ const PackageCard: React.FC<PackageCardProps> = ({
           }}
         >
           {[
-            { id: 'dependencies' as const, label: 'Dependencies', count: dependencyItems.length },
-            { id: 'configs' as const, label: 'Configs', count: configCounts.total, inherited: configCounts.inherited },
-            { id: 'lenses' as const, label: 'Lenses', count: pkg.qualityMetrics?.lensReadiness ? Object.values(pkg.qualityMetrics.lensReadiness).filter(l => l.ready).length : 0, total: pkg.qualityMetrics?.lensReadiness ? Object.keys(pkg.qualityMetrics.lensReadiness).length : 0 },
+            {
+              id: 'dependencies' as const,
+              label: 'Dependencies',
+              count: dependencyItems.length,
+            },
+            {
+              id: 'configs' as const,
+              label: 'Configs',
+              count: configCounts.total,
+              inherited: configCounts.inherited,
+            },
+            {
+              id: 'lenses' as const,
+              label: 'Lenses',
+              count: pkg.qualityMetrics?.lensReadiness
+                ? Object.values(pkg.qualityMetrics.lensReadiness).filter(
+                    (l) => l.ready
+                  ).length
+                : 0,
+              total: pkg.qualityMetrics?.lensReadiness
+                ? Object.keys(pkg.qualityMetrics.lensReadiness).length
+                : 0,
+            },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -609,11 +727,19 @@ const PackageCard: React.FC<PackageCardProps> = ({
               style={{
                 flex: 1,
                 padding: '8px 12px',
-                backgroundColor: activeTab === tab.id ? theme.colors.backgroundSecondary : 'transparent',
+                backgroundColor:
+                  activeTab === tab.id
+                    ? theme.colors.backgroundSecondary
+                    : 'transparent',
                 border: 'none',
                 borderBottom:
-                  activeTab === tab.id ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
-                color: activeTab === tab.id ? theme.colors.text : theme.colors.textSecondary,
+                  activeTab === tab.id
+                    ? `2px solid ${theme.colors.accent}`
+                    : '2px solid transparent',
+                color:
+                  activeTab === tab.id
+                    ? theme.colors.text
+                    : theme.colors.textSecondary,
                 fontSize: theme.fontSizes[1],
                 fontFamily: theme.fonts.body,
                 cursor: 'pointer',
@@ -633,35 +759,58 @@ const PackageCard: React.FC<PackageCardProps> = ({
                   fontFamily: theme.fonts.body,
                 }}
               >
-                {'total' in tab ? `${tab.count}/${tab.total}` : 'inherited' in tab && (tab.inherited ?? 0) > 0 ? `${tab.count} (${tab.inherited}↑)` : tab.count}
+                {'total' in tab
+                  ? `${tab.count}/${tab.total}`
+                  : 'inherited' in tab && (tab.inherited ?? 0) > 0
+                    ? `${tab.count} (${tab.inherited}↑)`
+                    : tab.count}
               </span>
             </button>
           ))}
         </div>
 
         {/* Tab Content */}
-        <div style={{ flex: 1, padding: activeTab === 'dependencies' ? '0' : '0', overflow: 'auto' }}>
+        <div
+          style={{
+            flex: 1,
+            padding: activeTab === 'dependencies' ? '0' : '0',
+            overflow: 'auto',
+          }}
+        >
           {activeTab === 'configs' && (
             <div style={{ padding: '12px' }}>
-              <ConfigList
-                configs={configFiles}
-                onConfigClick={onConfigClick}
-              />
+              <ConfigList configs={configFiles} onConfigClick={onConfigClick} />
             </div>
           )}
 
           {activeTab === 'lenses' && (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <LensReadinessSection lensReadiness={pkg.qualityMetrics?.lensReadiness} />
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+              }}
+            >
+              <LensReadinessSection
+                lensReadiness={pkg.qualityMetrics?.lensReadiness}
+              />
               <OtherScriptsSection
                 commands={commands}
-                onCommandClick={(cmd) => onCommandClick?.(cmd, pkg.packageData.path)}
+                onCommandClick={(cmd) =>
+                  onCommandClick?.(cmd, pkg.packageData.path)
+                }
               />
             </div>
           )}
 
           {activeTab === 'dependencies' && (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+              }}
+            >
               {dependencyItems.length === 0 ? (
                 <div
                   style={{
@@ -681,7 +830,12 @@ const PackageCard: React.FC<PackageCardProps> = ({
               ) : (
                 <>
                   {/* Filter Bar */}
-                  <div style={{ padding: '12px', borderBottom: `1px solid ${theme.colors.border}` }}>
+                  <div
+                    style={{
+                      padding: '12px',
+                      borderBottom: `1px solid ${theme.colors.border}`,
+                    }}
+                  >
                     <FilterBar
                       activeFilters={activeFilters}
                       onToggleFilter={handleToggleFilter}
@@ -692,7 +846,9 @@ const PackageCard: React.FC<PackageCardProps> = ({
                   </div>
 
                   {/* Dependency List */}
-                  <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px' }}>
+                  <div
+                    style={{ flex: 1, overflow: 'auto', padding: '8px 12px' }}
+                  >
                     <div
                       style={{
                         fontSize: theme.fontSizes[0],
@@ -701,9 +857,16 @@ const PackageCard: React.FC<PackageCardProps> = ({
                         marginBottom: '8px',
                       }}
                     >
-                      Showing {filteredDependencies.length} of {dependencyItems.length}
+                      Showing {filteredDependencies.length} of{' '}
+                      {dependencyItems.length}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                      }}
+                    >
                       {filteredDependencies.length === 0 ? (
                         <div
                           style={{
@@ -771,7 +934,10 @@ const PackageCard: React.FC<PackageCardProps> = ({
         ) : (
           <ChevronRight size={16} color={theme.colors.textSecondary} />
         )}
-        <PackageManagerIcon packageManager={pkg.packageData.packageManager} size={18} />
+        <PackageManagerIcon
+          packageManager={pkg.packageData.packageManager}
+          size={18}
+        />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
@@ -836,9 +1002,29 @@ const PackageCard: React.FC<PackageCardProps> = ({
             }}
           >
             {[
-              { id: 'dependencies' as const, label: 'Deps', count: dependencyItems.length },
-              { id: 'configs' as const, label: 'Configs', count: configCounts.total, inherited: configCounts.inherited },
-              { id: 'lenses' as const, label: 'Lenses', count: pkg.qualityMetrics?.lensReadiness ? Object.values(pkg.qualityMetrics.lensReadiness).filter(l => l.ready).length : 0, total: pkg.qualityMetrics?.lensReadiness ? Object.keys(pkg.qualityMetrics.lensReadiness).length : 0 },
+              {
+                id: 'dependencies' as const,
+                label: 'Deps',
+                count: dependencyItems.length,
+              },
+              {
+                id: 'configs' as const,
+                label: 'Configs',
+                count: configCounts.total,
+                inherited: configCounts.inherited,
+              },
+              {
+                id: 'lenses' as const,
+                label: 'Lenses',
+                count: pkg.qualityMetrics?.lensReadiness
+                  ? Object.values(pkg.qualityMetrics.lensReadiness).filter(
+                      (l) => l.ready
+                    ).length
+                  : 0,
+                total: pkg.qualityMetrics?.lensReadiness
+                  ? Object.keys(pkg.qualityMetrics.lensReadiness).length
+                  : 0,
+              },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -846,11 +1032,19 @@ const PackageCard: React.FC<PackageCardProps> = ({
                 style={{
                   flex: 1,
                   padding: '8px 12px',
-                  backgroundColor: activeTab === tab.id ? theme.colors.backgroundSecondary : 'transparent',
+                  backgroundColor:
+                    activeTab === tab.id
+                      ? theme.colors.backgroundSecondary
+                      : 'transparent',
                   border: 'none',
                   borderBottom:
-                    activeTab === tab.id ? `2px solid ${theme.colors.accent}` : '2px solid transparent',
-                  color: activeTab === tab.id ? theme.colors.text : theme.colors.textSecondary,
+                    activeTab === tab.id
+                      ? `2px solid ${theme.colors.accent}`
+                      : '2px solid transparent',
+                  color:
+                    activeTab === tab.id
+                      ? theme.colors.text
+                      : theme.colors.textSecondary,
                   fontSize: theme.fontSizes[1],
                   fontFamily: theme.fonts.body,
                   cursor: 'pointer',
@@ -870,14 +1064,24 @@ const PackageCard: React.FC<PackageCardProps> = ({
                     fontFamily: theme.fonts.body,
                   }}
                 >
-                  {'total' in tab ? `${tab.count}/${tab.total}` : 'inherited' in tab && (tab.inherited ?? 0) > 0 ? `${tab.count} (${tab.inherited}↑)` : tab.count}
+                  {'total' in tab
+                    ? `${tab.count}/${tab.total}`
+                    : 'inherited' in tab && (tab.inherited ?? 0) > 0
+                      ? `${tab.count} (${tab.inherited}↑)`
+                      : tab.count}
                 </span>
               </button>
             ))}
           </div>
 
           {/* Tab Content */}
-          <div style={{ padding: activeTab === 'dependencies' ? '0' : '0', maxHeight: '300px', overflow: 'auto' }}>
+          <div
+            style={{
+              padding: activeTab === 'dependencies' ? '0' : '0',
+              maxHeight: '300px',
+              overflow: 'auto',
+            }}
+          >
             {activeTab === 'configs' && (
               <div style={{ padding: '12px' }}>
                 <ConfigList
@@ -889,16 +1093,26 @@ const PackageCard: React.FC<PackageCardProps> = ({
 
             {activeTab === 'lenses' && (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <LensReadinessSection lensReadiness={pkg.qualityMetrics?.lensReadiness} />
+                <LensReadinessSection
+                  lensReadiness={pkg.qualityMetrics?.lensReadiness}
+                />
                 <OtherScriptsSection
                   commands={commands}
-                  onCommandClick={(cmd) => onCommandClick?.(cmd, pkg.packageData.path)}
+                  onCommandClick={(cmd) =>
+                    onCommandClick?.(cmd, pkg.packageData.path)
+                  }
                 />
               </div>
             )}
 
             {activeTab === 'dependencies' && (
-              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                }}
+              >
                 {dependencyItems.length === 0 ? (
                   <div
                     style={{
@@ -918,7 +1132,12 @@ const PackageCard: React.FC<PackageCardProps> = ({
                 ) : (
                   <>
                     {/* Filter Bar */}
-                    <div style={{ padding: '12px', borderBottom: `1px solid ${theme.colors.border}` }}>
+                    <div
+                      style={{
+                        padding: '12px',
+                        borderBottom: `1px solid ${theme.colors.border}`,
+                      }}
+                    >
                       <FilterBar
                         activeFilters={activeFilters}
                         onToggleFilter={handleToggleFilter}
@@ -929,7 +1148,9 @@ const PackageCard: React.FC<PackageCardProps> = ({
                     </div>
 
                     {/* Dependency List */}
-                    <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px' }}>
+                    <div
+                      style={{ flex: 1, overflow: 'auto', padding: '8px 12px' }}
+                    >
                       <div
                         style={{
                           fontSize: theme.fontSizes[0],
@@ -938,9 +1159,16 @@ const PackageCard: React.FC<PackageCardProps> = ({
                           marginBottom: '8px',
                         }}
                       >
-                        Showing {filteredDependencies.length} of {dependencyItems.length}
+                        Showing {filteredDependencies.length} of{' '}
+                        {dependencyItems.length}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                        }}
+                      >
                         {filteredDependencies.length === 0 ? (
                           <div
                             style={{
@@ -983,7 +1211,9 @@ const PackageCard: React.FC<PackageCardProps> = ({
 /**
  * PackageCompositionPanelContent - Internal component that renders the package composition UI
  */
-export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelProps> = ({
+export const PackageCompositionPanelContent: React.FC<
+  PackageCompositionPanelProps
+> = ({
   packages,
   isLoading = false,
   emptyMessage = 'No packages detected',
@@ -995,13 +1225,17 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
   events,
 }) => {
   const { theme } = useTheme();
-  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(
+    null
+  );
 
   // Sort packages: monorepo roots first, then by path
   const sortedPackages = useMemo(() => {
     return [...packages].sort((a, b) => {
-      if (a.packageData.isMonorepoRoot && !b.packageData.isMonorepoRoot) return -1;
-      if (!a.packageData.isMonorepoRoot && b.packageData.isMonorepoRoot) return 1;
+      if (a.packageData.isMonorepoRoot && !b.packageData.isMonorepoRoot)
+        return -1;
+      if (!a.packageData.isMonorepoRoot && b.packageData.isMonorepoRoot)
+        return 1;
       return a.packageData.path.localeCompare(b.packageData.path);
     });
   }, [packages]);
@@ -1100,7 +1334,14 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
             }}
           >
             <FileCode size={16} color={theme.colors.primary} />
-            <span style={{ fontSize: theme.fontSizes[1], fontFamily: theme.fonts.body, color: theme.colors.textSecondary, flex: 1 }}>
+            <span
+              style={{
+                fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
+                color: theme.colors.textSecondary,
+                flex: 1,
+              }}
+            >
               {packages.length} packages
             </span>
             {packages.length > 1 && (
@@ -1129,11 +1370,13 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = theme.colors.primary;
-                  e.currentTarget.style.backgroundColor = theme.colors.primary + '15';
+                  e.currentTarget.style.backgroundColor =
+                    theme.colors.primary + '15';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = theme.colors.border;
-                  e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                  e.currentTarget.style.backgroundColor =
+                    theme.colors.backgroundTertiary;
                 }}
                 title="Open dependency graph in new tab"
               >
@@ -1208,7 +1451,8 @@ export const PackageCompositionPanelContent: React.FC<PackageCompositionPanelPro
                 transition: 'background-color 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                e.currentTarget.style.backgroundColor =
+                  theme.colors.backgroundTertiary;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
@@ -1258,15 +1502,36 @@ export const PackageCompositionPanelPreview: React.FC = () => {
         <PackageManagerIcon packageManager="npm" size={14} />
         <span>my-app</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '8px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          paddingLeft: '8px',
+        }}
+      >
         <Terminal size={12} color={theme.colors.textSecondary} />
         <span style={{ color: theme.colors.textSecondary }}>5 commands</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '8px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          paddingLeft: '8px',
+        }}
+      >
         <Settings size={12} color={theme.colors.textSecondary} />
         <span style={{ color: theme.colors.textSecondary }}>3 configs</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '8px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          paddingLeft: '8px',
+        }}
+      >
         <Package size={12} color={theme.colors.textSecondary} />
         <span style={{ color: theme.colors.textSecondary }}>12 deps</span>
       </div>
@@ -1276,11 +1541,12 @@ export const PackageCompositionPanelPreview: React.FC = () => {
 
 /**
  * PackageCompositionPanel - Panel Framework compatible component
- * Uses context.getSlice('packages') to get package layer data
  */
-export const PackageCompositionPanel: React.FC<PanelComponentProps> = ({ context, events }) => {
-  // Get packages slice from context - data shape is { packages: PackageLayer[], summary: PackageSummary }
-  const packagesSlice = context.getSlice<PackagesSliceData>('packages');
+export const PackageCompositionPanel: React.FC<
+  PackageCompositionPanelPropsTyped
+> = ({ context, events }) => {
+  // Get packages slice from typed context (direct property access)
+  const packagesSlice = context.packages;
 
   const packages = packagesSlice?.data?.packages ?? [];
   const isLoading = packagesSlice?.loading || false;
@@ -1291,10 +1557,12 @@ export const PackageCompositionPanel: React.FC<PanelComponentProps> = ({ context
       type: 'package:hover',
       source: 'PackageCompositionPanel',
       timestamp: Date.now(),
-      payload: pkg ? {
-        packagePath: pkg.packageData.path,
-        packageName: pkg.packageData.name,
-      } : null,
+      payload: pkg
+        ? {
+            packagePath: pkg.packageData.path,
+            packageName: pkg.packageData.name,
+          }
+        : null,
     });
   };
 
@@ -1304,10 +1572,12 @@ export const PackageCompositionPanel: React.FC<PanelComponentProps> = ({ context
       type: 'package:select',
       source: 'PackageCompositionPanel',
       timestamp: Date.now(),
-      payload: pkg ? {
-        packagePath: pkg.packageData.path,
-        packageName: pkg.packageData.name,
-      } : null,
+      payload: pkg
+        ? {
+            packagePath: pkg.packageData.path,
+            packageName: pkg.packageData.name,
+          }
+        : null,
     });
   };
 

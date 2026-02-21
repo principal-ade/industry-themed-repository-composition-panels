@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import { FileText, Copy, Check } from 'lucide-react';
 import type { FileTree } from '@principal-ai/repository-abstraction';
-import type { PanelComponentProps } from '../types';
+import type { SearchPanelPropsTyped } from '../types';
 import {
   localSearchService,
   type SearchResult,
@@ -96,7 +96,11 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
 
   // Scroll selected item into view
   useEffect(() => {
-    if (isSearchResultsFocused && selectedSearchIndex >= 0 && searchResultsRef.current) {
+    if (
+      isSearchResultsFocused &&
+      selectedSearchIndex >= 0 &&
+      searchResultsRef.current
+    ) {
       const selectedElement = searchResultsRef.current.querySelector(
         `.search-result-item:nth-child(${selectedSearchIndex + 1})`
       );
@@ -123,7 +127,7 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
         case 'ArrowDown':
           if (isSearchResultsFocused && searchResults.length > 0) {
             e.preventDefault();
-            setSelectedSearchIndex(prev =>
+            setSelectedSearchIndex((prev) =>
               prev < searchResults.length - 1 ? prev + 1 : prev
             );
           }
@@ -131,7 +135,7 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
         case 'ArrowUp':
           if (isSearchResultsFocused && searchResults.length > 0) {
             e.preventDefault();
-            setSelectedSearchIndex(prev => (prev > 0 ? prev - 1 : 0));
+            setSelectedSearchIndex((prev) => (prev > 0 ? prev - 1 : 0));
           }
           break;
         case 'Enter':
@@ -202,7 +206,7 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
               ref={searchInputRef}
               type="text"
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}
               placeholder="Search files..."
               style={{
@@ -213,7 +217,8 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
                 fontFamily: theme.fonts.body,
                 borderRadius: '4px',
                 border: `1px solid ${theme.colors.border}`,
-                backgroundColor: theme.colors.backgroundSecondary || theme.colors.background,
+                backgroundColor:
+                  theme.colors.backgroundSecondary || theme.colors.background,
                 color: theme.colors.text,
                 outline: 'none',
                 boxSizing: 'border-box',
@@ -280,7 +285,13 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
             }}
           >
             <div style={{ textAlign: 'center', maxWidth: '320px' }}>
-              <div style={{ marginBottom: '24px', position: 'relative', display: 'inline-block' }}>
+              <div
+                style={{
+                  marginBottom: '24px',
+                  position: 'relative',
+                  display: 'inline-block',
+                }}
+              >
                 <svg
                   width="64"
                   height="64"
@@ -329,12 +340,32 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
               </p>
 
               <div style={{ textAlign: 'left' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    marginBottom: '8px',
+                  }}
+                >
                   <div>
-                    <div style={{ fontSize: theme.fontSizes[0], fontWeight: theme.fontWeights.medium, fontFamily: theme.fonts.body, color: theme.colors.text }}>
+                    <div
+                      style={{
+                        fontSize: theme.fontSizes[0],
+                        fontWeight: theme.fontWeights.medium,
+                        fontFamily: theme.fonts.body,
+                        color: theme.colors.text,
+                      }}
+                    >
                       Quick search
                     </div>
-                    <div style={{ fontSize: theme.fontSizes[0], fontFamily: theme.fonts.body, color: theme.colors.textSecondary }}>
+                    <div
+                      style={{
+                        fontSize: theme.fontSizes[0],
+                        fontFamily: theme.fonts.body,
+                        color: theme.colors.textSecondary,
+                      }}
+                    >
                       Type to instantly filter by filename
                     </div>
                   </div>
@@ -361,9 +392,24 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
                   fill="none"
                   style={{ color: theme.colors.textSecondary, opacity: 0.5 }}
                 >
-                  <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
-                  <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" />
-                  <path d="M8 11h6M11 8v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <circle
+                    cx="11"
+                    cy="11"
+                    r="8"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="m21 21-4.35-4.35"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="M8 11h6M11 8v6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </div>
 
@@ -387,7 +433,12 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
                 }}
               >
                 No files match{' '}
-                <span style={{ fontFamily: theme.fonts.monospace, color: theme.colors.primary }}>
+                <span
+                  style={{
+                    fontFamily: theme.fonts.monospace,
+                    color: theme.colors.primary,
+                  }}
+                >
                   "{searchQuery}"
                 </span>
               </p>
@@ -396,8 +447,11 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
         ) : (
           <div>
             {searchResults.map((result, index) => {
-              const isCurrentFile = selectedFile === result.path || selectedFile === result.relativePath;
-              const isSelected = isSearchResultsFocused && index === selectedSearchIndex;
+              const isCurrentFile =
+                selectedFile === result.path ||
+                selectedFile === result.relativePath;
+              const isSelected =
+                isSearchResultsFocused && index === selectedSearchIndex;
 
               return (
                 <div
@@ -428,14 +482,33 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
                   }}
                   onMouseLeave={() => onSearchResultHover?.(null)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                    }}
+                  >
                     <div style={{ flexShrink: 0, marginTop: '2px' }}>
                       <FileText size={14} color={theme.colors.textSecondary} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                        }}
+                      >
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
                             <div
                               style={{
                                 fontSize: theme.fontSizes[1],
@@ -481,12 +554,15 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
                             padding: '4px',
                             borderRadius: '4px',
                             border: `1px solid ${
-                              copiedPath === result.path ? theme.colors.success : theme.colors.border
+                              copiedPath === result.path
+                                ? theme.colors.success
+                                : theme.colors.border
                             }`,
                             backgroundColor:
                               copiedPath === result.path
                                 ? `${theme.colors.success}20`
-                                : theme.colors.backgroundSecondary || theme.colors.background,
+                                : theme.colors.backgroundSecondary ||
+                                  theme.colors.background,
                             color:
                               copiedPath === result.path
                                 ? theme.colors.success
@@ -495,21 +571,35 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
                             opacity: isSelected || isCurrentFile ? 0.7 : 0,
                             transition: 'opacity 0.15s',
                           }}
-                          onMouseEnter={e => {
-                            (e.currentTarget as HTMLElement).style.opacity = '1';
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLElement).style.opacity =
+                              '1';
                           }}
-                          onMouseLeave={e => {
-                            if (!isSelected && !isCurrentFile && copiedPath !== result.path) {
-                              (e.currentTarget as HTMLElement).style.opacity = '0';
+                          onMouseLeave={(e) => {
+                            if (
+                              !isSelected &&
+                              !isCurrentFile &&
+                              copiedPath !== result.path
+                            ) {
+                              (e.currentTarget as HTMLElement).style.opacity =
+                                '0';
                             }
                           }}
-                          onClick={e => {
+                          onClick={(e) => {
                             e.stopPropagation();
                             handleCopyPath(result.path);
                           }}
-                          title={copiedPath === result.path ? 'Copied!' : 'Copy full path'}
+                          title={
+                            copiedPath === result.path
+                              ? 'Copied!'
+                              : 'Copy full path'
+                          }
                         >
-                          {copiedPath === result.path ? <Check size={14} /> : <Copy size={14} />}
+                          {copiedPath === result.path ? (
+                            <Check size={14} />
+                          ) : (
+                            <Copy size={14} />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -530,12 +620,13 @@ export const SearchPanelContent: React.FC<SearchPanelProps> = ({
             fontSize: theme.fontSizes[0],
             fontFamily: theme.fonts.body,
             color: theme.colors.textSecondary,
-            backgroundColor: theme.colors.backgroundSecondary || theme.colors.background,
+            backgroundColor:
+              theme.colors.backgroundSecondary || theme.colors.background,
           }}
         >
           <span>
-            Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "
-            {searchQuery}"
+            Found {searchResults.length} result
+            {searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
           </span>
         </div>
       )}
@@ -574,11 +665,25 @@ export const SearchPanelPreview: React.FC = () => {
       >
         Search files...
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: 0.7 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          opacity: 0.7,
+        }}
+      >
         <FileText size={12} />
         <span>index.tsx</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: 0.7 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          opacity: 0.7,
+        }}
+      >
         <FileText size={12} />
         <span>utils.ts</span>
       </div>
@@ -588,10 +693,9 @@ export const SearchPanelPreview: React.FC = () => {
 
 /**
  * SearchPanel - Panel Framework compatible component
- * Uses context.getSlice('fileTree') to get data
  */
-export const SearchPanel: React.FC<PanelComponentProps> = ({ context }) => {
-  const fileTreeSlice = context.getSlice<FileTree>('fileTree');
+export const SearchPanel: React.FC<SearchPanelPropsTyped> = ({ context }) => {
+  const fileTreeSlice = context.fileTree;
 
   const fileTree = fileTreeSlice?.data ?? null;
   const isLoading = fileTreeSlice?.loading || false;

@@ -666,6 +666,7 @@ export const ActiveProjects: Story = {
           icon: 'Zap',
           createdAt: Date.now(),
           updatedAt: Date.now(),
+          members: [],
           metadata: {
             customRegions: ageRegions,
           },
@@ -707,6 +708,7 @@ export const AutoAssignmentTest: Story = {
         icon: 'Sparkles',
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        members: [],
         metadata: {
           // NO customRegions - should auto-create age-based regions
         },
@@ -736,6 +738,7 @@ export const CustomRegionsOrganized: Story = {
         icon: 'FolderTree',
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        members: [],
         metadata: {
           customRegions: [
             {
@@ -849,6 +852,7 @@ export const EmptyCollection: Story = {
         icon: 'Plus',
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        members: [],
         metadata: {
           customRegions: [], // Will auto-initialize with one region
         },
@@ -870,6 +874,7 @@ export const LargeCollection: Story = {
         icon: 'Database',
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        members: [],
         metadata: {},
       }}
       initialMemberships={mockRepositories.map((repo, idx) => ({
@@ -895,6 +900,7 @@ export const SingleRegionAddingTest: Story = {
         icon: 'Grid',
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        members: [],
         metadata: {
           customRegions: [
             {
@@ -930,6 +936,7 @@ export const SavedPositionsTest: Story = {
         icon: 'Save',
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        members: [],
         metadata: {
           customRegions: [
             {
@@ -1044,6 +1051,7 @@ export const DragDropDemo: Story = {
         icon: 'Package',
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        members: [],
         metadata: {
           customRegions: [
             { id: 'region-0-0', name: 'Main', order: 0, createdAt: 0 },
@@ -1476,6 +1484,7 @@ export const MonorepoPackages: Story = {
         icon: 'Layers',
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        members: [],
         metadata: {
           customRegions: [
             {

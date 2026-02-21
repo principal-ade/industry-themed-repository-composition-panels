@@ -11,7 +11,7 @@ import {
   GitBranch,
 } from 'lucide-react';
 import type { ExtendedCanvas } from '@principal-ai/principal-view-core';
-import type { PanelComponentProps } from '../../types';
+import type { DependencyGraphPanelPropsTyped } from '../../types';
 import type { PackageLayer } from '../../types/composition';
 import type { PackagesSliceData } from '../../types/dependencies';
 import { dependencyTreeToCanvas } from './dependencyToCanvas';
@@ -39,10 +39,9 @@ const directionLabels: Record<LayoutConfig['direction'], string> = {
 /**
  * Content component that renders the dependency graph visualization
  */
-export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = ({
-  packages,
-  isLoading = false,
-}) => {
+export const DependencyGraphPanelContent: React.FC<
+  DependencyGraphPanelProps
+> = ({ packages, isLoading = false }) => {
   const { theme } = useTheme();
 
   const [showSettings, setShowSettings] = useState(false);
@@ -84,7 +83,10 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
     setLayoutConfig((prev) => ({ ...prev, direction }));
   };
 
-  const handleSpacingChange = (key: 'nodeSpacingX' | 'nodeSpacingY', value: number) => {
+  const handleSpacingChange = (
+    key: 'nodeSpacingX' | 'nodeSpacingY',
+    value: number
+  ) => {
     setLayoutConfig((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -163,7 +165,8 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
         <GitBranch size={32} />
         <span>Single package repository</span>
         <span style={{ fontSize: theme.fontSizes[1] }}>
-          Dependency graph is most useful for monorepos with multiple internal packages.
+          Dependency graph is most useful for monorepos with multiple internal
+          packages.
         </span>
       </div>
     );
@@ -210,11 +213,25 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <GitBranch size={16} color={theme.colors.primary} />
-          <span style={{ fontSize: theme.fontSizes[2], fontWeight: 500, color: theme.colors.text, fontFamily: theme.fonts.body }}>
+          <span
+            style={{
+              fontSize: theme.fontSizes[2],
+              fontWeight: 500,
+              color: theme.colors.text,
+              fontFamily: theme.fonts.body,
+            }}
+          >
             Dependency Graph
           </span>
-          <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary, fontFamily: theme.fonts.body }}>
-            ({packages.length} packages, {canvas.edges?.length || 0} dependencies)
+          <span
+            style={{
+              fontSize: theme.fontSizes[1],
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fonts.body,
+            }}
+          >
+            ({packages.length} packages, {canvas.edges?.length || 0}{' '}
+            dependencies)
           </span>
         </div>
 
@@ -245,7 +262,9 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
               justifyContent: 'center',
               gap: '4px',
               padding: '4px 8px',
-              backgroundColor: showSettings ? theme.colors.primary : 'transparent',
+              backgroundColor: showSettings
+                ? theme.colors.primary
+                : 'transparent',
               border: `1px solid ${showSettings ? theme.colors.primary : theme.colors.border}`,
               borderRadius: '4px',
               cursor: 'pointer',
@@ -272,12 +291,22 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
         >
           {/* Direction */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary, fontFamily: theme.fonts.body }}>
+            <label
+              style={{
+                fontSize: theme.fontSizes[1],
+                color: theme.colors.textSecondary,
+                fontFamily: theme.fonts.body,
+              }}
+            >
               Direction
             </label>
             <select
               value={layoutConfig.direction}
-              onChange={(e) => handleDirectionChange(e.target.value as LayoutConfig['direction'])}
+              onChange={(e) =>
+                handleDirectionChange(
+                  e.target.value as LayoutConfig['direction']
+                )
+              }
               style={{
                 padding: '4px 8px',
                 backgroundColor: theme.colors.background,
@@ -298,7 +327,13 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
 
           {/* Horizontal Spacing */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary, fontFamily: theme.fonts.body }}>
+            <label
+              style={{
+                fontSize: theme.fontSizes[1],
+                color: theme.colors.textSecondary,
+                fontFamily: theme.fonts.body,
+              }}
+            >
               H-Spacing: {layoutConfig.nodeSpacingX}px
             </label>
             <input
@@ -307,14 +342,22 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
               max={400}
               step={20}
               value={layoutConfig.nodeSpacingX}
-              onChange={(e) => handleSpacingChange('nodeSpacingX', Number(e.target.value))}
+              onChange={(e) =>
+                handleSpacingChange('nodeSpacingX', Number(e.target.value))
+              }
               style={{ width: '120px' }}
             />
           </div>
 
           {/* Vertical Spacing */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary, fontFamily: theme.fonts.body }}>
+            <label
+              style={{
+                fontSize: theme.fontSizes[1],
+                color: theme.colors.textSecondary,
+                fontFamily: theme.fonts.body,
+              }}
+            >
               V-Spacing: {layoutConfig.nodeSpacingY}px
             </label>
             <input
@@ -323,7 +366,9 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
               max={300}
               step={20}
               value={layoutConfig.nodeSpacingY}
-              onChange={(e) => handleSpacingChange('nodeSpacingY', Number(e.target.value))}
+              onChange={(e) =>
+                handleSpacingChange('nodeSpacingY', Number(e.target.value))
+              }
               style={{ width: '120px' }}
             />
           </div>
@@ -338,7 +383,12 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
             />
             <label
               htmlFor="include-dev-deps"
-              style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary, fontFamily: theme.fonts.body, cursor: 'pointer' }}
+              style={{
+                fontSize: theme.fontSizes[1],
+                color: theme.colors.textSecondary,
+                fontFamily: theme.fonts.body,
+                cursor: 'pointer',
+              }}
             >
               Include devDependencies
             </label>
@@ -348,11 +398,7 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
 
       {/* Graph Renderer */}
       <div style={{ flex: 1, position: 'relative' }}>
-        <GraphRenderer
-          key={layoutVersion}
-          canvas={canvas}
-          editable={false}
-        />
+        <GraphRenderer key={layoutVersion} canvas={canvas} editable={false} />
       </div>
 
       {/* Legend */}
@@ -386,7 +432,8 @@ export const DependencyGraphPanelContent: React.FC<DependencyGraphPanelProps> = 
                 width: '24px',
                 height: '2px',
                 backgroundColor: '#94a3b8',
-                backgroundImage: 'repeating-linear-gradient(90deg, #94a3b8 0, #94a3b8 4px, transparent 4px, transparent 8px)',
+                backgroundImage:
+                  'repeating-linear-gradient(90deg, #94a3b8 0, #94a3b8 4px, transparent 4px, transparent 8px)',
               }}
             />
             <span>devDependency</span>
@@ -428,19 +475,17 @@ export const DependencyGraphPanelPreview: React.FC = () => {
 
 /**
  * DependencyGraphPanel - Panel Framework compatible component
- * Uses context.getSlice('packages') to get package layer data
  */
-export const DependencyGraphPanel: React.FC<PanelComponentProps> = ({ context }) => {
-  // Get packages slice from context
-  const packagesSlice = context.getSlice<PackagesSliceData>('packages');
+export const DependencyGraphPanel: React.FC<DependencyGraphPanelPropsTyped> = ({
+  context,
+}) => {
+  // Get packages slice from typed context (direct property access)
+  const packagesSlice = context.packages;
 
   const packages = packagesSlice?.data?.packages ?? [];
   const isLoading = packagesSlice?.loading || false;
 
   return (
-    <DependencyGraphPanelContent
-      packages={packages}
-      isLoading={isLoading}
-    />
+    <DependencyGraphPanelContent packages={packages} isLoading={isLoading} />
   );
 };

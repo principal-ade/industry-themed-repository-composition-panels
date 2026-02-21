@@ -1,10 +1,27 @@
-import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '@principal-ade/industry-theme';
-import { GitStatusFileTree, type GitFileStatus } from '@principal-ade/dynamic-file-tree';
-import type { FileTree, GitStatusWithFiles, DirectoryInfo, FileTreeNode } from '@principal-ai/repository-abstraction';
+import {
+  GitStatusFileTree,
+  type GitFileStatus,
+} from '@principal-ade/dynamic-file-tree';
+import type {
+  FileTree,
+  GitStatusWithFiles,
+  DirectoryInfo,
+  FileTreeNode,
+} from '@principal-ai/repository-abstraction';
 import { Copy, FileSymlink, ExternalLink, FolderOpen } from 'lucide-react';
-import type { GitChangeSelectionStatus, PanelComponentProps } from '../types';
+import type {
+  GitChangeSelectionStatus,
+  GitChangesPanelPropsTyped,
+} from '../types';
 import './GitChangesPanel.css';
 
 // Stable default object to prevent new references on each render
@@ -91,14 +108,18 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
   // Close context menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+      if (
+        contextMenuRef.current &&
+        !contextMenuRef.current.contains(e.target as Node)
+      ) {
         setContextMenu((prev) => ({ ...prev, visible: false }));
       }
     };
 
     if (contextMenu.visible) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [contextMenu.visible]);
 
@@ -119,7 +140,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
       }
       return undefined;
     },
-    [gitStatus],
+    [gitStatus]
   );
 
   const handleFileSelect = useCallback(
@@ -127,7 +148,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
       const status = getFileStatus(filePath);
       onFileClick?.(filePath, status);
     },
-    [getFileStatus, onFileClick],
+    [getFileStatus, onFileClick]
   );
 
   // Context menu handlers
@@ -142,7 +163,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
         isFolder,
       });
     },
-    [],
+    []
   );
 
   const closeContextMenu = useCallback(() => {
@@ -156,7 +177,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
       }
       return nodePath;
     },
-    [rootPath],
+    [rootPath]
   );
 
   const handleCopyFullPath = useCallback(() => {
@@ -164,11 +185,19 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
     navigator.clipboard.writeText(fullPath);
     onContextMenuAction?.({ type: 'copyFullPath', path: fullPath });
     closeContextMenu();
-  }, [contextMenu.nodePath, getFullPath, onContextMenuAction, closeContextMenu]);
+  }, [
+    contextMenu.nodePath,
+    getFullPath,
+    onContextMenuAction,
+    closeContextMenu,
+  ]);
 
   const handleCopyRelativePath = useCallback(() => {
     navigator.clipboard.writeText(contextMenu.nodePath);
-    onContextMenuAction?.({ type: 'copyRelativePath', path: contextMenu.nodePath });
+    onContextMenuAction?.({
+      type: 'copyRelativePath',
+      path: contextMenu.nodePath,
+    });
     closeContextMenu();
   }, [contextMenu.nodePath, onContextMenuAction, closeContextMenu]);
 
@@ -176,13 +205,23 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
     const fullPath = getFullPath(contextMenu.nodePath);
     onContextMenuAction?.({ type: 'openFile', path: fullPath });
     closeContextMenu();
-  }, [contextMenu.nodePath, getFullPath, onContextMenuAction, closeContextMenu]);
+  }, [
+    contextMenu.nodePath,
+    getFullPath,
+    onContextMenuAction,
+    closeContextMenu,
+  ]);
 
   const handleOpenFolder = useCallback(() => {
     const fullPath = getFullPath(contextMenu.nodePath);
     onContextMenuAction?.({ type: 'openFolder', path: fullPath });
     closeContextMenu();
-  }, [contextMenu.nodePath, getFullPath, onContextMenuAction, closeContextMenu]);
+  }, [
+    contextMenu.nodePath,
+    getFullPath,
+    onContextMenuAction,
+    closeContextMenu,
+  ]);
 
   const gitChangesData = useMemo(() => {
     if (isLoading) {
@@ -200,7 +239,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
         const matchingFiles = fileTree.allFiles.filter(
           (file) =>
             file.path.startsWith(normalizedPath + '/') ||
-            file.path === normalizedPath,
+            file.path === normalizedPath
         );
 
         if (matchingFiles.length > 0) {
@@ -256,7 +295,9 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
       const rootPath = fileTree.root.path;
 
       // Detect if FileTree uses absolute or relative paths
-      const usesAbsolutePaths = fileTree.allFiles.length > 0 && fileTree.allFiles[0].path.startsWith('/');
+      const usesAbsolutePaths =
+        fileTree.allFiles.length > 0 &&
+        fileTree.allFiles[0].path.startsWith('/');
 
       // Build matching paths set
       const matchingPaths = new Set<string>();
@@ -289,8 +330,12 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
       matchingPaths.add(rootPath);
 
       // Filter allFiles and allDirectories
-      const filteredAllFiles = fileTree.allFiles.filter((file) => matchingPaths.has(file.path));
-      const filteredAllDirectories = fileTree.allDirectories.filter((dir) => matchingPaths.has(dir.path));
+      const filteredAllFiles = fileTree.allFiles.filter((file) =>
+        matchingPaths.has(file.path)
+      );
+      const filteredAllDirectories = fileTree.allDirectories.filter((dir) =>
+        matchingPaths.has(dir.path)
+      );
 
       // Recursively filter the directory tree structure
       const filterDirectoryTree = (dir: DirectoryInfo): DirectoryInfo => {
@@ -306,7 +351,8 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
         return {
           ...dir,
           children: filteredChildren,
-          fileCount: filteredChildren.filter((child) => !('children' in child)).length,
+          fileCount: filteredChildren.filter((child) => !('children' in child))
+            .length,
         };
       };
 
@@ -428,9 +474,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
         />
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto' }}>
-        {renderContent()}
-      </div>
+      <div style={{ flex: 1, overflow: 'auto' }}>{renderContent()}</div>
 
       {/* Context menu - rendered as portal */}
       {contextMenu.visible &&
@@ -449,7 +493,8 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
               minWidth: '180px',
               padding: '4px 0',
               fontFamily: theme.fonts.body,
-              ['--theme-bg-tertiary' as string]: theme.colors.backgroundTertiary,
+              ['--theme-bg-tertiary' as string]:
+                theme.colors.backgroundTertiary,
             }}
           >
             {/* Open file/folder action */}
@@ -458,7 +503,11 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
               className="context-menu-item"
               style={contextMenuButtonStyle}
             >
-              {contextMenu.isFolder ? <FolderOpen size={14} /> : <ExternalLink size={14} />}
+              {contextMenu.isFolder ? (
+                <FolderOpen size={14} />
+              ) : (
+                <ExternalLink size={14} />
+              )}
               {contextMenu.isFolder ? 'Open Folder' : 'Open File'}
             </button>
 
@@ -549,13 +598,14 @@ export const GitChangesPanelPreview: React.FC = () => {
 
 /**
  * GitChangesPanel - Panel Framework compatible component
- * Uses context.getSlice('git') and context.getSlice('fileTree') to get data
  */
-export const GitChangesPanel: React.FC<PanelComponentProps> = ({ context, events }) => {
-
-  // Get data slices from context
-  const gitSlice = context.getSlice<GitStatusWithFiles>('gitStatusWithFiles');
-  const fileTreeSlice = context.getSlice<FileTree>('fileTree');
+export const GitChangesPanel: React.FC<GitChangesPanelPropsTyped> = ({
+  context,
+  events,
+}) => {
+  // Get data slices from typed context (direct property access)
+  const gitSlice = context.gitStatusWithFiles;
+  const fileTreeSlice = context.fileTree;
 
   // Extract data with stable defaults to prevent unnecessary re-renders
   const gitStatus = gitSlice?.data ?? EMPTY_GIT_STATUS;
@@ -563,9 +613,10 @@ export const GitChangesPanel: React.FC<PanelComponentProps> = ({ context, events
   const isLoading = gitSlice?.loading || fileTreeSlice?.loading || false;
 
   // Get repository path from context scope
-  const rootPath = context.currentScope.type === 'repository'
-    ? context.currentScope.repository?.path
-    : undefined;
+  const rootPath =
+    context.currentScope.type === 'repository'
+      ? context.currentScope.repository?.path
+      : undefined;
 
   // Handle file click - emit file:open event
   const handleFileClick = useCallback(

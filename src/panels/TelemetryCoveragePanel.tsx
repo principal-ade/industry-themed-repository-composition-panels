@@ -14,7 +14,7 @@ import {
   calculateTelemetryCoverageStats,
 } from '@principal-ade/dynamic-file-tree';
 import type { FileTree } from '@principal-ai/repository-abstraction';
-import type { PanelComponentProps } from '../types';
+import type { TelemetryCoveragePanelPropsTyped } from '../types';
 import type { PackageLayer } from '../types/composition';
 import type { PackagesSliceData } from '../types/dependencies';
 
@@ -775,15 +775,13 @@ export const TelemetryCoveragePanelPreview: React.FC = () => {
 
 /**
  * TelemetryCoveragePanel - Panel Framework compatible component
- * Uses context.getSlice('packages') and context.getSlice('fileTree') to get data
  */
-export const TelemetryCoveragePanel: React.FC<PanelComponentProps> = ({
-  context,
-  events,
-}) => {
-  // Get packages and fileTree slices from context
-  const packagesSlice = context.getSlice<PackagesSliceData>('packages');
-  const fileTreeSlice = context.getSlice<FileTree>('fileTree');
+export const TelemetryCoveragePanel: React.FC<
+  TelemetryCoveragePanelPropsTyped
+> = ({ context, events }) => {
+  // Get packages and fileTree slices from typed context (direct property access)
+  const packagesSlice = context.packages;
+  const fileTreeSlice = context.fileTree;
 
   // Wrap in useMemo to maintain stable reference when undefined
   const packages = useMemo(
