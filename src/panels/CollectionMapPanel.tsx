@@ -267,16 +267,28 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       const regionRow = Math.floor(gridY / REGION_SIZE_TILES);
       const regionOrder = regionRow * 10 + regionCol;
 
-      // Find the region at this position
+      // Find the region at this position, or create one if it doesn't exist
       const targetRegion = customRegions.find((r) => r.order === regionOrder);
-      const newRegionId = targetRegion?.id;
+      let newRegionId = targetRegion?.id;
 
+      // If no region exists at this position, auto-create one
       if (!newRegionId) {
-        console.warn(
-          '[CollectionMapPanel] ⚠️ Could not determine region for position:',
+        console.log(
+          '[CollectionMapPanel] Creating default region for drop position:',
           { gridX, gridY, regionOrder }
         );
-        return;
+
+        // Create a new region at this position
+        const newRegion = await regionCallbacks.onRegionCreated(collection.id, {
+          name:
+            customRegions.length === 0
+              ? 'Main'
+              : `Region ${customRegions.length + 1}`,
+          order: regionOrder,
+          createdAt: 0,
+        });
+
+        newRegionId = newRegion.id;
       }
 
       // If this is a first placement (new repo from drag-drop OR existing membership without regionId)
