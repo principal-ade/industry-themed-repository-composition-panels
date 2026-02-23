@@ -423,12 +423,59 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     [handleProjectMoved]
   );
 
+  // Handle dropped GitHub repositories (from starred/projects panels)
+  const handleGitHubDrop = useCallback(
+    async (data: PanelDragData, event: React.DragEvent) => {
+      // Extract repository info from dropped data
+      // primaryData is the full_name (e.g., "owner/repo")
+      const fullName = data.primaryData as string;
+      // Type assertion: drag data metadata contains GitHub repo info
+      const metadata = (data.metadata || {}) as {
+        name?: string;
+        owner?: string;
+        cloneUrl?: string;
+        htmlUrl?: string;
+        [key: string]: unknown;
+      };
+
+      // Use full_name as the repo ID (matches how collection members are identified)
+      const repoId = fullName;
+
+      // Build repository metadata for the collection
+      const repositoryMetadata: RepositoryMetadata = {
+        name: metadata.name || fullName.split('/')[1] || fullName,
+        path: fullName, // Use full_name as path for GitHub repos
+        ...metadata,
+      };
+
+      // Convert drop position to grid coordinates
+      const gridCoords = domEventToGridCoords(
+        event.clientX,
+        event.clientY,
+        viewportRef.current,
+        canvasRef.current
+      );
+
+      // Snap to nearest tile
+      const gridX = Math.round(gridCoords.gridX);
+      const gridY = Math.round(gridCoords.gridY);
+
+      // Place immediately at drop position, passing metadata directly
+      await handleProjectMoved(repoId, gridX, gridY, repositoryMetadata);
+    },
+    [handleProjectMoved]
+  );
+
   // Set up drop zone for BOTH external drags and drawer drags
   const { isDragOver, ...dropZoneProps } = useDropZone({
     handlers: [
       {
         dataType: 'repository-project',
         onDrop: handleProjectDrop,
+      },
+      {
+        dataType: 'repository-github',
+        onDrop: handleGitHubDrop,
       },
       {
         dataType: 'application/x-unplaced-node',
