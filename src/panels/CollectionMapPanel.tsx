@@ -112,7 +112,7 @@ export interface RegionCallbacks {
 export interface CollectionMapPanelActions
   extends PanelActions, RegionCallbacks {
   /** Add a repository to a collection (for drag-drop integration) */
-  addRepositoryToCollection?: (
+  addRepositoryToCollection: (
     collectionId: string,
     repositoryPath: string,
     repositoryMetadata: RepositoryMetadata
@@ -163,17 +163,15 @@ export interface CollectionMapPanelProps {
   /** Loading state */
   isLoading?: boolean;
 
-  /** Callback when a project is moved (for saving position) */
-  onProjectMoved?: (projectId: string, gridX: number, gridY: number) => void;
-
-  /** Callback when a project is dropped to add to collection */
-  onProjectAdded?: (
-    repositoryPath: string,
-    repositoryMetadata: RepositoryMetadata
-  ) => void;
-
   /** Callbacks for region management operations (REQUIRED) */
   regionCallbacks: RegionCallbacks;
+
+  /** Add a repository to the collection (for drag-drop) */
+  addRepositoryToCollection: (
+    collectionId: string,
+    repositoryPath: string,
+    repositoryMetadata: RepositoryMetadata
+  ) => Promise<void>;
 }
 
 /**
@@ -186,8 +184,8 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   dependencies = {},
   regionLayout,
   isLoading = false,
-  onProjectAdded,
   regionCallbacks,
+  addRepositoryToCollection,
 }) => {
   // Get custom regions directly from collection metadata
   // Wrap in useMemo to maintain stable reference when undefined
@@ -296,11 +294,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         try {
           // If it's a new repo (not yet in collection), add it first
           if (isNewRepo) {
-            if (!onProjectAdded) {
-              throw new Error('onProjectAdded callback not available');
-            }
-
-            await onProjectAdded(projectId, metadata);
+            await addRepositoryToCollection(collection.id, projectId, metadata);
           }
 
           // Calculate region bounds
@@ -374,7 +368,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       collection.members,
       regionCallbacks,
       customRegions,
-      onProjectAdded,
+      addRepositoryToCollection,
     ]
   );
 
@@ -1017,30 +1011,6 @@ export const CollectionMapPanel: React.FC<
   const dependencies = selectedCollectionView.data?.dependencies || {};
   const isLoading = selectedCollectionView.loading;
 
-  // Handle adding a project to the collection
-  const handleProjectAdded = useCallback(
-    (repositoryPath: string, repositoryMetadata: RepositoryMetadata) => {
-      if (!selectedCollection) {
-        console.warn('[handleProjectAdded] No selected collection');
-        return;
-      }
-      // Call actions method to add repository to collection
-      // This is provided by the host application's context provider
-      if (actions.addRepositoryToCollection) {
-        actions.addRepositoryToCollection(
-          selectedCollection.id,
-          repositoryPath,
-          repositoryMetadata
-        );
-      } else {
-        console.warn(
-          'Actions does not support addRepositoryToCollection - drag-drop feature requires context integration'
-        );
-      }
-    },
-    [actions, selectedCollection]
-  );
-
   // Create region management callbacks (must be before early return)
   // Actions is now typed as CollectionMapPanelActions, so these methods are guaranteed to exist
   const regionCallbacks: RegionCallbacks = useMemo(
@@ -1086,8 +1056,8 @@ export const CollectionMapPanel: React.FC<
         repositories={repositories}
         dependencies={dependencies}
         isLoading={isLoading}
-        onProjectAdded={handleProjectAdded}
         regionCallbacks={regionCallbacks}
+        addRepositoryToCollection={actions.addRepositoryToCollection}
       />
     </div>
   );
