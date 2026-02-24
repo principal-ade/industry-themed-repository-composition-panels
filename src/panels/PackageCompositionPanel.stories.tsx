@@ -824,6 +824,180 @@ export const MonorepoOrchestrators: Story = {
 };
 
 /**
+ * Package with environment variables documentation
+ */
+export const WithEnvVariables: Story = {
+  args: {
+    packages: [
+      createMockPackage({
+        packageData: {
+          name: 'api-service',
+          version: '1.0.0',
+          path: '',
+          manifestPath: 'package.json',
+          packageManager: 'npm',
+          isMonorepoRoot: false,
+          isWorkspace: false,
+          dependencies: {
+            express: '^4.18.0',
+            pg: '^8.11.0',
+            redis: '^4.6.0',
+          },
+          devDependencies: {
+            typescript: '^5.0.0',
+            dotenv: '^16.0.0',
+          },
+          peerDependencies: {},
+          availableCommands: [
+            { name: 'dev', command: 'tsx watch src/index.ts', type: 'script' },
+            { name: 'build', command: 'tsc', type: 'script' },
+          ],
+        },
+        configFiles: {
+          typescript: { path: 'tsconfig.json', exists: true, type: 'json' },
+          envvars: { path: '.env.example', exists: true, type: 'custom' },
+        },
+      }),
+    ],
+    readFile: async (filePath: string) => {
+      // Simulate loading delay
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      if (filePath.includes('.env.example')) {
+        return `# === Database ===
+
+# Database connection string
+# https://www.postgresql.org/docs/current/libpq-connect.html
+# required
+DATABASE_URL=
+
+# Redis connection URL
+# https://redis.io/docs/connect/
+# required
+REDIS_URL=redis://localhost:6379
+
+# === Server ===
+
+# Server port
+PORT=3000
+
+# Enable debug logging
+DEBUG=false
+
+# === External Services ===
+
+# API key for external service
+# Get your key at https://example.com/dashboard/api-keys
+# required
+API_KEY=
+
+# JWT secret for authentication
+# required
+JWT_SECRET=`;
+      }
+      throw new Error('File not found');
+    },
+    onCommandClick: (_command: PackageCommand, _packagePath: string) => {},
+    onConfigClick: (_config: ConfigFile) => {},
+    onPackageClick: (_packagePath: string) => {},
+  },
+};
+
+/**
+ * Package with env.json format
+ */
+export const WithEnvJson: Story = {
+  args: {
+    packages: [
+      createMockPackage({
+        packageData: {
+          name: 'backend-service',
+          version: '2.0.0',
+          path: '',
+          manifestPath: 'package.json',
+          packageManager: 'npm',
+          isMonorepoRoot: false,
+          isWorkspace: false,
+          dependencies: {
+            fastify: '^4.0.0',
+            prisma: '^5.0.0',
+          },
+          devDependencies: {
+            typescript: '^5.0.0',
+          },
+          peerDependencies: {},
+          availableCommands: [
+            { name: 'dev', command: 'tsx watch src/index.ts', type: 'script' },
+          ],
+        },
+        configFiles: {
+          typescript: { path: 'tsconfig.json', exists: true, type: 'json' },
+          envvars: { path: 'env.json', exists: true, type: 'json' },
+        },
+      }),
+    ],
+    readFile: async (filePath: string) => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      if (filePath.includes('env.json')) {
+        return JSON.stringify({
+          variables: [
+            {
+              name: 'DATABASE_URL',
+              description: 'PostgreSQL connection string for the main database',
+              required: true,
+              example: 'postgresql://user:pass@localhost:5432/mydb',
+              group: 'Database',
+              link: 'https://www.postgresql.org/docs/current/libpq-connect.html',
+            },
+            {
+              name: 'REDIS_URL',
+              description: 'Redis connection URL for caching and sessions',
+              required: true,
+              default: 'redis://localhost:6379',
+              group: 'Database',
+              link: 'https://redis.io/docs/connect/',
+            },
+            {
+              name: 'PORT',
+              description: 'Port number for the HTTP server',
+              required: false,
+              default: '3000',
+              group: 'Server',
+            },
+            {
+              name: 'LOG_LEVEL',
+              description: 'Logging verbosity level',
+              required: false,
+              default: 'info',
+              group: 'Server',
+            },
+            {
+              name: 'STRIPE_API_KEY',
+              description: 'Stripe API key for payment processing',
+              required: true,
+              group: 'Payments',
+              link: 'https://dashboard.stripe.com/apikeys',
+            },
+            {
+              name: 'SENDGRID_API_KEY',
+              description: 'SendGrid API key for sending emails',
+              required: false,
+              group: 'Email',
+              link: 'https://app.sendgrid.com/settings/api_keys',
+            },
+          ],
+        });
+      }
+      throw new Error('File not found');
+    },
+    onCommandClick: (_command: PackageCommand, _packagePath: string) => {},
+    onConfigClick: (_config: ConfigFile) => {},
+    onPackageClick: (_packagePath: string) => {},
+  },
+};
+
+/**
  * Preview component - shown in panel switcher
  */
 export const Preview: StoryObj<typeof PackageCompositionPanelPreview> = {

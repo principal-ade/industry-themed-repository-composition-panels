@@ -18,6 +18,7 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
       borderRadius: `${theme.radii[1]}px`,
       fontSize: `${theme.fontSizes[0]}px`,
       fontWeight: theme.fontWeights.medium,
+      fontFamily: theme.fonts.body,
       minWidth: '36px',
       textAlign: 'center' as const,
     };
@@ -83,11 +84,12 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: `${theme.space[2]}px ${theme.space[3]}px`,
+        padding: `${theme.space[3]}px ${theme.space[4]}px`,
         backgroundColor: theme.colors.background,
-        borderRadius: `${theme.radii[1]}px`,
+        borderRadius: 0,
         fontSize: `${theme.fontSizes[1]}px`,
-        border: `1px solid ${theme.colors.border}`,
+        fontFamily: theme.fonts.body,
+        borderBottom: `1px solid ${theme.colors.border}`,
         transition: 'all 0.2s',
       }}
       onMouseEnter={() => setIsHovered(true)}
@@ -152,14 +154,23 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
           onClick={handleCopy}
           style={{
             ...actionButtonStyle,
-            color: copied ? theme.colors.success || '#10b981' : theme.colors.textSecondary,
+            color: copied
+              ? theme.colors.success || '#10b981'
+              : theme.colors.textSecondary,
           }}
-          title={copied ? 'Copied!' : `Copy ${dependency.name}@${dependency.version}`}
+          title={
+            copied ? 'Copied!' : `Copy ${dependency.name}@${dependency.version}`
+          }
         >
           {copied ? <Check size={12} /> : <Copy size={12} />}
         </button>
 
-        <span style={{ color: theme.colors.textSecondary }}>
+        <span
+          style={{
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fonts.body,
+          }}
+        >
           {dependency.version}
         </span>
       </div>

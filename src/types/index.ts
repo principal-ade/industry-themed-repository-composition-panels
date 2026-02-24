@@ -129,10 +129,18 @@ export interface PackageCompositionPanelContext {
 }
 
 /**
+ * Extended actions for PackageCompositionPanel
+ */
+export interface PackageCompositionPanelActions extends CorePanelActions {
+  /** Read file content from the repository */
+  readFile?: (filePath: string) => Promise<string>;
+}
+
+/**
  * Typed panel props for PackageCompositionPanel
  */
 export type PackageCompositionPanelPropsTyped = CorePanelComponentProps<
-  CorePanelActions,
+  PackageCompositionPanelActions,
   PackageCompositionPanelContext
 >;
 

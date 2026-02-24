@@ -41,7 +41,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: `${theme.space[2]}px`,
       }}
     >
       {/* Search Bar */}
@@ -68,9 +67,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           onChange={(e) => onSearchChange(e.target.value)}
           style={{
             width: '100%',
-            padding: `${theme.space[2]}px ${theme.space[5]}px`,
-            borderRadius: `${theme.radii[2]}px`,
-            border: `1px solid ${theme.colors.border}`,
+            padding: `${theme.space[3]}px ${theme.space[5]}px`,
+            borderRadius: 0,
+            border: 'none',
+            borderBottom: `1px solid ${theme.colors.border}`,
             backgroundColor: theme.colors.backgroundSecondary,
             color: theme.colors.text,
             fontSize: `${theme.fontSizes[1]}px`,
@@ -103,7 +103,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
       {/* Type Filter Toggles */}
       {showFilters && (
-        <div style={{ display: 'flex', gap: `${theme.space[1]}px`, width: '100%' }}>
+        <div style={{ display: 'flex', width: '100%' }}>
           {availableFilters.map((type) => {
             const isActive = activeFilters.has(type);
             return (
@@ -112,12 +112,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 onClick={() => onToggleFilter(type)}
                 style={{
                   flex: 1,
-                  padding: `${theme.space[1]}px ${theme.space[2]}px`,
+                  padding: `${theme.space[2]}px ${theme.space[2]}px`,
                   fontSize: `${theme.fontSizes[0]}px`,
                   fontWeight: theme.fontWeights.medium,
                   fontFamily: theme.fonts.body,
-                  borderRadius: `${theme.radii[1]}px`,
-                  border: `1px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
+                  borderRadius: 0,
+                  border: 'none',
+                  borderRight: `1px solid ${theme.colors.border}`,
                   backgroundColor: isActive
                     ? `${theme.colors.primary}20`
                     : theme.colors.backgroundSecondary,
