@@ -292,11 +292,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       // If this is a first placement (new repo from drag-drop OR existing membership without regionId)
       if (isFirstPlacement) {
         try {
-          // If it's a new repo (not yet in collection), add it first
-          if (isNewRepo) {
-            await addRepositoryToCollection(collection.id, projectId, metadata);
-          }
-
           // Calculate region bounds
           const regionBoundsX = regionCol * REGION_SIZE_TILES;
           const regionBoundsY = regionRow * REGION_SIZE_TILES;
@@ -310,17 +305,27 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
             gridY: relativeGridY,
           };
 
-          await regionCallbacks.onRepositoryPositionUpdated(
-            collection.id,
-            projectId,
-            layout
-          );
+          // If it's a new repo (not yet in collection), add it with all metadata in one call
+          if (isNewRepo) {
+            await addRepositoryToCollection(collection.id, projectId, {
+              ...metadata,
+              layout,
+              regionId: newRegionId,
+            });
+          } else {
+            // Existing repo being placed for first time - update position and region
+            await regionCallbacks.onRepositoryPositionUpdated(
+              collection.id,
+              projectId,
+              layout
+            );
 
-          await regionCallbacks.onRepositoryAssigned(
-            collection.id,
-            projectId,
-            newRegionId
-          );
+            await regionCallbacks.onRepositoryAssigned(
+              collection.id,
+              projectId,
+              newRegionId
+            );
+          }
         } catch (error) {
           console.error('[PLACEMENT] ✗ ERROR during placement:', error);
           throw error;
