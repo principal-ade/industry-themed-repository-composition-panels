@@ -5,13 +5,13 @@ import {
   ChevronRight,
   FileText,
   Folder,
-  Package,
   AlertCircle,
   CheckCircle,
   ExternalLink,
 } from 'lucide-react';
 import { PackageManagerIcon } from './PackageManagerIcon';
 import { DependencyRow } from './DependencyRow';
+import { EmptyDependencies } from './EmptyDependencies';
 import { FilterBar } from './FilterBar';
 import { DependencyInfoModal } from './DependencyInfoModal';
 import { LensReadinessSection } from './LensReadinessSection';
@@ -119,13 +119,13 @@ function extractDependencies(packageLayer: PackageLayer): DependencyItem[] {
     }
   );
 
-  // Sort by primary type (peer, prod, dev) then by name
+  // Sort by primary type (peer, prod, dev) then by package name (without scope)
   return items.sort((a, b) => {
     const typeCompare =
       dependencyTypeOrder[a.dependencyType] -
       dependencyTypeOrder[b.dependencyType];
     if (typeCompare !== 0) return typeCompare;
-    return a.name.localeCompare(b.name);
+    return a.packageName.localeCompare(b.packageName);
   });
 }
 
@@ -813,21 +813,7 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
               }}
             >
               {dependencyItems.length === 0 ? (
-                <div
-                  style={{
-                    padding: '12px',
-                    color: theme.colors.textSecondary,
-                    fontSize: theme.fontSizes[1],
-                    fontFamily: theme.fonts.body,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  <Package size={16} />
-                  No dependencies
-                </div>
+                <EmptyDependencies />
               ) : (
                 <>
                   {/* Filter Bar */}
@@ -842,6 +828,7 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
                       searchQuery={searchQuery}
                       onSearchChange={setSearchQuery}
                       counts={depCounts}
+                      showSearch={dependencyItems.length > 10}
                     />
                   </div>
 
@@ -1365,21 +1352,7 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
                 }}
               >
                 {dependencyItems.length === 0 ? (
-                  <div
-                    style={{
-                      padding: '12px',
-                      color: theme.colors.textSecondary,
-                      fontSize: theme.fontSizes[1],
-                      fontFamily: theme.fonts.body,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <Package size={16} />
-                    No dependencies
-                  </div>
+                  <EmptyDependencies />
                 ) : (
                   <>
                     {/* Filter Bar */}
@@ -1394,6 +1367,7 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
                         searchQuery={searchQuery}
                         onSearchChange={setSearchQuery}
                         counts={depCounts}
+                        showSearch={dependencyItems.length > 10}
                       />
                     </div>
 

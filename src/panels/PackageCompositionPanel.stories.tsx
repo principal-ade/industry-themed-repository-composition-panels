@@ -478,7 +478,6 @@ export const Loading: Story = {
 export const NoPackages: Story = {
   args: {
     packages: [],
-    emptyMessage: 'No packages detected in this repository',
   },
 };
 

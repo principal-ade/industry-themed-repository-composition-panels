@@ -15,6 +15,8 @@ interface FilterBarProps {
     development: number;
     peer: number;
   };
+  /** Whether to show the search input (default: true) */
+  showSearch?: boolean;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -23,6 +25,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   searchQuery,
   onSearchChange,
   counts,
+  showSearch = true,
 }) => {
   const { theme } = useTheme();
 
@@ -44,62 +47,64 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       }}
     >
       {/* Search Bar */}
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-        }}
-      >
-        <Search
-          size={14}
+      {showSearch && (
+        <div
           style={{
-            position: 'absolute',
-            left: `${theme.space[3]}px`,
-            color: theme.colors.textSecondary,
-            pointerEvents: 'none',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
           }}
-        />
-        <input
-          type="text"
-          placeholder="Search dependencies..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          style={{
-            width: '100%',
-            padding: `${theme.space[3]}px ${theme.space[5]}px`,
-            borderRadius: 0,
-            border: 'none',
-            borderBottom: `1px solid ${theme.colors.border}`,
-            backgroundColor: theme.colors.backgroundSecondary,
-            color: theme.colors.text,
-            fontSize: `${theme.fontSizes[1]}px`,
-            fontFamily: theme.fonts.body,
-            outline: 'none',
-            transition: 'all 0.2s',
-          }}
-        />
-        {searchQuery && (
-          <button
-            onClick={() => onSearchChange('')}
+        >
+          <Search
+            size={14}
             style={{
               position: 'absolute',
-              right: `${theme.space[2]}px`,
-              padding: `${theme.space[1]}px`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              borderRadius: `${theme.radii[1]}px`,
+              left: `${theme.space[3]}px`,
+              color: theme.colors.textSecondary,
+              pointerEvents: 'none',
             }}
-            title="Clear search"
-          >
-            <X size={14} color={theme.colors.textSecondary} />
-          </button>
-        )}
-      </div>
+          />
+          <input
+            type="text"
+            placeholder="Search dependencies..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            style={{
+              width: '100%',
+              padding: `${theme.space[3]}px ${theme.space[5]}px`,
+              borderRadius: 0,
+              border: 'none',
+              borderBottom: `1px solid ${theme.colors.border}`,
+              backgroundColor: theme.colors.backgroundSecondary,
+              color: theme.colors.text,
+              fontSize: `${theme.fontSizes[1]}px`,
+              fontFamily: theme.fonts.body,
+              outline: 'none',
+              transition: 'all 0.2s',
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => onSearchChange('')}
+              style={{
+                position: 'absolute',
+                right: `${theme.space[2]}px`,
+                padding: `${theme.space[1]}px`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                borderRadius: `${theme.radii[1]}px`,
+              }}
+              title="Clear search"
+            >
+              <X size={14} color={theme.colors.textSecondary} />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Type Filter Toggles */}
       {showFilters && (

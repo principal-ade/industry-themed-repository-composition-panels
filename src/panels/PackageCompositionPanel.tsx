@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { PackageManagerIcon } from './components/PackageManagerIcon';
 import { PackageDetailCard, PackageSummaryCard } from './components';
+import { EmptyDependencies } from './components/EmptyDependencies';
 import type {
   PackageCompositionPanelPropsTyped,
   PanelEventEmitter,
@@ -25,8 +26,8 @@ export interface PackageCompositionPanelProps {
   packages: PackageLayer[];
   /** Whether package data is loading */
   isLoading?: boolean;
-  /** Message to display when there are no packages */
-  emptyMessage?: string;
+  /** Manifest files found in the project (for empty state display) */
+  foundManifests?: string[];
   /** Callback when a command is clicked */
   onCommandClick?: (command: PackageCommand, packagePath: string) => void;
   /** Callback when a config file is clicked */
@@ -51,7 +52,6 @@ export const PackageCompositionPanelContent: React.FC<
 > = ({
   packages,
   isLoading = false,
-  emptyMessage = 'No packages detected',
   onCommandClick,
   onConfigClick,
   onPackageClick,
@@ -97,18 +97,7 @@ export const PackageCompositionPanelContent: React.FC<
   }
 
   if (packages.length === 0) {
-    return (
-      <div
-        style={{
-          padding: '20px',
-          textAlign: 'center',
-          color: theme.colors.textSecondary,
-          fontFamily: theme.fonts.body,
-        }}
-      >
-        {emptyMessage}
-      </div>
-    );
+    return <EmptyDependencies />;
   }
 
   // Single package: render standalone without card wrapper
