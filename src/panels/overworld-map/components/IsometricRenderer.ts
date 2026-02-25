@@ -44,6 +44,7 @@ export interface SpriteInstance {
   sprite: Sprite;
   highlight: Graphics;
   label: Text;
+  hoverLabel?: Text; // For showing hovered package name in monorepos
   weathering?: Graphics;
   gridPosition: { gridX: number; gridY: number };
   size: number; // Size multiplier for boundary calculations
@@ -69,6 +70,12 @@ export interface IsometricRendererConfig {
   tileHeight?: number;
   gridColor?: number;
   regionColor?: number;
+  /** Callback when hovering over a package within a monorepo */
+  onPackageHover?: (nodeId: string, packageName: string) => void;
+  /** Callback when hover ends on a package within a monorepo */
+  onPackageHoverEnd?: (nodeId: string, packageName: string) => void;
+  /** Callback when clicking on a package within a monorepo */
+  onPackageClick?: (nodeId: string, packageName: string) => void;
 }
 
 export class IsometricRenderer {
@@ -78,10 +85,16 @@ export class IsometricRenderer {
   private tileHeight: number;
   private gridColor: number;
   private regionColor: number;
+  private onPackageHover?: (nodeId: string, packageName: string) => void;
+  private onPackageHoverEnd?: (nodeId: string, packageName: string) => void;
+  private onPackageClick?: (nodeId: string, packageName: string) => void;
 
   constructor(config: IsometricRendererConfig) {
     this.viewport = config.viewport;
     this.atlas = config.atlas;
+    this.onPackageHover = config.onPackageHover;
+    this.onPackageHoverEnd = config.onPackageHoverEnd;
+    this.onPackageClick = config.onPackageClick;
     this.tileWidth = config.tileWidth ?? ISO_TILE_WIDTH;
     this.tileHeight = config.tileHeight ?? ISO_TILE_HEIGHT;
     this.gridColor = config.gridColor ?? 0x333333;
@@ -155,6 +168,9 @@ export class IsometricRenderer {
         nodes.addChild(instance.weathering); // Top: weathering overlay
       }
       nodes.addChild(instance.label); // Top: text label
+      if (instance.hoverLabel) {
+        nodes.addChild(instance.hoverLabel); // Top: hover label for monorepos
+      }
     }
 
     return {
@@ -434,6 +450,20 @@ export class IsometricRenderer {
       }
     }
 
+    // Create hover label for showing currently hovered package (created before loop so handlers can reference it)
+    const hoverLabel = new Text({
+      text: '',
+      style: {
+        fontSize: 10,
+        fill: 0x88ccff, // Light blue to match hover tint
+        fontFamily: 'Arial',
+        fontWeight: '500',
+      },
+      resolution: 2,
+    });
+    hoverLabel.anchor.set(0.5, 0);
+    hoverLabel.visible = false;
+
     // Render each sub-package
     for (let i = 0; i < node.subdivisions!.length; i++) {
       const sub = node.subdivisions![i];
@@ -464,6 +494,32 @@ export class IsometricRenderer {
         const grayValue = Math.floor((1 - fadeAmount + fadeAmount * 0.6) * 255);
         sprite.tint = (grayValue << 16) | (grayValue << 8) | grayValue;
       }
+
+      // Make sub-sprites interactive for hover/click events
+      sprite.eventMode = 'static';
+      sprite.cursor = 'pointer';
+
+      // Store original tint for hover effect
+      const originalTint = sprite.tint;
+      const packageName = sub.name;
+      const nodeId = node.id;
+
+      sprite.on('pointerover', () => {
+        sprite.tint = 0x88ccff; // Light blue hover
+        hoverLabel.text = packageName;
+        hoverLabel.visible = true;
+        this.onPackageHover?.(nodeId, packageName);
+      });
+
+      sprite.on('pointerout', () => {
+        sprite.tint = originalTint;
+        hoverLabel.visible = false;
+        this.onPackageHoverEnd?.(nodeId, packageName);
+      });
+
+      sprite.on('pointerdown', () => {
+        this.onPackageClick?.(nodeId, packageName);
+      });
 
       container.addChild(sprite);
 
@@ -613,6 +669,11 @@ export class IsometricRenderer {
     label.anchor.set(0.5, 0);
     label.zIndex = highlight.zIndex + 0.2;
 
+    // Position hover label below the main label
+    hoverLabel.x = screenX;
+    hoverLabel.y = label.y + 14; // Below the main label
+    hoverLabel.zIndex = label.zIndex + 0.1;
+
     // Set z-index for the container
     container.zIndex = highlight.zIndex;
 
@@ -634,6 +695,7 @@ export class IsometricRenderer {
       sprite: container as unknown as Sprite, // Container acts as the sprite
       highlight,
       label,
+      hoverLabel,
       weathering,
       gridPosition: { gridX: node.gridX, gridY: node.gridY },
       size: sizeMultiplier,
@@ -643,6 +705,8 @@ export class IsometricRenderer {
         container.y = pos.screenY;
         label.x = pos.screenX;
         label.y = pos.screenY + footprintHeight * 0.6 + 12;
+        hoverLabel.x = pos.screenX;
+        hoverLabel.y = label.y + 14;
 
         // Update highlight
         highlight.clear();
@@ -672,6 +736,7 @@ export class IsometricRenderer {
         container.destroy({ children: true });
         highlight.destroy();
         label.destroy();
+        hoverLabel.destroy();
         weathering?.destroy();
       },
     };

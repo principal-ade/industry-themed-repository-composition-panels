@@ -184,6 +184,15 @@ export interface CollectionMapPanelProps {
 
   /** Currently selected repository ID */
   selectedRepositoryId?: string | null;
+
+  /** Callback when hovering over a package within a monorepo */
+  onPackageHover?: (repositoryId: string, packageName: string) => void;
+
+  /** Callback when hover ends on a package within a monorepo */
+  onPackageHoverEnd?: (repositoryId: string, packageName: string) => void;
+
+  /** Callback when clicking on a package within a monorepo */
+  onPackageClick?: (repositoryId: string, packageName: string) => void;
 }
 
 /**
@@ -200,6 +209,9 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   addRepositoryToCollection,
   onRepositoryClicked,
   selectedRepositoryId,
+  onPackageHover,
+  onPackageHoverEnd,
+  onPackageClick,
 }) => {
   // Get custom regions directly from collection metadata
   // Wrap in useMemo to maintain stable reference when undefined
@@ -903,6 +915,9 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         onProjectMoved={handleProjectMoved}
         onNodeClicked={onRepositoryClicked}
         selectedNodeId={selectedRepositoryId}
+        onPackageHover={onPackageHover}
+        onPackageHoverEnd={onPackageHoverEnd}
+        onPackageClick={onPackageClick}
         onViewportReady={handleViewportReady}
         onAddRegion={async (position: { row: number; col: number }) => {
           // Calculate order from grid position (row-major order)

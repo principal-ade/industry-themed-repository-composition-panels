@@ -42,6 +42,12 @@ export interface IsometricInteractionEvents {
   onHover?: (nodeId: string) => void;
   onHoverEnd?: (nodeId: string) => void;
   onRegionChange?: (region: MapRegion | null) => void;
+  /** Fired when hovering over a specific package within a monorepo */
+  onPackageHover?: (nodeId: string, packageName: string) => void;
+  /** Fired when hover ends on a specific package within a monorepo */
+  onPackageHoverEnd?: (nodeId: string, packageName: string) => void;
+  /** Fired when clicking on a specific package within a monorepo */
+  onPackageClick?: (nodeId: string, packageName: string) => void;
 }
 
 interface DragState {

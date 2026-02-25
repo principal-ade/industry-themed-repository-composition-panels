@@ -51,6 +51,15 @@ export interface OverworldMapPanelProps {
   /** Currently selected node ID */
   selectedNodeId?: string | null;
 
+  /** Callback when hovering over a package within a monorepo */
+  onPackageHover?: (nodeId: string, packageName: string) => void;
+
+  /** Callback when hover ends on a package within a monorepo */
+  onPackageHoverEnd?: (nodeId: string, packageName: string) => void;
+
+  /** Callback when clicking on a package within a monorepo */
+  onPackageClick?: (nodeId: string, packageName: string) => void;
+
   /** Whether regions are being edited */
   isEditingRegions?: boolean;
 
@@ -87,6 +96,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   onProjectMoved,
   onNodeClicked,
   selectedNodeId,
+  onPackageHover,
+  onPackageHoverEnd,
+  onPackageClick,
   isEditingRegions = false,
   customRegions = [],
   onAddRegion,
@@ -319,6 +331,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         tileHeight: ISO_TILE_HEIGHT,
         gridColor: 0x333333,
         regionColor: 0xff6600,
+        onPackageHover,
+        onPackageHoverEnd,
+        onPackageClick,
       });
       rendererRef.current = renderer; // Store for incremental updates
 
