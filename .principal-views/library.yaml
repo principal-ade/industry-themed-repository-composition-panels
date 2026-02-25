@@ -17,6 +17,8 @@ resources:
     project: "repository-composition-panels"
     # service.repository.url and service.commit.sha are auto-detected from git locally
     # and set via environment variables in production
+    owned-scopes:
+      - collection-map-panel
 
 nodeComponents: {}
 edgeComponents: {}

@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/collection-map-panel/collection-map-panel.otel.canvas",
+  "name": "Collection Load",
+  "description": "Loading and rendering a collection as an overworld map",
+  "spanPattern": "collection-map.load",
+  "mode": "span-tree",
+  "scenarios": [
+    {
+      "id": "collection-loaded",
+      "description": "Collection loaded and rendered as overworld map",
+      "priority": 1,
+      "template": {
+        "summary": "Loaded collection with {{nodes.created}} repositories",
+        "events": {
+          "collection-map.convert-nodes": "Converted {{memberships.count}} memberships to {{nodes.created}} nodes",
+          "collection-map.initialize-layout": "{{#if regions.computed}}Initialized {{regions.computed}} regions, {{nodes.positioned}} positioned{{else}}Layout already initialized{{/if}}"
+        }
+      }
+    }
+  ]
+}

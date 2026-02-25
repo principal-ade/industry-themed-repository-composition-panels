@@ -85,7 +85,7 @@
     "@principal-ai/principal-view-core": "^0.24.10",
     "@principal-ai/principal-view-react": "^0.13.5",
     "@principal-ai/repository-abstraction": "^0.5.7",
-    "@principal-ai/storybook-addon-otel": "^0.3.21",
+    "@principal-ai/storybook-addon-otel": "^0.3.22",
     "@storybook/addon-docs": "10.1.2",
     "@storybook/addon-links": "10.1.2",
     "@storybook/addon-onboarding": "10.1.2",

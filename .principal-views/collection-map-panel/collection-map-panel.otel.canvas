@@ -1,0 +1,252 @@
+{
+  "nodes": [
+    {
+      "id": "convert-nodes",
+      "type": "text",
+      "text": "# Convert Nodes\nTransforms Alexandria repositories to GenericNode format for map visualization",
+      "x": 100,
+      "y": 100,
+      "width": 250,
+      "height": 120,
+      "color": "#22c55e",
+      "pv": {
+        "event": {
+          "name": "collection-map.convert-nodes",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "memberships.count": { "type": "number", "required": true },
+            "repositories.count": { "type": "number", "required": true },
+            "nodes.created": { "type": "number", "required": true }
+          }
+        },
+        "sources": ["src/panels/CollectionMapPanel.tsx"],
+        "status": "implemented",
+        "otel": {
+          "kind": "span",
+          "category": "data-transform",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "initialize-layout",
+      "type": "text",
+      "text": "# Initialize Layout\nComputes initial layout with regions and positions for nodes",
+      "x": 400,
+      "y": 100,
+      "width": 250,
+      "height": 120,
+      "color": "#22c55e",
+      "pv": {
+        "event": {
+          "name": "collection-map.initialize-layout",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "nodes.count": { "type": "number", "required": true },
+            "needs.regions": { "type": "boolean", "required": true },
+            "needs.layout": { "type": "boolean", "required": true },
+            "regions.computed": { "type": "number", "required": false },
+            "nodes.positioned": { "type": "number", "required": false }
+          }
+        },
+        "sources": ["src/panels/CollectionMapPanel.tsx"],
+        "status": "implemented",
+        "otel": {
+          "kind": "span",
+          "category": "layout",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "project-drop",
+      "type": "text",
+      "text": "# Project Drop\nHandles drag-and-drop of repositories onto the map",
+      "x": 100,
+      "y": 280,
+      "width": 250,
+      "height": 120,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "collection-map.project-drop",
+          "attributes": {
+            "source.type": { "type": "string", "required": true },
+            "repository.id": { "type": "string", "required": true },
+            "grid.x": { "type": "number", "required": true },
+            "grid.y": { "type": "number", "required": true }
+          }
+        },
+        "sources": ["src/panels/CollectionMapPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "user-interaction"
+        }
+      }
+    },
+    {
+      "id": "project-moved",
+      "type": "text",
+      "text": "# Project Moved\nHandles repositioning of a project sprite on the map",
+      "x": 400,
+      "y": 280,
+      "width": 250,
+      "height": 120,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "collection-map.project-moved",
+          "attributes": {
+            "repository.id": { "type": "string", "required": true },
+            "is_new_repo": { "type": "boolean", "required": true },
+            "region.id": { "type": "string", "required": true },
+            "grid.x": { "type": "number", "required": true },
+            "grid.y": { "type": "number", "required": true }
+          }
+        },
+        "sources": ["src/panels/CollectionMapPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "user-interaction"
+        }
+      }
+    },
+    {
+      "id": "region-created",
+      "type": "text",
+      "text": "# Region Created\nA new region is created on the map",
+      "x": 100,
+      "y": 460,
+      "width": 250,
+      "height": 100,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "collection-map.region-created",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "region.name": { "type": "string", "required": true },
+            "region.order": { "type": "number", "required": true }
+          }
+        },
+        "sources": ["src/panels/CollectionMapPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "region-management"
+        }
+      }
+    },
+    {
+      "id": "region-renamed",
+      "type": "text",
+      "text": "# Region Renamed\nA region's name is updated",
+      "x": 400,
+      "y": 460,
+      "width": 250,
+      "height": 100,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "collection-map.region-renamed",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "region.id": { "type": "string", "required": true },
+            "region.new_name": { "type": "string", "required": true }
+          }
+        },
+        "sources": ["src/panels/CollectionMapPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "region-management"
+        }
+      }
+    },
+    {
+      "id": "region-deleted",
+      "type": "text",
+      "text": "# Region Deleted\nA region is removed from the map",
+      "x": 700,
+      "y": 460,
+      "width": 250,
+      "height": 100,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "collection-map.region-deleted",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "region.id": { "type": "string", "required": true }
+          }
+        },
+        "sources": ["src/panels/CollectionMapPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "region-management"
+        }
+      }
+    },
+    {
+      "id": "repository-clicked",
+      "type": "text",
+      "text": "# Repository Clicked\nUser clicks on a repository sprite",
+      "x": 700,
+      "y": 280,
+      "width": 250,
+      "height": 100,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "collection-map.repository-clicked",
+          "attributes": {
+            "repository.id": { "type": "string", "required": false }
+          }
+        },
+        "sources": ["src/panels/CollectionMapPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "user-interaction"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "convert-to-layout",
+      "fromNode": "convert-nodes",
+      "toNode": "initialize-layout",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "drop-to-moved",
+      "fromNode": "project-drop",
+      "toNode": "project-moved",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    }
+  ],
+  "pv": {
+    "name": "Collection Map Panel",
+    "version": "1.0.0",
+    "markdown": ".principal-views/collection-map-panel/collection-map-panel.md",
+    "edgeTypes": {
+      "sequence": {
+        "style": "solid",
+        "color": "#64748b",
+        "width": 2
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/collection-map-panel/collection-map-panel.otel.canvas",
+  "name": "Repository Click",
+  "description": "User clicks on a repository sprite to select or deselect",
+  "spanPattern": "collection-map.repository-clicked",
+  "mode": "span-tree",
+  "scenarios": [
+    {
+      "id": "repository-selected",
+      "description": "User clicked on a repository to select it",
+      "priority": 1,
+      "template": {
+        "summary": "{{#if repository.id}}Selected {{repository.id}}{{else}}Deselected repository{{/if}}",
+        "events": {
+          "collection-map.repository-clicked": "{{#if repository.id}}Clicked on {{repository.id}}{{else}}Clicked empty space to deselect{{/if}}"
+        }
+      }
+    }
+  ]
+}

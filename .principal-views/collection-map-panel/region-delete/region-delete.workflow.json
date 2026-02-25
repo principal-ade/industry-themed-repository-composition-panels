@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/collection-map-panel/collection-map-panel.otel.canvas",
+  "name": "Region Delete",
+  "description": "Delete a region from the collection map",
+  "spanPattern": "collection-map.region-deleted",
+  "mode": "span-tree",
+  "scenarios": [
+    {
+      "id": "region-deleted",
+      "description": "User deleted a region",
+      "priority": 1,
+      "template": {
+        "summary": "Deleted region {{region.id}}",
+        "events": {
+          "collection-map.region-deleted": "Deleted region {{region.id}} from collection {{collection.id}}"
+        }
+      }
+    }
+  ]
+}

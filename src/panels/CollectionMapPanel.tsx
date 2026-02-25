@@ -34,8 +34,8 @@ import type {
   CollectionMembership,
 } from '@principal-ai/alexandria-collections';
 
-// Create tracer for CollectionMapPanel
-const tracer = trace.getTracer('collection-map-panel', '0.6.9');
+// Helper to get tracer lazily (after provider is registered)
+const getTracer = () => trace.getTracer('collection-map-panel', '0.6.9');
 
 /**
  * Extended Alexandria Entry with metrics for visualization sizing
@@ -527,100 +527,86 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   // Convert Alexandria repositories to GenericNode format
   // INCLUDES: Both collection members AND pending repos (waiting to be placed)
   const nodes = useMemo<GenericNode[]>(() => {
-    return tracer.startActiveSpan('collection-map.convert-nodes', (span) => {
-      try {
-        span.setAttribute('collection.id', collection.id);
-        span.setAttribute('memberships.count', collection.members.length);
-        span.setAttribute('repositories.count', repositories.length);
+    // Map collection members to generic nodes
+    const memberNodes = collection.members
+      .map((membership) => {
+        // Match against github.id (owner/repo format) or name as fallback
+        const repo = repositories.find((r) => {
+          const repoId = r.github?.id || r.name;
+          return repoId === membership.repositoryId;
+        });
 
-        // Map collection members to generic nodes
-        const memberNodes = collection.members
-          .map((membership) => {
-            // Match against github.id (owner/repo format) or name as fallback
-            const repo = repositories.find((r) => {
-              const repoId = r.github?.id || r.name;
-              return repoId === membership.repositoryId;
-            });
+        if (!repo) {
+          console.warn(
+            '[nodes memo] No repository found for membership:',
+            membership.repositoryId
+          );
+          return null;
+        }
 
-            if (!repo) {
-              console.warn(
-                '[nodes memo] No repository found for membership:',
-                membership.repositoryId
-              );
-              return null;
-            }
+        // Determine category from github metadata or theme
+        let category: string | undefined;
+        if (repo.github) {
+          category = 'git-repo';
+        } else {
+          category = repo.theme || 'git-repo';
+        }
 
-            // Determine category from github metadata or theme
-            let category: string | undefined;
-            if (repo.github) {
-              category = 'git-repo';
-            } else {
-              category = repo.theme || 'git-repo';
-            }
+        // Extract primary language from github metadata
+        let language: string | undefined;
+        if (repo.github) {
+          language = repo.github.primaryLanguage;
+        }
 
-            // Extract primary language from github metadata
-            let language: string | undefined;
-            if (repo.github) {
-              language = repo.github.primaryLanguage;
-            }
+        // Get importance from metadata (pinned items have higher importance)
+        const importance = membership.metadata?.pinned ? 95 : 75;
 
-            // Get importance from metadata (pinned items have higher importance)
-            const importance = membership.metadata?.pinned ? 95 : 75;
+        // Calculate sprite size from repository metrics (logarithmic scaling)
+        let size = calculateRepositorySize(repo.metrics);
 
-            // Calculate sprite size from repository metrics (logarithmic scaling)
-            let size = calculateRepositorySize(repo.metrics);
+        // Calculate aging metrics for weathering and color fade
+        const aging = calculateAgingMetrics(repo.metrics?.lastEditedAt);
 
-            // Calculate aging metrics for weathering and color fade
-            const aging = calculateAgingMetrics(repo.metrics?.lastEditedAt);
+        // NEW: Extract package info for subdivision rendering
+        const packages = extractPackageInfo(repo);
 
-            // NEW: Extract package info for subdivision rendering
-            const packages = extractPackageInfo(repo);
+        // Extract GitHub stars from metadata and add extra layout space for decorations
+        const stars = repo.github?.stars;
+        if (stars && stars > 0) {
+          const decorationBonus = getDecorationSizeBonus(stars);
+          size = size + decorationBonus; // Increase size to accommodate decoration
+        }
 
-            // Extract GitHub stars from metadata and add extra layout space for decorations
-            const stars = repo.github?.stars;
-            if (stars && stars > 0) {
-              const decorationBonus = getDecorationSizeBonus(stars);
-              size = size + decorationBonus; // Increase size to accommodate decoration
-            }
+        // Extract contributor count from metrics
+        const collaborators = repo.metrics?.contributors;
+        if (collaborators && collaborators > 0) {
+          const decorationBonus =
+            getCollaboratorDecorationSizeBonus(collaborators);
+          size = size + decorationBonus; // Increase size to accommodate decoration
+        }
 
-            // Extract contributor count from metrics
-            const collaborators = repo.metrics?.contributors;
-            if (collaborators && collaborators > 0) {
-              const decorationBonus =
-                getCollaboratorDecorationSizeBonus(collaborators);
-              size = size + decorationBonus; // Increase size to accommodate decoration
-            }
+        const node: GenericNode = {
+          id: membership.repositoryId,
+          name: repo.name,
+          category,
+          language, // Pass language for color-based visualization
+          importance,
+          size,
+          aging, // Pass aging metrics for visual weathering
+          packages, // Package subdivision data
+          stars, // GitHub star count for decorations
+          collaborators, // Contributor count for community space decorations
+          dependencies: dependencies[membership.repositoryId] || [],
+          isRoot: membership.metadata?.pinned || false,
+          regionId: membership.metadata?.regionId, // Preserve region assignment
+          layout: membership.metadata?.layout, // Pass saved position data
+        };
 
-            const node: GenericNode = {
-              id: membership.repositoryId,
-              name: repo.name,
-              category,
-              language, // Pass language for color-based visualization
-              importance,
-              size,
-              aging, // Pass aging metrics for visual weathering
-              packages, // Package subdivision data
-              stars, // GitHub star count for decorations
-              collaborators, // Contributor count for community space decorations
-              dependencies: dependencies[membership.repositoryId] || [],
-              isRoot: membership.metadata?.pinned || false,
-              regionId: membership.metadata?.regionId, // Preserve region assignment
-              layout: membership.metadata?.layout, // Pass saved position data
-            };
+        return node;
+      })
+      .filter((n): n is GenericNode => n !== null);
 
-            return node;
-          })
-          .filter((n): n is GenericNode => n !== null);
-
-        span.setAttribute('nodes.created', memberNodes.length);
-        span.end();
-        return memberNodes;
-      } catch (error) {
-        span.recordException(error as Error);
-        span.end();
-        throw error;
-      }
-    });
+    return memberNodes;
   }, [collection.id, collection.members, repositories, dependencies]);
 
   // Split nodes into valid (can render) and unplaced (need user placement)
@@ -720,20 +706,33 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     // while the async initialization is in progress
     hasComputedLayout.current = true;
 
-    // Run layout engine - it will create regions AND compute positions
-    const span = tracer.startSpan('collection-map.initialize-layout');
+    // Create parent span for the entire load operation
+    const span = getTracer().startSpan('collection-map.load');
     span.setAttribute('collection.id', collection.id);
-    span.setAttribute('nodes.count', nodes.length);
-    span.setAttribute('needs.regions', needsRegions);
-    span.setAttribute('needs.layout', needsLayout);
 
+    // Add event for node conversion (already happened in useMemo)
+    span.addEvent('collection-map.convert-nodes', {
+      'collection.id': collection.id,
+      'memberships.count': collection.members.length,
+      'repositories.count': repositories.length,
+      'nodes.created': nodes.length,
+    });
+
+    // Run layout engine - it will create regions AND compute positions
     const map = nodesToUnifiedOverworldMap(nodes, {
       regionLayout,
       customRegions,
     });
 
-    span.setAttribute('regions.computed', map.regions.length);
-    span.setAttribute('nodes.positioned', map.nodes.length);
+    // Add event for layout initialization
+    span.addEvent('collection-map.initialize-layout', {
+      'collection.id': collection.id,
+      'nodes.count': nodes.length,
+      'needs.regions': needsRegions,
+      'needs.layout': needsLayout,
+      'regions.computed': map.regions.length,
+      'nodes.positioned': map.nodes.length,
+    });
 
     (async () => {
       try {
@@ -799,13 +798,6 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           }
         }
 
-        // Single batched update - 1 re-render!
-        span.addEvent('batch-layout-update', {
-          'regions.count': updates.regions?.length || 0,
-          'assignments.count': updates.assignments?.length || 0,
-          'positions.count': updates.positions?.length || 0,
-        });
-
         await regionCallbacks.onBatchLayoutInitialized(collection.id, updates);
 
         span.setStatus({ code: 1 }); // OK
@@ -817,7 +809,15 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         throw error;
       }
     })();
-  }, [collection.id, nodes, regionLayout, customRegions, regionCallbacks]);
+  }, [
+    collection.id,
+    collection.members.length,
+    repositories.length,
+    nodes,
+    regionLayout,
+    customRegions,
+    regionCallbacks,
+  ]);
 
   // Callback when viewport is ready
   const handleViewportReady = useCallback((viewport: Viewport) => {
