@@ -117,6 +117,12 @@ export interface CollectionMapPanelActions
     repositoryPath: string,
     repositoryMetadata: RepositoryMetadata
   ) => Promise<void>;
+
+  /** Callback when a repository is clicked (without being moved) */
+  onRepositoryClicked?: (repositoryId: string) => void;
+
+  /** Currently selected repository ID */
+  selectedRepositoryId?: string | null;
 }
 
 /**
@@ -172,6 +178,12 @@ export interface CollectionMapPanelProps {
     repositoryPath: string,
     repositoryMetadata: RepositoryMetadata
   ) => Promise<void>;
+
+  /** Callback when a repository is clicked (without being moved) */
+  onRepositoryClicked?: (repositoryId: string) => void;
+
+  /** Currently selected repository ID */
+  selectedRepositoryId?: string | null;
 }
 
 /**
@@ -186,6 +198,8 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   isLoading = false,
   regionCallbacks,
   addRepositoryToCollection,
+  onRepositoryClicked,
+  selectedRepositoryId,
 }) => {
   // Get custom regions directly from collection metadata
   // Wrap in useMemo to maintain stable reference when undefined
@@ -887,6 +901,8 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         customRegions={customRegions}
         collectionKey={collection.id}
         onProjectMoved={handleProjectMoved}
+        onNodeClicked={onRepositoryClicked}
+        selectedNodeId={selectedRepositoryId}
         onViewportReady={handleViewportReady}
         onAddRegion={async (position: { row: number; col: number }) => {
           // Calculate order from grid position (row-major order)
@@ -1063,6 +1079,8 @@ export const CollectionMapPanel: React.FC<
         isLoading={isLoading}
         regionCallbacks={regionCallbacks}
         addRepositoryToCollection={actions.addRepositoryToCollection}
+        onRepositoryClicked={actions.onRepositoryClicked}
+        selectedRepositoryId={actions.selectedRepositoryId}
       />
     </div>
   );

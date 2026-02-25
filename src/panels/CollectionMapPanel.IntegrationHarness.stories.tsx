@@ -83,7 +83,7 @@ const createMockRepository = (
     url: `https://github.com/mock/${name}`,
   },
   github: {
-    id: `mock/${name}`,
+    id: name,
     primaryLanguage: language,
     stars,
     contributors: collaborators,
@@ -225,7 +225,7 @@ const createMockMonorepo = (
       url: `https://github.com/mock/${name}`,
     },
     github: {
-      id: `mock/${name}`,
+      id: name,
       primaryLanguage: language,
       stars,
       contributors: collaborators,
@@ -285,8 +285,11 @@ const IntegrationHarness: React.FC<{
   initialMemberships: CollectionMembership[];
   initialRepositories?: AlexandriaEntryWithMetrics[];
 }> = ({ initialCollection, initialMemberships, initialRepositories }) => {
-  const [collection, setCollection] = useState(initialCollection);
-  const [memberships, setMemberships] = useState(initialMemberships);
+  // Merge initial memberships into collection.members
+  const [collection, setCollection] = useState<Collection>(() => ({
+    ...initialCollection,
+    members: initialMemberships,
+  }));
   const [eventLog, setEventLog] = useState<string[]>([]);
 
   const logEvent = useCallback((message: string) => {
@@ -374,16 +377,17 @@ const IntegrationHarness: React.FC<{
         },
       }));
 
-      // Remove region assignments from memberships
-      setMemberships((prev) =>
-        prev.map((m) => {
+      // Remove region assignments from members
+      setCollection((prev) => ({
+        ...prev,
+        members: prev.members.map((m) => {
           if (m.metadata?.regionId === regionId) {
             const { regionId: _, ...restMetadata } = m.metadata;
             return { ...m, metadata: restMetadata };
           }
           return m;
-        })
-      );
+        }),
+      }));
 
       eventEmitter.emit('industry-theme.user-collections:collection:updated', {
         collectionId,
@@ -405,8 +409,9 @@ const IntegrationHarness: React.FC<{
         `Assigning repository ${repositoryId} to region ${regionId || 'none'}`
       );
 
-      setMemberships((prev) =>
-        prev.map((m) =>
+      setCollection((prev) => ({
+        ...prev,
+        members: prev.members.map((m) =>
           m.repositoryId === repositoryId
             ? {
                 ...m,
@@ -415,8 +420,8 @@ const IntegrationHarness: React.FC<{
                   : { ...m.metadata, regionId: undefined },
               }
             : m
-        )
-      );
+        ),
+      }));
 
       eventEmitter.emit(
         'industry-theme.user-collections:collection:repository-assigned',
@@ -437,16 +442,17 @@ const IntegrationHarness: React.FC<{
         `Updating position for ${repositoryId}: (${layout.gridX}, ${layout.gridY})`
       );
 
-      setMemberships((prev) =>
-        prev.map((m) =>
+      setCollection((prev) => ({
+        ...prev,
+        members: prev.members.map((m) =>
           m.repositoryId === repositoryId
             ? {
                 ...m,
                 metadata: { ...m.metadata, layout },
               }
             : m
-        )
-      );
+        ),
+      }));
 
       eventEmitter.emit(
         'industry-theme.user-collections:collection:repository-position-updated',
@@ -475,23 +481,20 @@ const IntegrationHarness: React.FC<{
         `Batch layout initialized: ${updates.regions?.length || 0} regions, ${updates.assignments?.length || 0} assignments, ${updates.positions?.length || 0} positions`
       );
 
-      // Update collection with regions (if provided)
-      if (updates.regions && updates.regions.length > 0) {
-        setCollection((prev) => ({
-          ...prev,
-          metadata: {
-            ...prev.metadata,
-            customRegions: [
-              ...(prev.metadata?.customRegions || []),
-              ...updates.regions!,
-            ],
-          },
-        }));
-      }
-
-      // Update memberships with assignments and positions in ONE setState
-      setMemberships((prev) =>
-        prev.map((m) => {
+      // Update collection with regions AND member updates in ONE setState
+      setCollection((prev) => ({
+        ...prev,
+        metadata: {
+          ...prev.metadata,
+          ...(updates.regions &&
+            updates.regions.length > 0 && {
+              customRegions: [
+                ...(prev.metadata?.customRegions || []),
+                ...updates.regions,
+              ],
+            }),
+        },
+        members: prev.members.map((m) => {
           const assignment = updates.assignments?.find(
             (a) => a.repositoryId === m.repositoryId
           );
@@ -509,8 +512,8 @@ const IntegrationHarness: React.FC<{
               ...(position && { layout: position.layout }),
             },
           };
-        })
-      );
+        }),
+      }));
 
       eventEmitter.emit(
         'industry-theme.user-collections:collection:batch-layout-initialized',
@@ -553,7 +556,6 @@ const IntegrationHarness: React.FC<{
         selectedCollectionView: {
           data: {
             collection,
-            memberships,
             repositories: initialRepositories || mockRepositories,
             dependencies: {},
           },
@@ -593,7 +595,6 @@ const IntegrationHarness: React.FC<{
     }),
     [
       collection,
-      memberships,
       initialRepositories,
       logEvent,
       onRegionCreated,
@@ -1051,39 +1052,37 @@ export const DragDropDemo: Story = {
         icon: 'Package',
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        members: [],
+        members: [
+          // One placed repo
+          {
+            repositoryId: mockRepositories[0].name,
+            collectionId: 'col-dragdrop',
+            addedAt: Date.now(),
+            metadata: {
+              regionId: 'region-0-0',
+              layout: { gridX: 10, gridY: 10 },
+            },
+          },
+          // Two repos in staging (no regionId/layout)
+          {
+            repositoryId: mockRepositories[1].name,
+            collectionId: 'col-dragdrop',
+            addedAt: Date.now(),
+            metadata: {},
+          },
+          {
+            repositoryId: mockRepositories[2].name,
+            collectionId: 'col-dragdrop',
+            addedAt: Date.now(),
+            metadata: {},
+          },
+        ],
         metadata: {
           customRegions: [
             { id: 'region-0-0', name: 'Main', order: 0, createdAt: 0 },
           ],
         },
       });
-
-      const [memberships, setMemberships] = useState<CollectionMembership[]>([
-        // One placed repo
-        {
-          repositoryId: mockRepositories[0].name,
-          collectionId: 'col-dragdrop',
-          addedAt: Date.now(),
-          metadata: {
-            regionId: 'region-0-0',
-            layout: { gridX: 10, gridY: 10 },
-          },
-        },
-        // Two repos in staging (no regionId/layout)
-        {
-          repositoryId: mockRepositories[1].name,
-          collectionId: 'col-dragdrop',
-          addedAt: Date.now(),
-          metadata: {},
-        },
-        {
-          repositoryId: mockRepositories[2].name,
-          collectionId: 'col-dragdrop',
-          addedAt: Date.now(),
-          metadata: {},
-        },
-      ]);
 
       const [eventLog, setEventLog] = useState<string[]>([]);
 
@@ -1164,13 +1163,14 @@ export const DragDropDemo: Story = {
           regionId: string
         ) => {
           logEvent(`Assigned ${repositoryId} → ${regionId}`);
-          setMemberships((prev) =>
-            prev.map((m) =>
+          setCollection((prev) => ({
+            ...prev,
+            members: prev.members.map((m) =>
               m.repositoryId === repositoryId
                 ? { ...m, metadata: { ...m.metadata, regionId } }
                 : m
-            )
-          );
+            ),
+          }));
         },
         [logEvent]
       );
@@ -1184,13 +1184,14 @@ export const DragDropDemo: Story = {
           logEvent(
             `Position updated: ${repositoryId} → (${layout.gridX}, ${layout.gridY})`
           );
-          setMemberships((prev) =>
-            prev.map((m) =>
+          setCollection((prev) => ({
+            ...prev,
+            members: prev.members.map((m) =>
               m.repositoryId === repositoryId
                 ? { ...m, metadata: { ...m.metadata, layout } }
                 : m
-            )
-          );
+            ),
+          }));
         },
         [logEvent]
       );
@@ -1210,36 +1211,31 @@ export const DragDropDemo: Story = {
           logEvent(
             `Batch init: ${updates.regions?.length || 0} regions, ${updates.positions?.length || 0} positions`
           );
-          if (updates.regions) {
-            setCollection((prev) => ({
-              ...prev,
+          setCollection((prev) => ({
+            ...prev,
+            ...(updates.regions && {
               metadata: { ...prev.metadata, customRegions: updates.regions },
-            }));
-          }
-          if (updates.positions || updates.assignments) {
-            setMemberships((prev) => {
-              const updated = prev.map((m) => {
-                const assignment = updates.assignments?.find(
-                  (a) => a.repositoryId === m.repositoryId
-                );
-                const position = updates.positions?.find(
-                  (p) => p.repositoryId === m.repositoryId
-                );
+            }),
+            members: prev.members.map((m) => {
+              const assignment = updates.assignments?.find(
+                (a) => a.repositoryId === m.repositoryId
+              );
+              const position = updates.positions?.find(
+                (p) => p.repositoryId === m.repositoryId
+              );
 
-                if (!assignment && !position) return m;
+              if (!assignment && !position) return m;
 
-                return {
-                  ...m,
-                  metadata: {
-                    ...m.metadata,
-                    ...(assignment && { regionId: assignment.regionId }),
-                    ...(position && { layout: position.layout }),
-                  },
-                };
-              });
-              return updated;
-            });
-          }
+              return {
+                ...m,
+                metadata: {
+                  ...m.metadata,
+                  ...(assignment && { regionId: assignment.regionId }),
+                  ...(position && { layout: position.layout }),
+                },
+              };
+            }),
+          }));
         },
         [logEvent]
       );
@@ -1255,11 +1251,15 @@ export const DragDropDemo: Story = {
             repositoryId: metadata?.name || repositoryPath,
             collectionId: 'col-dragdrop',
             addedAt: Date.now(),
+            metadata: {
+              regionId: (metadata?.regionId as string) || undefined,
+              layout: (metadata?.layout as RepositoryLayoutData) || undefined,
+            },
           };
-          setMemberships((prev) => {
-            const updated = [...prev, newMembership];
-            return updated;
-          });
+          setCollection((prev) => ({
+            ...prev,
+            members: [...prev.members, newMembership],
+          }));
         },
         [logEvent]
       );
@@ -1278,7 +1278,6 @@ export const DragDropDemo: Story = {
             selectedCollectionView: {
               data: {
                 collection,
-                memberships,
                 repositories: mockRepositories,
                 dependencies: {},
               },
@@ -1304,7 +1303,6 @@ export const DragDropDemo: Story = {
         }),
         [
           collection,
-          memberships,
           onRegionCreated,
           onRegionUpdated,
           onRegionDeleted,

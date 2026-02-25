@@ -14,6 +14,7 @@ import type { Viewport } from 'pixi-viewport';
 import type { Container, FederatedPointerEvent } from 'pixi.js';
 import type { SpriteInstance } from './IsometricRenderer';
 import type { GridPoint, MapRegion } from '../types';
+import { gridToScreen } from '../isometricUtils';
 
 export interface IsometricInteractionConfig {
   viewport: Viewport | null; // Optional - if null, uses worldContainer for events
@@ -22,6 +23,7 @@ export interface IsometricInteractionConfig {
   tileHeight?: number;
   regionSize?: number;
   highlightColor?: number;
+  selectedColor?: number;
   intersectionColor?: number;
   containerOffset?: { x: number; y: number };
   mapBounds?: {
@@ -36,6 +38,7 @@ export interface IsometricInteractionEvents {
   onDragStart?: (nodeId: string) => void;
   onDragMove?: (nodeId: string, gridX: number, gridY: number) => void;
   onDragEnd?: (nodeId: string, gridX: number, gridY: number) => void;
+  onClick?: (nodeId: string) => void;
   onHover?: (nodeId: string) => void;
   onHoverEnd?: (nodeId: string) => void;
   onRegionChange?: (region: MapRegion | null) => void;
@@ -45,6 +48,7 @@ interface DragState {
   nodeId: string;
   instance: SpriteInstance;
   isDragging: boolean;
+  hasMoved: boolean; // Track if actual movement occurred (to differentiate click vs drag)
   dragStartPos: { x: number; y: number };
   spriteStartPos: { gridX: number; gridY: number };
   nearbySprites: Set<string>; // Track which sprites have visible highlights due to proximity
@@ -59,15 +63,29 @@ export class IsometricInteractionManager {
   private sprites: Map<string, SpriteInstance> = new Map();
   private dragState: DragState | null = null;
   private hoveredNodeId: string | null = null;
+  private selectedNodeId: string | null = null;
   private draggingEnabled = true;
-  private mapBounds: { minX: number; minY: number; maxX: number; maxY: number } | null = null;
+  private mapBounds: {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  } | null = null;
 
-  constructor(config: IsometricInteractionConfig, events: IsometricInteractionEvents = {}) {
+  // Colors for different states
+  private readonly hoverColor = 0xffff00; // Yellow
+  private readonly selectedColor: number;
+
+  constructor(
+    config: IsometricInteractionConfig,
+    events: IsometricInteractionEvents = {}
+  ) {
     this.viewport = config.viewport;
     this.worldContainer = config.worldContainer;
     this.config = config;
     this.events = events;
     this.mapBounds = config.mapBounds || null;
+    this.selectedColor = config.selectedColor ?? 0x3b82f6; // Blue default
   }
 
   /**
@@ -85,7 +103,9 @@ export class IsometricInteractionManager {
     instance.highlight.cursor = 'pointer';
 
     // Set up event handlers on BOTH objects
-    const setupHandlers = (target: typeof instance.sprite | typeof instance.highlight) => {
+    const setupHandlers = (
+      target: typeof instance.sprite | typeof instance.highlight
+    ) => {
       target.on('pointerdown', (event: FederatedPointerEvent) => {
         this.onPointerDown(id, instance, event);
       });
@@ -146,8 +166,12 @@ export class IsometricInteractionManager {
       nodeId,
       instance,
       isDragging: true,
+      hasMoved: false,
       dragStartPos: { x: event.global.x, y: event.global.y },
-      spriteStartPos: { gridX: instance.gridPosition.gridX, gridY: instance.gridPosition.gridY },
+      spriteStartPos: {
+        gridX: instance.gridPosition.gridX,
+        gridY: instance.gridPosition.gridY,
+      },
       nearbySprites: new Set(),
     };
 
@@ -176,7 +200,11 @@ export class IsometricInteractionManager {
   /**
    * Clamp grid position to map bounds, accounting for sprite boundary size
    */
-  private clampToMapBounds(gridX: number, gridY: number, spriteSize?: number): { gridX: number; gridY: number } {
+  private clampToMapBounds(
+    gridX: number,
+    gridY: number,
+    spriteSize?: number
+  ): { gridX: number; gridY: number } {
     if (!this.mapBounds) {
       return { gridX, gridY };
     }
@@ -213,38 +241,64 @@ export class IsometricInteractionManager {
       ? this.viewport.toWorld(event.global.x, event.global.y)
       : this.worldContainer.toLocal(event.global);
     const worldStartPos = this.viewport
-      ? this.viewport.toWorld(this.dragState.dragStartPos.x, this.dragState.dragStartPos.y)
+      ? this.viewport.toWorld(
+          this.dragState.dragStartPos.x,
+          this.dragState.dragStartPos.y
+        )
       : this.worldContainer.toLocal(this.dragState.dragStartPos);
 
-    const deltaX = (worldPos.x - worldStartPos.x);
-    const deltaY = (worldPos.y - worldStartPos.y);
+    const deltaX = worldPos.x - worldStartPos.x;
+    const deltaY = worldPos.y - worldStartPos.y;
 
     // Convert world delta to grid delta (reverse isometric transformation)
     const tileWidth = this.config.tileWidth ?? 64;
     const tileHeight = this.config.tileHeight ?? 32;
 
-    const deltaGridX = (deltaX / (tileWidth / 2) + deltaY / (tileHeight / 2)) / 2;
-    const deltaGridY = (deltaY / (tileHeight / 2) - deltaX / (tileWidth / 2)) / 2;
+    const deltaGridX =
+      (deltaX / (tileWidth / 2) + deltaY / (tileHeight / 2)) / 2;
+    const deltaGridY =
+      (deltaY / (tileHeight / 2) - deltaX / (tileWidth / 2)) / 2;
 
     let newGridX = this.dragState.spriteStartPos.gridX + deltaGridX;
     let newGridY = this.dragState.spriteStartPos.gridY + deltaGridY;
 
     // Clamp to map bounds (accounting for sprite boundary size)
-    const clamped = this.clampToMapBounds(newGridX, newGridY, this.dragState.instance.size);
+    const clamped = this.clampToMapBounds(
+      newGridX,
+      newGridY,
+      this.dragState.instance.size
+    );
     newGridX = clamped.gridX;
     newGridY = clamped.gridY;
 
     // Check for collisions - if collision, don't update position
-    if (this.wouldCollide(this.dragState.nodeId, { gridX: newGridX, gridY: newGridY })) {
+    if (
+      this.wouldCollide(this.dragState.nodeId, {
+        gridX: newGridX,
+        gridY: newGridY,
+      })
+    ) {
       // Keep current position, don't move
       return;
+    }
+
+    // Mark that actual movement occurred (threshold of 0.5 grid units)
+    const movedDistance = Math.sqrt(
+      Math.pow(newGridX - this.dragState.spriteStartPos.gridX, 2) +
+        Math.pow(newGridY - this.dragState.spriteStartPos.gridY, 2)
+    );
+    if (movedDistance > 0.5) {
+      this.dragState.hasMoved = true;
     }
 
     // Update sprite position
     this.dragState.instance.update(newGridX, newGridY);
 
     // Update nearby sprite highlights
-    this.updateNearbyHighlights(this.dragState.nodeId, { gridX: newGridX, gridY: newGridY });
+    this.updateNearbyHighlights(this.dragState.nodeId, {
+      gridX: newGridX,
+      gridY: newGridY,
+    });
 
     // Emit drag move event
     this.events.onDragMove?.(this.dragState.nodeId, newGridX, newGridY);
@@ -318,20 +372,26 @@ export class IsometricInteractionManager {
   private finishDrag(): void {
     if (!this.dragState) return;
 
-    const { nodeId, instance, nearbySprites } = this.dragState;
+    const { nodeId, instance, nearbySprites, hasMoved } = this.dragState;
 
     // Snap to grid
     let snappedGridX = Math.round(instance.gridPosition.gridX);
     let snappedGridY = Math.round(instance.gridPosition.gridY);
 
     // Clamp to map bounds (accounting for sprite boundary size)
-    const clamped = this.clampToMapBounds(snappedGridX, snappedGridY, instance.size);
+    const clamped = this.clampToMapBounds(
+      snappedGridX,
+      snappedGridY,
+      instance.size
+    );
     snappedGridX = clamped.gridX;
     snappedGridY = clamped.gridY;
 
     // Check if snapped position would cause collision
     // If so, revert to start position
-    if (this.wouldCollide(nodeId, { gridX: snappedGridX, gridY: snappedGridY })) {
+    if (
+      this.wouldCollide(nodeId, { gridX: snappedGridX, gridY: snappedGridY })
+    ) {
       snappedGridX = this.dragState.spriteStartPos.gridX;
       snappedGridY = this.dragState.spriteStartPos.gridY;
     }
@@ -342,15 +402,19 @@ export class IsometricInteractionManager {
     instance.sprite.cursor = 'pointer';
     instance.highlight.cursor = 'pointer';
 
-    // Hide highlight (unless hovering)
-    if (this.hoveredNodeId !== nodeId) {
+    // Hide highlight (unless hovering or selected)
+    if (this.hoveredNodeId !== nodeId && this.selectedNodeId !== nodeId) {
       instance.highlight.visible = false;
     }
 
-    // Hide nearby sprite highlights (unless hovering)
+    // Hide nearby sprite highlights (unless hovering or selected)
     for (const nearbyId of nearbySprites) {
       const nearbyInstance = this.sprites.get(nearbyId);
-      if (nearbyInstance && this.hoveredNodeId !== nearbyId) {
+      if (
+        nearbyInstance &&
+        this.hoveredNodeId !== nearbyId &&
+        this.selectedNodeId !== nearbyId
+      ) {
         nearbyInstance.highlight.visible = false;
       }
     }
@@ -360,8 +424,15 @@ export class IsometricInteractionManager {
       this.viewport.plugins.resume('drag');
     }
 
-    // Emit drag end event
-    this.events.onDragEnd?.(nodeId, snappedGridX, snappedGridY);
+    // Emit appropriate event based on whether movement occurred
+    if (hasMoved) {
+      // Actual drag - emit drag end event for position persistence
+      this.events.onDragEnd?.(nodeId, snappedGridX, snappedGridY);
+    } else {
+      // Click (no movement) - select the node and emit click event
+      this.setSelected(nodeId);
+      this.events.onClick?.(nodeId);
+    }
 
     // Remove global handlers
     const eventTarget = this.viewport || this.worldContainer;
@@ -383,15 +454,18 @@ export class IsometricInteractionManager {
   }
 
   /**
-   * Handle pointer out - hide highlight (unless dragging)
+   * Handle pointer out - hide highlight (unless dragging or selected)
    */
   private onPointerOut(nodeId: string, instance: SpriteInstance): void {
     if (this.hoveredNodeId === nodeId) {
       this.hoveredNodeId = null;
     }
 
-    // Only hide if not dragging
-    if (!this.dragState || this.dragState.nodeId !== nodeId) {
+    // Only hide if not dragging and not selected
+    const isDragging = this.dragState && this.dragState.nodeId === nodeId;
+    const isSelected = this.selectedNodeId === nodeId;
+
+    if (!isDragging && !isSelected) {
       instance.highlight.visible = false;
     }
 
@@ -409,6 +483,76 @@ export class IsometricInteractionManager {
       instance.sprite.cursor = enabled ? 'pointer' : 'default';
       instance.highlight.cursor = enabled ? 'pointer' : 'default';
     }
+  }
+
+  /**
+   * Set the selected node
+   */
+  setSelected(nodeId: string | null): void {
+    const previousSelected = this.selectedNodeId;
+    this.selectedNodeId = nodeId;
+
+    // Update previous selected node (hide highlight if not hovered)
+    if (previousSelected && previousSelected !== nodeId) {
+      const prevInstance = this.sprites.get(previousSelected);
+      if (prevInstance) {
+        if (this.hoveredNodeId !== previousSelected) {
+          prevInstance.highlight.visible = false;
+        }
+        this.updateHighlightColor(prevInstance, false);
+      }
+    }
+
+    // Update new selected node
+    if (nodeId) {
+      const instance = this.sprites.get(nodeId);
+      if (instance) {
+        instance.highlight.visible = true;
+        this.updateHighlightColor(instance, true);
+      }
+    }
+  }
+
+  /**
+   * Get the currently selected node ID
+   */
+  getSelectedNodeId(): string | null {
+    return this.selectedNodeId;
+  }
+
+  /**
+   * Update highlight color based on selected state
+   */
+  private updateHighlightColor(
+    instance: SpriteInstance,
+    isSelected: boolean
+  ): void {
+    const color = isSelected ? this.selectedColor : this.hoverColor;
+    instance.highlight.clear();
+
+    // Get screen position from grid position
+    const pos = gridToScreen(
+      instance.gridPosition.gridX,
+      instance.gridPosition.gridY
+    );
+
+    // Redraw the highlight diamond with the new color
+    // Boundary is 4 × size (in tiles), matching the renderer
+    const hoverSize = 4 * instance.size;
+    const tileWidth = hoverSize * (this.config.tileWidth ?? 64);
+    const tileHeight = hoverSize * (this.config.tileHeight ?? 32);
+
+    instance.highlight.setStrokeStyle({ width: 3, color, alpha: 1 });
+    instance.highlight.setFillStyle({ color, alpha: isSelected ? 0.25 : 0.1 });
+
+    // Draw diamond centered at screen position
+    instance.highlight.moveTo(pos.screenX, pos.screenY - tileHeight / 2); // Top
+    instance.highlight.lineTo(pos.screenX + tileWidth / 2, pos.screenY); // Right
+    instance.highlight.lineTo(pos.screenX, pos.screenY + tileHeight / 2); // Bottom
+    instance.highlight.lineTo(pos.screenX - tileWidth / 2, pos.screenY); // Left
+    instance.highlight.closePath();
+    instance.highlight.fill();
+    instance.highlight.stroke();
   }
 
   /**

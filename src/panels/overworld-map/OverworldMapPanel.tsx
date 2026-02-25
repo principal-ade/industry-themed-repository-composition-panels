@@ -45,6 +45,12 @@ export interface OverworldMapPanelProps {
   /** Callback when a node is moved (for persisting manual positions) */
   onProjectMoved?: (nodeId: string, gridX: number, gridY: number) => void;
 
+  /** Callback when a node is clicked (without being moved) */
+  onNodeClicked?: (nodeId: string) => void;
+
+  /** Currently selected node ID */
+  selectedNodeId?: string | null;
+
   /** Whether regions are being edited */
   isEditingRegions?: boolean;
 
@@ -79,6 +85,8 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   height,
   isLoading = false,
   onProjectMoved,
+  onNodeClicked,
+  selectedNodeId,
   isEditingRegions = false,
   customRegions = [],
   onAddRegion,
@@ -394,6 +402,10 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
             // The parent will update the state, which will flow back down as props
             // and trigger mapData recomputation with the updated position
             onProjectMoved?.(nodeId, gridX, gridY);
+          },
+          onClick: (nodeId) => {
+            // Node was clicked (without being moved)
+            onNodeClicked?.(nodeId);
           },
         }
       );
@@ -924,6 +936,13 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       renderPlaceholdersRef.current();
     }
   }, [isEditingRegions]);
+
+  // Sync selected node with interaction manager
+  useEffect(() => {
+    if (interactionRef.current) {
+      interactionRef.current.setSelected(selectedNodeId ?? null);
+    }
+  }, [selectedNodeId]);
 
   return (
     <div

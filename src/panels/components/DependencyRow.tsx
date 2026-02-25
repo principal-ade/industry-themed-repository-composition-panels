@@ -84,7 +84,7 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: `${theme.space[3]}px ${theme.space[4]}px`,
+        padding: `${theme.space[3]}px ${theme.space[2]}px`,
         backgroundColor: theme.colors.background,
         borderRadius: 0,
         fontSize: `${theme.fontSizes[1]}px`,

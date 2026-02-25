@@ -788,7 +788,15 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
                   </div>
 
                   {/* Dependency List */}
-                  <div style={{ flex: 1, overflow: 'auto' }}>
+                  <div
+                    style={{
+                      flex: 1,
+                      overflow: 'auto',
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none',
+                    }}
+                    className="hide-scrollbar"
+                  >
                     <div
                       style={{
                         display: 'flex',
@@ -1332,7 +1340,15 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
                     </div>
 
                     {/* Dependency List */}
-                    <div style={{ flex: 1, overflow: 'auto' }}>
+                    <div
+                      style={{
+                        flex: 1,
+                        overflow: 'auto',
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                      }}
+                      className="hide-scrollbar"
+                    >
                       <div
                         style={{
                           display: 'flex',
