@@ -23,45 +23,103 @@ import type {
   ConfigFile,
   PackageCommand,
 } from '../../types/composition';
-import type { DependencyItem } from '../../types/dependencies';
+import type { DependencyItem, DependencyType } from '../../types/dependencies';
 
 /**
  * Sort order for dependency types: peer, production, development
  */
-const dependencyTypeOrder: Record<DependencyItem['dependencyType'], number> = {
+const dependencyTypeOrder: Record<DependencyType, number> = {
   peer: 0,
   production: 1,
   development: 2,
 };
 
 /**
+ * Parse a package name into namespace and package name parts
+ */
+function parsePackageName(name: string): {
+  namespace?: string;
+  packageName: string;
+} {
+  if (name.startsWith('@')) {
+    const slashIndex = name.indexOf('/');
+    if (slashIndex > 0) {
+      return {
+        namespace: name.substring(0, slashIndex),
+        packageName: name.substring(slashIndex + 1),
+      };
+    }
+  }
+  return { packageName: name };
+}
+
+/**
  * Extract dependencies from a PackageLayer into DependencyItems
+ * Groups dependencies by name and combines their types
  */
 function extractDependencies(packageLayer: PackageLayer): DependencyItem[] {
   const { dependencies, devDependencies, peerDependencies } =
     packageLayer.packageData;
 
-  const items: DependencyItem[] = [];
+  // Use a map to group dependencies by name
+  const depMap = new Map<
+    string,
+    { version: string; types: Set<DependencyType> }
+  >();
+
+  if (peerDependencies) {
+    Object.entries(peerDependencies).forEach(([name, version]) => {
+      const existing = depMap.get(name);
+      if (existing) {
+        existing.types.add('peer');
+      } else {
+        depMap.set(name, { version, types: new Set(['peer']) });
+      }
+    });
+  }
 
   if (dependencies) {
     Object.entries(dependencies).forEach(([name, version]) => {
-      items.push({ name, version, dependencyType: 'production' });
+      const existing = depMap.get(name);
+      if (existing) {
+        existing.types.add('production');
+      } else {
+        depMap.set(name, { version, types: new Set(['production']) });
+      }
     });
   }
 
   if (devDependencies) {
     Object.entries(devDependencies).forEach(([name, version]) => {
-      items.push({ name, version, dependencyType: 'development' });
+      const existing = depMap.get(name);
+      if (existing) {
+        existing.types.add('development');
+      } else {
+        depMap.set(name, { version, types: new Set(['development']) });
+      }
     });
   }
 
-  if (peerDependencies) {
-    Object.entries(peerDependencies).forEach(([name, version]) => {
-      items.push({ name, version, dependencyType: 'peer' });
-    });
-  }
+  // Convert map to array with proper structure
+  const items: DependencyItem[] = Array.from(depMap.entries()).map(
+    ([name, { version, types }]) => {
+      const typesArray = Array.from(types).sort(
+        (a, b) => dependencyTypeOrder[a] - dependencyTypeOrder[b]
+      );
+      const { namespace, packageName } = parsePackageName(name);
 
-  // Sort by type (peer, prod, dev) then by name
+      return {
+        name,
+        version,
+        dependencyType: typesArray[0], // Primary type for sorting
+        dependencyTypes: typesArray,
+        namespace,
+        packageName,
+      };
+    }
+  );
+
+  // Sort by primary type (peer, prod, dev) then by name
   return items.sort((a, b) => {
     const typeCompare =
       dependencyTypeOrder[a.dependencyType] -
