@@ -113,6 +113,10 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
   building.lineTo(isoWidth / 2, 0);
   building.stroke();
 
+  // Position decorations below building, slightly above where repo name label appears
+  // Both decorations are positioned side by side (stars on right, collaborators on left)
+  const decorationBaseY = isoDepthY + 12; // Below building front edge
+
   // Add star decoration if stars are provided
   if (stars && stars > 0) {
     const tier = getStarTier(stars);
@@ -131,13 +135,11 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
           break;
       }
 
-      // Position decoration to the right side of the building
-      // Position at ground level (y=0) and offset to the right
-      const decorationX = isoWidth * 0.4; // 40% to the right from center
-      const decorationY = -10; // Slightly above ground
+      // Position decoration to the right, below building (above label area)
+      const decorationX = collaborators && collaborators > 0 ? 35 : 0; // Offset right if collaborators exist, else center
       decoration.x = decorationX;
-      decoration.y = decorationY;
-      decoration.scale.set(2.5); // Scale up for visibility
+      decoration.y = decorationBaseY;
+      decoration.scale.set(1.8); // Slightly smaller scale
 
       building.addChild(decoration);
 
@@ -145,16 +147,16 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
       const countText = new Text({
         text: formatStarCount(stars),
         style: {
-          fontSize: 11,
+          fontSize: 10,
           fill: 0xffffff,
           fontFamily: 'Arial',
           fontWeight: 'bold',
-          stroke: { color: 0x000000, width: 3 },
+          stroke: { color: 0x000000, width: 2 },
         },
         resolution: 2,
       });
       countText.x = decorationX;
-      countText.y = decorationY + 20; // Below the decoration
+      countText.y = decorationBaseY + 18; // Below the decoration
       countText.anchor.set(0.5, 0);
 
       building.addChild(countText);
@@ -182,12 +184,11 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
           break;
       }
 
-      // Position decoration to the left side of the building (opposite of stars)
-      const decorationX = -isoWidth * 0.4; // 40% to the left from center
-      const decorationY = -10; // Slightly above ground
+      // Position decoration to the left, below building (above label area)
+      const decorationX = stars && stars > 0 ? -35 : 0; // Offset left if stars exist, else center
       decoration.x = decorationX;
-      decoration.y = decorationY;
-      decoration.scale.set(2.5); // Scale up for visibility
+      decoration.y = decorationBaseY;
+      decoration.scale.set(1.8); // Slightly smaller scale
 
       building.addChild(decoration);
 
@@ -195,16 +196,16 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
       const countText = new Text({
         text: formatCollaboratorCount(collaborators),
         style: {
-          fontSize: 11,
+          fontSize: 10,
           fill: 0xffffff,
           fontFamily: 'Arial',
           fontWeight: 'bold',
-          stroke: { color: 0x000000, width: 3 },
+          stroke: { color: 0x000000, width: 2 },
         },
         resolution: 2,
       });
       countText.x = decorationX;
-      countText.y = decorationY + 20; // Below the decoration
+      countText.y = decorationBaseY + 18; // Below the decoration
       countText.anchor.set(0.5, 0);
 
       building.addChild(countText);

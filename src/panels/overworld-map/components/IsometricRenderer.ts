@@ -467,23 +467,29 @@ export class IsometricRenderer {
 
       container.addChild(sprite);
 
-      // Create individual label for this sub-package
-      const subLabel = new Text({
-        text: sub.name,
-        style: {
-          fontSize: 10,
-          fill: 0xffffff,
-          fontFamily: 'Arial',
-          fontWeight: '400',
-        },
-        resolution: 2,
-      });
-      subLabel.x = offset.x;
-      subLabel.y = offset.y + sprite.height * 0.15 + 4;
-      subLabel.anchor.set(0.5, 0);
+      // Only show individual labels if there are 5 or fewer packages
+      if (subCount <= 5) {
+        const subLabel = new Text({
+          text: sub.name,
+          style: {
+            fontSize: 10,
+            fill: 0xffffff,
+            fontFamily: 'Arial',
+            fontWeight: '400',
+          },
+          resolution: 2,
+        });
+        subLabel.x = offset.x;
+        subLabel.y = offset.y + sprite.height * 0.15 + 4;
+        subLabel.anchor.set(0.5, 0);
 
-      container.addChild(subLabel);
+        container.addChild(subLabel);
+      }
     }
+
+    // Position decorations below footprint, slightly above where repo name label appears
+    // Both decorations positioned side by side (stars on right, collaborators on left)
+    const decorationBaseY = footprintHeight * 0.5; // Below footprint center, above label
 
     // Add star decoration if node has stars
     if (node.stars && node.stars > 0) {
@@ -503,12 +509,12 @@ export class IsometricRenderer {
             break;
         }
 
-        // Position decoration in the center, towards the top of the sprite cluster
-        const decorationX = 0; // Centered
-        const decorationY = -footprintHeight * 0.35; // Towards the top
+        // Position decoration to the right, below footprint (above label area)
+        const decorationX =
+          node.collaborators && node.collaborators > 0 ? 35 : 0;
         decoration.x = decorationX;
-        decoration.y = decorationY;
-        decoration.scale.set(2.5);
+        decoration.y = decorationBaseY;
+        decoration.scale.set(1.8);
 
         container.addChild(decoration);
 
@@ -516,16 +522,16 @@ export class IsometricRenderer {
         const countText = new Text({
           text: formatStarCount(node.stars),
           style: {
-            fontSize: 11,
+            fontSize: 10,
             fill: 0xffffff,
             fontFamily: 'Arial',
             fontWeight: 'bold',
-            stroke: { color: 0x000000, width: 3 },
+            stroke: { color: 0x000000, width: 2 },
           },
           resolution: 2,
         });
         countText.x = decorationX;
-        countText.y = decorationY + 20;
+        countText.y = decorationBaseY + 18;
         countText.anchor.set(0.5, 0);
 
         container.addChild(countText);
@@ -553,12 +559,11 @@ export class IsometricRenderer {
             break;
         }
 
-        // Position decoration to the left side of the footprint (opposite of stars)
-        const decorationX = -footprintWidth * 0.4; // 40% to the left from center
-        const decorationY = -footprintHeight * 0.35; // Towards the top
+        // Position decoration to the left, below footprint (above label area)
+        const decorationX = node.stars && node.stars > 0 ? -35 : 0;
         decoration.x = decorationX;
-        decoration.y = decorationY;
-        decoration.scale.set(2.5);
+        decoration.y = decorationBaseY;
+        decoration.scale.set(1.8);
 
         container.addChild(decoration);
 
@@ -566,16 +571,16 @@ export class IsometricRenderer {
         const countText = new Text({
           text: formatCollaboratorCount(node.collaborators),
           style: {
-            fontSize: 11,
+            fontSize: 10,
             fill: 0xffffff,
             fontFamily: 'Arial',
             fontWeight: 'bold',
-            stroke: { color: 0x000000, width: 3 },
+            stroke: { color: 0x000000, width: 2 },
           },
           resolution: 2,
         });
         countText.x = decorationX;
-        countText.y = decorationY + 20;
+        countText.y = decorationBaseY + 18;
         countText.anchor.set(0.5, 0);
 
         container.addChild(countText);

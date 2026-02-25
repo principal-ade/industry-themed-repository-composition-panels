@@ -277,6 +277,41 @@ const mockMonorepos = [
     125000,
     280
   ), // Mythic statue + Open Source Hub bandstand
+  createMockMonorepo(
+    'enterprise-platform',
+    'typescript',
+    3,
+    [
+      // UI packages
+      { name: 'ui-components', fileCount: 850, language: 'typescript' },
+      { name: 'ui-icons', fileCount: 120, language: 'typescript' },
+      { name: 'ui-themes', fileCount: 95, language: 'typescript' },
+      { name: 'ui-hooks', fileCount: 180, language: 'typescript' },
+      // Core packages
+      { name: 'core-auth', fileCount: 320, language: 'typescript' },
+      { name: 'core-api', fileCount: 450, language: 'typescript' },
+      { name: 'core-state', fileCount: 280, language: 'typescript' },
+      { name: 'core-utils', fileCount: 150, language: 'typescript' },
+      // Feature packages
+      { name: 'feature-dashboard', fileCount: 520, language: 'typescript' },
+      { name: 'feature-analytics', fileCount: 380, language: 'typescript' },
+      { name: 'feature-settings', fileCount: 240, language: 'typescript' },
+      { name: 'feature-users', fileCount: 290, language: 'typescript' },
+      // Backend packages
+      { name: 'server-gateway', fileCount: 420, language: 'go' },
+      { name: 'server-workers', fileCount: 350, language: 'rust' },
+      { name: 'server-scheduler', fileCount: 180, language: 'python' },
+      // Infrastructure packages
+      { name: 'infra-database', fileCount: 220, language: 'typescript' },
+      { name: 'infra-cache', fileCount: 140, language: 'rust' },
+      { name: 'infra-logging', fileCount: 160, language: 'go' },
+      // Testing packages
+      { name: 'test-utils', fileCount: 280, language: 'typescript' },
+      { name: 'test-fixtures', fileCount: 190, language: 'typescript' },
+    ],
+    85000,
+    450
+  ), // Large enterprise monorepo with 20 packages
 ];
 
 // Integration Harness Component
