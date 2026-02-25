@@ -45,8 +45,8 @@ export interface OverworldMapPanelProps {
   /** Callback when a node is moved (for persisting manual positions) */
   onProjectMoved?: (nodeId: string, gridX: number, gridY: number) => void;
 
-  /** Callback when a node is clicked (without being moved) */
-  onNodeClicked?: (nodeId: string) => void;
+  /** Callback when a node is clicked (without being moved), or null when clicking empty space to deselect */
+  onNodeClicked?: (nodeId: string | null) => void;
 
   /** Currently selected node ID */
   selectedNodeId?: string | null;

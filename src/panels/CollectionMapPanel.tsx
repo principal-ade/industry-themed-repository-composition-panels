@@ -118,8 +118,8 @@ export interface CollectionMapPanelActions
     repositoryMetadata: RepositoryMetadata
   ) => Promise<void>;
 
-  /** Callback when a repository is clicked (without being moved) */
-  onRepositoryClicked?: (repositoryId: string) => void;
+  /** Callback when a repository is clicked (without being moved), or null when clicking empty space to deselect */
+  onRepositoryClicked?: (repositoryId: string | null) => void;
 
   /** Currently selected repository ID */
   selectedRepositoryId?: string | null;
@@ -179,8 +179,8 @@ export interface CollectionMapPanelProps {
     repositoryMetadata: RepositoryMetadata
   ) => Promise<void>;
 
-  /** Callback when a repository is clicked (without being moved) */
-  onRepositoryClicked?: (repositoryId: string) => void;
+  /** Callback when a repository is clicked (without being moved), or null when clicking empty space to deselect */
+  onRepositoryClicked?: (repositoryId: string | null) => void;
 
   /** Currently selected repository ID */
   selectedRepositoryId?: string | null;

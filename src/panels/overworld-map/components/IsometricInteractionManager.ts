@@ -38,7 +38,7 @@ export interface IsometricInteractionEvents {
   onDragStart?: (nodeId: string) => void;
   onDragMove?: (nodeId: string, gridX: number, gridY: number) => void;
   onDragEnd?: (nodeId: string, gridX: number, gridY: number) => void;
-  onClick?: (nodeId: string) => void;
+  onClick?: (nodeId: string | null) => void;
   onHover?: (nodeId: string) => void;
   onHoverEnd?: (nodeId: string) => void;
   onRegionChange?: (region: MapRegion | null) => void;
@@ -77,6 +77,7 @@ export class IsometricInteractionManager {
     maxX: number;
     maxY: number;
   } | null = null;
+  private clickConsumedBySprite = false; // Track if a sprite consumed the click
 
   // Colors for different states
   private readonly hoverColor = 0xffff00; // Yellow
@@ -92,6 +93,33 @@ export class IsometricInteractionManager {
     this.events = events;
     this.mapBounds = config.mapBounds || null;
     this.selectedColor = config.selectedColor ?? 0x3b82f6; // Blue default
+
+    // Enable background click to deselect
+    this.setupBackgroundDeselect();
+  }
+
+  /**
+   * Set up background click handler to deselect when clicking on empty space
+   */
+  private setupBackgroundDeselect(): void {
+    const eventTarget = this.viewport || this.worldContainer;
+    if (!eventTarget) return;
+
+    // Make the target interactive
+    eventTarget.eventMode = 'static';
+
+    // On pointer down, reset the consumed flag
+    eventTarget.on('pointerdown', () => {
+      this.clickConsumedBySprite = false;
+    });
+
+    // On pointer up, if no sprite consumed the click, deselect
+    eventTarget.on('pointerup', () => {
+      if (!this.clickConsumedBySprite && this.selectedNodeId) {
+        this.setSelected(null);
+        this.events.onClick?.(null);
+      }
+    });
   }
 
   /**
@@ -167,6 +195,9 @@ export class IsometricInteractionManager {
     if (!this.draggingEnabled) return;
 
     event.stopPropagation(); // Prevent viewport from dragging
+
+    // Mark that a sprite consumed this click (for background deselect handling)
+    this.clickConsumedBySprite = true;
 
     this.dragState = {
       nodeId,
