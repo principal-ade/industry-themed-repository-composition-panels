@@ -48,6 +48,9 @@ export interface GenericNode {
   stars?: number; // GitHub star count for decorations
   collaborators?: number; // Contributor count for community space decoration
 
+  // License information
+  license?: string; // SPDX license identifier (e.g., 'MIT', 'Apache-2.0', 'GPL-3.0')
+
   // Connections to other nodes
   dependencies?: string[]; // IDs of nodes this depends on
   devDependencies?: string[]; // IDs of dev/optional dependencies
@@ -724,6 +727,7 @@ export function nodesToUnifiedOverworldMap(
       subdivisions,
       stars: node.stars,
       collaborators: node.collaborators,
+      license: node.license,
     };
   });
 

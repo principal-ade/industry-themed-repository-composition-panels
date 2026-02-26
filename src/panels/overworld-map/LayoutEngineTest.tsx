@@ -1,30 +1,11 @@
 /**
  * Layout Engine Test - Demonstrates automatic sprite placement
+ * Uses the actual OverworldMapPanelContent component
  */
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Texture } from 'pixi.js';
-import { IsometricPixiCanvas } from './components/IsometricPixiCanvas';
-import { IsometricRenderer } from './components/IsometricRenderer';
-import { IsometricInteractionManager } from './components/IsometricInteractionManager';
-import { generateBuildingSprite } from './components/buildingSpriteGenerator';
-import { layoutSpritesMultiRegion } from './spriteLayoutEngine';
-import type { OverworldMap } from './types';
-
-/**
- * Language-to-color mapping (from genericMapper.ts)
- */
-const LANGUAGE_COLORS: Record<string, string> = {
-  node: '#06b6d4', // cyan
-  javascript: '#06b6d4',
-  typescript: '#06b6d4',
-  python: '#fbbf24', // yellow
-  rust: '#ef4444', // red
-  cargo: '#ef4444',
-  go: '#22c55e', // green
-  java: '#f97316', // orange
-  default: '#94a3b8', // gray
-};
+import React, { useMemo } from 'react';
+import { OverworldMapPanelContent } from './OverworldMapPanel';
+import type { GenericNode } from './genericMapper';
 
 export interface SpriteConfig {
   size: number;
@@ -56,305 +37,97 @@ export const LayoutEngineTest: React.FC<LayoutEngineTestProps> = ({
     size3_0: 2,
   },
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<IsometricPixiCanvas | null>(null);
-  const rendererRef = useRef<IsometricRenderer | null>(null);
-  const interactionRef = useRef<IsometricInteractionManager | null>(null);
-  const [stats, setStats] = useState<{
-    placed: number;
-    overflow: number;
-    utilization: number;
-  } | null>(null);
+  // Convert sprite configs to GenericNode[]
+  const nodes = useMemo<GenericNode[]>(() => {
+    const result: GenericNode[] = [];
+    let nodeId = 0;
 
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const init = async () => {
-      const regionSize = 25; // Each region is 25x25 tiles
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-
-      // 1. Create sprites using either sprites prop or size distribution
-      const inputNodes: Array<{ id: string; size: number; language?: string }> =
-        [];
-      let nodeId = 0;
-
-      if (sprites) {
-        // Use new sprites prop with language support
-        for (const sprite of sprites) {
-          for (let i = 0; i < sprite.count; i++) {
-            inputNodes.push({
-              id: `sprite-${nodeId++}`,
-              size: sprite.size,
-              language: sprite.language,
-            });
-          }
-        }
-      } else {
-        // Fall back to legacy sizeDistribution prop
-        // Add 1.0x sprites
-        for (let i = 0; i < (sizeDistribution.size1_0 || 0); i++) {
-          inputNodes.push({ id: `sprite-${nodeId++}`, size: 1.0 });
-        }
-        // Add 1.5x sprites
-        for (let i = 0; i < (sizeDistribution.size1_5 || 0); i++) {
-          inputNodes.push({ id: `sprite-${nodeId++}`, size: 1.5 });
-        }
-        // Add 2.0x sprites
-        for (let i = 0; i < (sizeDistribution.size2_0 || 0); i++) {
-          inputNodes.push({ id: `sprite-${nodeId++}`, size: 2.0 });
-        }
-        // Add 2.5x sprites
-        for (let i = 0; i < (sizeDistribution.size2_5 || 0); i++) {
-          inputNodes.push({ id: `sprite-${nodeId++}`, size: 2.5 });
-        }
-        // Add 3.0x sprites
-        for (let i = 0; i < (sizeDistribution.size3_0 || 0); i++) {
-          inputNodes.push({ id: `sprite-${nodeId++}`, size: 3.0 });
+    if (sprites) {
+      // Use new sprites prop with language support
+      for (const sprite of sprites) {
+        for (let i = 0; i < sprite.count; i++) {
+          const language = sprite.language || 'default';
+          result.push({
+            id: `sprite-${nodeId}`,
+            name: `${sprite.size.toFixed(1)}x ${language}`,
+            size: sprite.size,
+            language: sprite.language,
+            category: language,
+          });
+          nodeId++;
         }
       }
+    } else {
+      // Fall back to legacy sizeDistribution prop
+      const sizes: Array<{ size: number; count: number }> = [
+        { size: 1.0, count: sizeDistribution.size1_0 || 0 },
+        { size: 1.5, count: sizeDistribution.size1_5 || 0 },
+        { size: 2.0, count: sizeDistribution.size2_0 || 0 },
+        { size: 2.5, count: sizeDistribution.size2_5 || 0 },
+        { size: 3.0, count: sizeDistribution.size3_0 || 0 },
+      ];
 
-      // 2. Use layout engine to position sprites across multiple regions
-      const regions = layoutSpritesMultiRegion(inputNodes, regionSize, {
-        spacing: 0.5,
-      });
-
-      // Calculate world size based on regions layout
-      const maxCol = Math.max(...regions.map((r) => r.gridPosition.col));
-      const maxRow = Math.max(...regions.map((r) => r.gridPosition.row));
-      const totalCols = maxCol + 1;
-      const totalRows = maxRow + 1;
-      const gridWidth = totalCols * regionSize;
-      const gridHeight = totalRows * regionSize;
-      const worldWidth = gridWidth * 64;
-      const worldHeight = gridHeight * 32;
-
-      // 3. Create canvas with viewport
-      const canvas = new IsometricPixiCanvas({
-        container: containerRef.current!,
-        width,
-        height,
-        worldWidth,
-        worldHeight,
-        backgroundColor: 0x1a1a1a,
-        minZoom: 0.1,
-        maxZoom: 2.0,
-      });
-
-      const { app, viewport } = await canvas.init();
-      canvasRef.current = canvas;
-
-      // Calculate total placed and overflow
-      const totalPlaced = regions.reduce((sum, r) => sum + r.nodes.length, 0);
-      const totalOverflow = inputNodes.length - totalPlaced;
-      const avgUtilization =
-        regions.reduce((sum, r) => sum + r.capacity.utilization, 0) /
-        regions.length;
-
-      // Update stats for UI display
-      setStats({
-        placed: totalPlaced,
-        overflow: totalOverflow,
-        utilization: avgUtilization,
-      });
-
-      // Show warning in UI if overflow
-      if (totalOverflow > 0) {
-        console.warn(`⚠️ ${totalOverflow} sprites didn't fit!`);
-      }
-
-      // 4. Create sprite textures for each unique size+language combination
-      const atlas: Record<string, Texture> = {};
-      const allNodes = regions.flatMap((r) => r.nodes);
-
-      // Create set of unique size+language combinations
-      const uniqueCombos = new Set<string>();
-      for (const node of allNodes) {
-        const language = node.language || 'default';
-        const key = `${node.size.toFixed(2)}-${language}`;
-        uniqueCombos.add(key);
-      }
-
-      // Generate textures for each combination
-      for (const combo of uniqueCombos) {
-        const [sizeStr, language] = combo.split('-');
-        const size = parseFloat(sizeStr);
-        const colorHex =
-          LANGUAGE_COLORS[language.toLowerCase()] || LANGUAGE_COLORS.default;
-        const color = parseInt(colorHex.replace('#', ''), 16);
-
-        const buildingGraphics = generateBuildingSprite({ size, color });
-        atlas[`building-${combo}`] = app.renderer.generateTexture({
-          target: buildingGraphics,
-          resolution: 2,
-        });
-        buildingGraphics.destroy();
-      }
-
-      // 5. Create map data with laid out sprites from all regions
-      const nodes = allNodes.map((node) => {
-        const language = node.language || 'default';
-        const color =
-          LANGUAGE_COLORS[language.toLowerCase()] || LANGUAGE_COLORS.default;
-        const label = node.language
-          ? `${node.size.toFixed(1)}x ${node.language}`
-          : `${node.size.toFixed(1)}x`;
-
-        // Sprite key includes both size and language for color differentiation
-        const spriteKey = `building-${node.size.toFixed(2)}-${language}`;
-
-        return {
-          id: node.id,
-          gridX: node.gridX,
-          gridY: node.gridY,
-          type: 'house' as const,
-          sprite: spriteKey,
-          size: node.size,
-          theme: 'grass' as const,
-          label,
-          packageType: 'node' as const,
-          isRoot: false,
-          color,
-        };
-      });
-
-      const mapData: OverworldMap = {
-        width: gridWidth,
-        height: gridHeight,
-        tiles: [],
-        nodes,
-        paths: [],
-        regions: regions.map((region) => ({
-          id: region.regionId,
-          name: `Region ${region.gridPosition.row}-${region.gridPosition.col}`,
-          bounds: region.bounds,
-          centerX: region.bounds.x + region.bounds.width / 2,
-          centerY: region.bounds.y + region.bounds.height / 2,
-          nodeIds: region.nodes.map((n) => n.id),
-        })),
-        name: 'Layout Engine Test',
-      };
-
-      // 6. Create renderer
-      const renderer = new IsometricRenderer({
-        viewport,
-        atlas,
-        tileWidth: 64,
-        tileHeight: 32,
-        gridColor: 0x333333,
-        regionColor: 0xff6600,
-      });
-
-      const scene = renderer.renderScene(mapData, true);
-      rendererRef.current = renderer;
-
-      // 7. Calculate grid center and position all containers
-      const centerGridX = gridWidth / 2;
-      const centerGridY = gridHeight / 2;
-      const centerScreenX = (centerGridX - centerGridY) * 32;
-      const centerScreenY = (centerGridX + centerGridY) * 16;
-      const offsetX = worldWidth / 2 - centerScreenX;
-      const offsetY = worldHeight / 2 - centerScreenY;
-
-      // Position all scene containers
-      scene.background.x = offsetX;
-      scene.background.y = offsetY;
-      scene.tiles.x = offsetX;
-      scene.tiles.y = offsetY;
-      scene.bridges.x = offsetX;
-      scene.bridges.y = offsetY;
-      scene.paths.x = offsetX;
-      scene.paths.y = offsetY;
-      scene.nodes.x = offsetX;
-      scene.nodes.y = offsetY;
-
-      // Enable sorting for proper z-ordering
-      scene.nodes.sortableChildren = true;
-
-      // 8. Add to viewport
-      viewport.addChild(scene.background);
-      viewport.addChild(scene.tiles);
-      viewport.addChild(scene.bridges);
-      viewport.addChild(scene.paths);
-      viewport.addChild(scene.nodes);
-
-      // 9. Create interaction manager with full world bounds
-      const interaction = new IsometricInteractionManager(
-        {
-          viewport,
-          worldContainer: viewport,
-          tileWidth: 64,
-          tileHeight: 32,
-          mapBounds: {
-            minX: 0,
-            minY: 0,
-            maxX: gridWidth,
-            maxY: gridHeight,
-          },
-        },
-        {
-          onDragStart: (_nodeId) => {},
-          onDragMove: (_nodeId, _gridX, _gridY) => {},
-          onDragEnd: (_nodeId, _gridX, _gridY) => {},
+      for (const { size, count } of sizes) {
+        for (let i = 0; i < count; i++) {
+          result.push({
+            id: `sprite-${nodeId}`,
+            name: `${size.toFixed(1)}x`,
+            size,
+            category: 'default',
+          });
+          nodeId++;
         }
-      );
-
-      // Register all sprites
-      for (const [id, instance] of scene.spriteInstances) {
-        interaction.registerSprite(id, instance);
       }
+    }
 
-      interactionRef.current = interaction;
+    return result;
+  }, [sprites, sizeDistribution]);
 
-      // 10. Center viewport on the grid
-      canvas.moveCenter(worldWidth / 2, worldHeight / 2, true);
-    };
-
-    init();
-
-    // Cleanup
-    return () => {
-      interactionRef.current?.destroy();
-      rendererRef.current?.destroy();
-      canvasRef.current?.destroy();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - component will remount when story changes via key prop
+  // Calculate stats for display
+  const stats = useMemo(() => {
+    const total = nodes.length;
+    const bySize = nodes.reduce(
+      (acc, n) => {
+        const key = `${(n.size || 1).toFixed(1)}x`;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+    return { total, bySize };
+  }, [nodes]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+      <OverworldMapPanelContent nodes={nodes} includeDevDependencies={false} />
+
+      {/* Stats overlay */}
       <div
-        ref={containerRef}
-        style={{ width: '100%', height: '100%', backgroundColor: '#0a0a0a' }}
-      />
-      {stats && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 20,
-            left: 20,
-            background: 'rgba(0, 0, 0, 0.8)',
-            color: 'white',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            fontFamily: 'monospace',
-            fontSize: '14px',
-            border:
-              stats.overflow > 0 ? '2px solid #ef4444' : '2px solid #22c55e',
-          }}
-        >
-          <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>
-            Layout Stats
-          </div>
-          <div>✓ Placed: {stats.placed} sprites</div>
-          {stats.overflow > 0 && (
-            <div style={{ color: '#ef4444' }}>
-              ⚠ Overflow: {stats.overflow} sprites didn't fit
-            </div>
-          )}
-          <div>📊 Utilization: {stats.utilization.toFixed(1)}%</div>
+        style={{
+          position: 'absolute',
+          top: 20,
+          left: 20,
+          background: 'rgba(0, 0, 0, 0.8)',
+          color: 'white',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          fontFamily: 'monospace',
+          fontSize: '14px',
+          border: '2px solid #22c55e',
+          pointerEvents: 'none',
+        }}
+      >
+        <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>
+          Layout Test
         </div>
-      )}
+        <div>Total: {stats.total} sprites</div>
+        <div style={{ marginTop: '4px', fontSize: '12px', color: '#94a3b8' }}>
+          {Object.entries(stats.bySize)
+            .sort(([a], [b]) => parseFloat(a) - parseFloat(b))
+            .map(([size, count]) => `${count}×${size}`)
+            .join(', ')}
+        </div>
+      </div>
     </div>
   );
 };

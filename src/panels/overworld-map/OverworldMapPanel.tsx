@@ -122,6 +122,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const sceneContainersRef = useRef<{
     background: Container;
     tiles: Container;
+    licenseGrounds: Container;
     bridges: Container;
     paths: Container;
     nodes: Container;
@@ -209,6 +210,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       if (sceneContainersRef.current) {
         viewport.removeChild(sceneContainersRef.current.background);
         viewport.removeChild(sceneContainersRef.current.tiles);
+        viewport.removeChild(sceneContainersRef.current.licenseGrounds);
         viewport.removeChild(sceneContainersRef.current.bridges);
         viewport.removeChild(sceneContainersRef.current.paths);
         viewport.removeChild(sceneContainersRef.current.nodes);
@@ -217,9 +219,10 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       // Render new scene
       const scene = renderer.renderScene(mapData, true);
 
-      // Re-add scene containers
+      // Re-add scene containers (layer order matters)
       viewport.addChild(scene.background);
       viewport.addChild(scene.tiles);
+      viewport.addChild(scene.licenseGrounds);
       viewport.addChild(scene.bridges);
       viewport.addChild(scene.paths);
       viewport.addChild(scene.nodes);
@@ -343,6 +346,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       // Add scene containers to viewport (layer order)
       viewport.addChild(scene.background); // Grid
       viewport.addChild(scene.tiles); // Terrain (empty for now)
+      viewport.addChild(scene.licenseGrounds); // License ground treatments (behind buildings)
       viewport.addChild(scene.bridges); // Bridges (empty for now)
       viewport.addChild(scene.paths); // Paths between nodes
       viewport.addChild(scene.nodes); // Sprites with highlights and labels
@@ -864,6 +868,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     if (sceneContainersRef.current) {
       viewport.removeChild(sceneContainersRef.current.background);
       viewport.removeChild(sceneContainersRef.current.tiles);
+      viewport.removeChild(sceneContainersRef.current.licenseGrounds);
       viewport.removeChild(sceneContainersRef.current.bridges);
       viewport.removeChild(sceneContainersRef.current.paths);
       viewport.removeChild(sceneContainersRef.current.nodes);
@@ -871,6 +876,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       // Destroy containers and their children to free GPU memory
       sceneContainersRef.current.background.destroy({ children: true });
       sceneContainersRef.current.tiles.destroy({ children: true });
+      sceneContainersRef.current.licenseGrounds.destroy({ children: true });
       sceneContainersRef.current.bridges.destroy({ children: true });
       sceneContainersRef.current.paths.destroy({ children: true });
       sceneContainersRef.current.nodes.destroy({ children: true });
@@ -879,9 +885,10 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     // Render new scene with updated mapData
     const scene = renderer.renderScene(mapData, true);
 
-    // Re-add scene containers
+    // Re-add scene containers (layer order matters)
     viewport.addChild(scene.background);
     viewport.addChild(scene.tiles);
+    viewport.addChild(scene.licenseGrounds);
     viewport.addChild(scene.bridges);
     viewport.addChild(scene.paths);
     viewport.addChild(scene.nodes);

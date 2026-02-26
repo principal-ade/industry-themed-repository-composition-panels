@@ -68,7 +68,8 @@ const createMockRepository = (
   lineCount: number,
   daysAgo: number,
   stars: number = 0,
-  collaborators: number = 0
+  collaborators: number = 0,
+  license: string = 'MIT'
 ) => ({
   name,
   path: `/Users/mock/${name}`,
@@ -87,6 +88,7 @@ const createMockRepository = (
     primaryLanguage: language,
     stars,
     contributors: collaborators,
+    license,
   },
   theme: language,
   metrics: {
@@ -104,11 +106,30 @@ const mockRepositories = [
     25000,
     2,
     45000,
-    180
-  ), // Epic statue + Major Project gazebo
-  createMockRepository('api-service', 'python', 120, 15000, 5, 12500, 85), // Famous statue + Community gazebo
-  createMockRepository('mobile-app', 'kotlin', 380, 32000, 7, 7200, 42), // Renowned trophy + Large Team pavilion
-  createMockRepository('data-pipeline', 'rust', 95, 12000, 10, 2500, 28), // Notable trophy + Large Team pavilion
+    180,
+    'MIT'
+  ), // MIT - flower arch + open grass
+  createMockRepository(
+    'api-service',
+    'python',
+    120,
+    15000,
+    5,
+    12500,
+    85,
+    'Apache-2.0'
+  ), // Apache - posts + cobblestone
+  createMockRepository('mobile-app', 'kotlin', 380, 32000, 7, 7200, 42, 'MIT'), // MIT
+  createMockRepository(
+    'data-pipeline',
+    'rust',
+    95,
+    12000,
+    10,
+    2500,
+    28,
+    'GPL-3.0'
+  ), // GPL - iron arch + picket fence
   createMockRepository(
     'analytics-dashboard',
     'typescript',
@@ -116,9 +137,19 @@ const mockRepositories = [
     18000,
     15,
     850,
-    15
-  ), // Popular flag + Active Team pavilion
-  createMockRepository('auth-service', 'go', 85, 8500, 20, 320, 8), // Growing flag + Small Team bench
+    15,
+    'MIT'
+  ), // MIT
+  createMockRepository(
+    'auth-service',
+    'go',
+    85,
+    8500,
+    20,
+    320,
+    8,
+    'Apache-2.0'
+  ), // Apache
   createMockRepository(
     'notification-service',
     'javascript',
@@ -126,12 +157,49 @@ const mockRepositories = [
     9200,
     25,
     75,
-    5
-  ), // New flag + Small Team bench
-  createMockRepository('legacy-monolith', 'java', 1200, 95000, 45, 150000, 320), // Mythic statue + Open Source Hub bandstand
-  createMockRepository('old-frontend', 'javascript', 340, 28000, 60, 3200, 18), // Notable trophy + Active Team pavilion
-  createMockRepository('prototype-ml', 'python', 75, 6500, 90, 42, 3), // New flag + Solo bench
-  createMockRepository('archived-experiment', 'ruby', 45, 3200, 180, 0, 1), // No star decoration + Solo bench
+    5,
+    'BSD'
+  ), // BSD (uses MIT style)
+  createMockRepository(
+    'legacy-monolith',
+    'java',
+    1200,
+    95000,
+    45,
+    150000,
+    320,
+    'GPL-3.0'
+  ), // GPL
+  createMockRepository(
+    'old-frontend',
+    'javascript',
+    340,
+    28000,
+    60,
+    3200,
+    18,
+    'MIT'
+  ), // MIT
+  createMockRepository(
+    'prototype-ml',
+    'python',
+    75,
+    6500,
+    90,
+    42,
+    3,
+    'Apache-2.0'
+  ), // Apache
+  createMockRepository(
+    'archived-experiment',
+    'ruby',
+    45,
+    3200,
+    180,
+    0,
+    1,
+    'MIT'
+  ), // MIT
   createMockRepository(
     'design-system',
     'typescript',
@@ -139,8 +207,9 @@ const mockRepositories = [
     14000,
     8,
     600000,
-    450
-  ), // Celestial statue + Open Source Hub bandstand
+    450,
+    'MIT'
+  ), // MIT
   createMockRepository(
     'testing-framework',
     'typescript',
@@ -148,10 +217,29 @@ const mockRepositories = [
     7800,
     30,
     1200,
-    22
-  ), // Notable trophy + Active Team pavilion
-  createMockRepository('deployment-scripts', 'shell', 25, 1500, 12, 250, 6), // Growing flag + Small Team bench
-  createMockRepository('documentation', 'markdown', 60, 4500, 20, 18000, 95), // Famous statue + Community gazebo
+    22,
+    'GPL-3.0'
+  ), // GPL
+  createMockRepository(
+    'deployment-scripts',
+    'shell',
+    25,
+    1500,
+    12,
+    250,
+    6,
+    'Apache-2.0'
+  ), // Apache
+  createMockRepository(
+    'documentation',
+    'markdown',
+    60,
+    4500,
+    20,
+    18000,
+    95,
+    'MIT'
+  ), // MIT
 ];
 
 // Create mock monorepo with packages
@@ -161,7 +249,8 @@ const createMockMonorepo = (
   daysAgo: number,
   packages: Array<{ name: string; fileCount: number; language?: string }>,
   stars: number = 0,
-  collaborators: number = 0
+  collaborators: number = 0,
+  license: string = 'MIT'
 ) => {
   const mockPackages: PackageLayer[] = packages.map((pkg) => {
     const pkgLanguage = pkg.language || language;
@@ -229,6 +318,7 @@ const createMockMonorepo = (
       primaryLanguage: language,
       stars,
       contributors: collaborators,
+      license,
     },
     theme: language,
     metrics: {
@@ -251,8 +341,9 @@ const mockMonorepos = [
       { name: 'shared', fileCount: 180, language: 'typescript' },
     ],
     28000,
-    120
-  ), // Legendary statue + Major Project gazebo
+    120,
+    'MIT'
+  ), // MIT - flower arch + open grass
   createMockMonorepo(
     'backend-services',
     'python',
@@ -262,8 +353,9 @@ const mockMonorepos = [
       { name: 'users', fileCount: 280, language: 'python' },
     ],
     4200,
-    35
-  ), // Notable trophy + Large Team pavilion
+    35,
+    'Apache-2.0'
+  ), // Apache - posts + cobblestone
   createMockMonorepo(
     'mobile-suite',
     'typescript',
@@ -275,8 +367,9 @@ const mockMonorepos = [
       { name: 'shared-utils', fileCount: 90, language: 'go' },
     ],
     125000,
-    280
-  ), // Mythic statue + Open Source Hub bandstand
+    280,
+    'GPL-3.0'
+  ), // GPL - iron arch + picket fence
   createMockMonorepo(
     'enterprise-platform',
     'typescript',
@@ -310,8 +403,9 @@ const mockMonorepos = [
       { name: 'test-fixtures', fileCount: 190, language: 'typescript' },
     ],
     85000,
-    450
-  ), // Large enterprise monorepo with 20 packages
+    450,
+    'MIT'
+  ), // MIT - Large enterprise monorepo
 ];
 
 // Integration Harness Component

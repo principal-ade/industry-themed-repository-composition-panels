@@ -35,6 +35,12 @@ import {
   generateGazeboSprite,
   generateBandstandSprite,
 } from './collaboratorDecorationSprites';
+import {
+  generateLicenseSign,
+  generateLicenseGround,
+  calculateFootprint,
+  type LicenseType,
+} from './licenseSignSprites';
 
 // Isometric tile constants (must match isometricUtils.ts)
 const ISO_TILE_WIDTH = 64;
@@ -46,6 +52,8 @@ export interface SpriteInstance {
   label: Text;
   hoverLabel?: Text; // For showing hovered package name in monorepos
   weathering?: Graphics;
+  licenseGround?: Graphics | Container; // License-based ground treatment (grass, cobblestone, fence)
+  licenseSign?: Container; // License-based sign/archway
   gridPosition: { gridX: number; gridY: number };
   size: number; // Size multiplier for boundary calculations
 
@@ -56,6 +64,7 @@ export interface SpriteInstance {
 export interface SceneContainers {
   background: Container;
   tiles: Container;
+  licenseGrounds: Container; // License-based ground treatments (behind buildings)
   bridges: Container;
   paths: Container;
   nodes: Container;
@@ -128,9 +137,13 @@ export class IsometricRenderer {
   renderScene(mapData: OverworldMap, showGrid = true): SceneContainers {
     const background = new Container();
     const tiles = new Container();
+    const licenseGrounds = new Container();
     const bridges = new Container();
     const paths = new Container();
     const nodes = new Container();
+
+    // Enable sorting for license grounds (z-index based on Y position)
+    licenseGrounds.sortableChildren = true;
 
     // Render grid if enabled
     if (showGrid) {
@@ -161,12 +174,23 @@ export class IsometricRenderer {
     // Render sprites
     const spriteInstances = this.renderSprites(mapData.nodes);
     for (const instance of spriteInstances.values()) {
+      // Add license ground to separate layer (behind buildings)
+      if (instance.licenseGround) {
+        licenseGrounds.addChild(instance.licenseGround);
+      }
+
       // Add in render order (bottom to top)
       nodes.addChild(instance.highlight); // Background: yellow diamond
       nodes.addChild(instance.sprite); // Middle: building/sprite (with baked decoration)
       if (instance.weathering) {
         nodes.addChild(instance.weathering); // Top: weathering overlay
       }
+
+      // Add license sign after sprite (in front of building)
+      if (instance.licenseSign) {
+        nodes.addChild(instance.licenseSign);
+      }
+
       nodes.addChild(instance.label); // Top: text label
       if (instance.hoverLabel) {
         nodes.addChild(instance.hoverLabel); // Top: hover label for monorepos
@@ -176,6 +200,7 @@ export class IsometricRenderer {
     return {
       background,
       tiles,
+      licenseGrounds,
       bridges,
       paths,
       nodes,
@@ -690,6 +715,33 @@ export class IsometricRenderer {
       weathering.zIndex = container.zIndex + 0.1;
     }
 
+    // Create license ground and sign if node has license info
+    let licenseGround: Graphics | Container | undefined;
+    let licenseSign: Container | undefined;
+
+    if (node.license) {
+      const licenseType = node.license as LicenseType;
+      const footprint = calculateFootprint(sizeMultiplier);
+
+      // Create ground treatment (grass, cobblestone, fence)
+      licenseGround = generateLicenseGround(licenseType, sizeMultiplier);
+      licenseGround.x = screenX;
+      licenseGround.y = screenY;
+      licenseGround.zIndex = screenY; // Sort by Y for proper overlap
+
+      // Create license sign/archway (positioned at front of diamond)
+      licenseSign = generateLicenseSign(licenseType, {
+        name: node.label,
+        sizeMultiplier,
+      });
+      licenseSign.x = screenX;
+      licenseSign.y = screenY + footprint.height * 0.75; // Front edge of diamond
+      licenseSign.zIndex = container.zIndex + 0.15; // In front of building, behind label
+
+      // Hide the label since the license sign already shows the name
+      label.visible = false;
+    }
+
     // Create sprite instance
     const instance: SpriteInstance = {
       sprite: container as unknown as Sprite, // Container acts as the sprite
@@ -697,6 +749,8 @@ export class IsometricRenderer {
       label,
       hoverLabel,
       weathering,
+      licenseGround,
+      licenseSign,
       gridPosition: { gridX: node.gridX, gridY: node.gridY },
       size: sizeMultiplier,
       update: (gridX: number, gridY: number) => {
@@ -730,6 +784,19 @@ export class IsometricRenderer {
           weathering.y = pos.screenY;
         }
 
+        // Update license ground and sign positions
+        if (licenseGround) {
+          licenseGround.x = pos.screenX;
+          licenseGround.y = pos.screenY;
+          licenseGround.zIndex = pos.screenY;
+        }
+        if (licenseSign) {
+          const footprint = calculateFootprint(sizeMultiplier);
+          licenseSign.x = pos.screenX;
+          licenseSign.y = pos.screenY + footprint.height * 0.75;
+          licenseSign.zIndex = getIsometricZIndex(gridX, gridY) + 0.15;
+        }
+
         instance.gridPosition = { gridX, gridY };
       },
       destroy: () => {
@@ -738,6 +805,8 @@ export class IsometricRenderer {
         label.destroy();
         hoverLabel.destroy();
         weathering?.destroy();
+        licenseGround?.destroy();
+        licenseSign?.destroy();
       },
     };
 
@@ -837,12 +906,41 @@ export class IsometricRenderer {
       label.anchor.set(0.5, 0);
       label.zIndex = sprite.zIndex + 0.2;
 
+      // Create license ground and sign if node has license info
+      let licenseGround: Graphics | Container | undefined;
+      let licenseSign: Container | undefined;
+
+      if (node.license) {
+        const licenseType = node.license as LicenseType;
+        const footprint = calculateFootprint(sizeMultiplier);
+
+        // Create ground treatment (grass, cobblestone, fence)
+        licenseGround = generateLicenseGround(licenseType, sizeMultiplier);
+        licenseGround.x = screenX;
+        licenseGround.y = screenY;
+        licenseGround.zIndex = screenY; // Sort by Y for proper overlap
+
+        // Create license sign/archway (positioned at front of diamond)
+        licenseSign = generateLicenseSign(licenseType, {
+          name: node.label,
+          sizeMultiplier,
+        });
+        licenseSign.x = screenX;
+        licenseSign.y = screenY + footprint.height * 0.75; // Front edge of diamond
+        licenseSign.zIndex = sprite.zIndex + 0.15; // In front of building, behind label
+
+        // Hide the label since the license sign already shows the name
+        label.visible = false;
+      }
+
       // Create sprite instance
       const instance: SpriteInstance = {
         sprite,
         highlight,
         label,
         weathering,
+        licenseGround,
+        licenseSign,
         gridPosition: { gridX: node.gridX, gridY: node.gridY },
         size: sizeMultiplier,
         update: (gridX: number, gridY: number) => {
@@ -874,6 +972,19 @@ export class IsometricRenderer {
             weathering.y = pos.screenY;
           }
 
+          // Update license ground and sign positions
+          if (licenseGround) {
+            licenseGround.x = pos.screenX;
+            licenseGround.y = pos.screenY;
+            licenseGround.zIndex = pos.screenY;
+          }
+          if (licenseSign) {
+            const footprint = calculateFootprint(sizeMultiplier);
+            licenseSign.x = pos.screenX;
+            licenseSign.y = pos.screenY + footprint.height * 0.75;
+            licenseSign.zIndex = getIsometricZIndex(gridX, gridY) + 0.15;
+          }
+
           instance.gridPosition = { gridX, gridY };
         },
         destroy: () => {
@@ -881,6 +992,8 @@ export class IsometricRenderer {
           highlight.destroy();
           label.destroy();
           weathering?.destroy();
+          licenseGround?.destroy();
+          licenseSign?.destroy();
         },
       };
 

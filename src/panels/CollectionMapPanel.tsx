@@ -585,6 +585,9 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           size = size + decorationBonus; // Increase size to accommodate decoration
         }
 
+        // Extract license from GitHub metadata
+        const license = repo.github?.license;
+
         const node: GenericNode = {
           id: membership.repositoryId,
           name: repo.name,
@@ -596,6 +599,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           packages, // Package subdivision data
           stars, // GitHub star count for decorations
           collaborators, // Contributor count for community space decorations
+          license, // License identifier for sign/ground treatment
           dependencies: dependencies[membership.repositoryId] || [],
           isRoot: membership.metadata?.pinned || false,
           regionId: membership.metadata?.regionId, // Preserve region assignment

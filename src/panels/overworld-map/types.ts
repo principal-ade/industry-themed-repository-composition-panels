@@ -94,6 +94,9 @@ export interface LocationNode {
   // GitHub popularity
   stars?: number; // GitHub star count for decoration
   collaborators?: number; // Contributor count for community space decoration
+
+  // License information
+  license?: string; // SPDX license identifier (e.g., 'MIT', 'Apache-2.0', 'GPL-3.0')
 }
 
 /**
