@@ -1004,9 +1004,57 @@ export const WithEnvJson: Story = {
 };
 
 /**
- * Private vs Public packages
+ * Private GitHub Repository
  *
- * Demonstrates the private package indicator (lock icon).
+ * Demonstrates the panel header for a private GitHub repository.
+ * Shows "Private Repo" with a lock icon in the header.
+ */
+export const PrivateGitHubRepo: Story = {
+  args: {
+    packages: samplePackages,
+    isGitHubPublic: false,
+    onCommandClick: (_command: PackageCommand, _packagePath: string) => {},
+    onConfigClick: (_config: ConfigFile) => {},
+    onPackageClick: (_packagePath: string) => {},
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Shows "Private Repo" in the header with a lock icon when the GitHub repository is private.',
+      },
+    },
+  },
+};
+
+/**
+ * Public GitHub Repository
+ *
+ * Demonstrates the panel header for a public GitHub repository.
+ * Shows "Public Repo" with a globe icon in the header.
+ */
+export const PublicGitHubRepo: Story = {
+  args: {
+    packages: samplePackages,
+    isGitHubPublic: true,
+    onCommandClick: (_command: PackageCommand, _packagePath: string) => {},
+    onConfigClick: (_config: ConfigFile) => {},
+    onPackageClick: (_packagePath: string) => {},
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Shows "Public Repo" in the header with a globe icon when the GitHub repository is public.',
+      },
+    },
+  },
+};
+
+/**
+ * Private vs Public packages (npm)
+ *
+ * Demonstrates the private package indicator (lock icon) for npm packages.
  * - Private packages show a lock icon next to their name
  * - Hovering shows a tooltip explaining the package won't be published to npm
  * - Typically monorepo roots and internal apps are private

@@ -69,7 +69,11 @@ import type {
   FileTree,
   GitStatusWithFiles,
 } from '@principal-ai/repository-abstraction';
+import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library';
 import type { PackagesSliceData } from './dependencies';
+
+// Re-export AlexandriaEntry for consumers
+export type { AlexandriaEntry } from '@principal-ai/alexandria-core-library';
 
 // Re-export file tree types
 export type { GitFileStatus } from '@principal-ade/dynamic-file-tree';
@@ -126,6 +130,8 @@ export type GitChangesPanelPropsTyped = CorePanelComponentProps<
  */
 export interface PackageCompositionPanelContext {
   packages: DataSlice<PackagesSliceData | null>;
+  /** Alexandria repository entry with GitHub metadata */
+  repository: DataSlice<AlexandriaEntry | null>;
 }
 
 /**

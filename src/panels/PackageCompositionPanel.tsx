@@ -1,6 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { FileCode, Terminal, Settings, Package, GitBranch } from 'lucide-react';
+import {
+  FileCode,
+  Terminal,
+  Settings,
+  Package,
+  GitBranch,
+  Lock,
+  Globe,
+} from 'lucide-react';
 import { PackageManagerIcon } from './components/PackageManagerIcon';
 import { PackageDetailCard, PackageSummaryCard } from './components';
 import { EmptyDependencies } from './components/EmptyDependencies';
@@ -21,6 +29,8 @@ export interface PackageCompositionPanelProps {
   isLoading?: boolean;
   /** Manifest files found in the project (for empty state display) */
   foundManifests?: string[];
+  /** Whether the GitHub repository is public (undefined if no GitHub info) */
+  isGitHubPublic?: boolean;
   /** Callback when a command is clicked */
   onCommandClick?: (command: PackageCommand, packagePath: string) => void;
   /** Callback when a config file is clicked */
@@ -45,6 +55,7 @@ export const PackageCompositionPanelContent: React.FC<
 > = ({
   packages,
   isLoading = false,
+  isGitHubPublic,
   onCommandClick,
   onConfigClick,
   onPackageClick,
@@ -93,23 +104,8 @@ export const PackageCompositionPanelContent: React.FC<
     return <EmptyDependencies />;
   }
 
-  // Single package: render standalone without card wrapper
-  if (packages.length === 1) {
-    return (
-      <PackageDetailCard
-        pkg={packages[0]}
-        isExpanded={true}
-        onToggle={() => {}}
-        onCommandClick={onCommandClick}
-        onConfigClick={onConfigClick}
-        onPackageClick={onPackageClick}
-        standalone
-        readFile={readFile}
-      />
-    );
-  }
+  const isSinglePackage = packages.length === 1;
 
-  // Multi-package (monorepo): summary cards with slide-to-detail
   return (
     <div
       style={{
@@ -117,148 +113,173 @@ export const PackageCompositionPanelContent: React.FC<
         flexDirection: 'column',
         height: '100%',
         overflow: 'hidden',
-        position: 'relative',
       }}
     >
-      {/* Sliding Container */}
+      {/* Persistent Header */}
       <div
         style={{
+          height: '40px',
+          padding: '0 16px',
+          backgroundColor: theme.colors.backgroundSecondary,
+          borderBottom: `1px solid ${theme.colors.border}`,
           display: 'flex',
-          width: '200%',
-          height: '100%',
-          transform: selectedPackage ? 'translateX(-50%)' : 'translateX(0)',
-          transition: 'transform 0.25s ease-in-out',
+          alignItems: 'center',
+          gap: '8px',
+          flexShrink: 0,
         }}
       >
-        {/* Summary View (left panel) */}
-        <div
+        {isGitHubPublic === false ? (
+          <Lock size={16} color={theme.colors.textSecondary} />
+        ) : isGitHubPublic === true ? (
+          <Globe size={16} color={theme.colors.textSecondary} />
+        ) : (
+          <FileCode size={16} color={theme.colors.primary} />
+        )}
+        <span
           style={{
-            width: '50%',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
+            fontSize: theme.fontSizes[1],
+            fontFamily: theme.fonts.body,
+            color: theme.colors.textSecondary,
+            flex: 1,
           }}
+          title={
+            isGitHubPublic === false
+              ? 'This repository is private on GitHub'
+              : isGitHubPublic === true
+                ? 'This repository is public on GitHub'
+                : undefined
+          }
         >
-          {/* Header */}
-          <div
+          {isGitHubPublic === false
+            ? 'Private Repo'
+            : isGitHubPublic === true
+              ? 'Public Repo'
+              : `${packages.length} packages`}
+        </span>
+        {packages.length > 1 && (
+          <button
+            onClick={() => {
+              events?.emit({
+                type: 'dependency-graph:open',
+                source: 'PackageCompositionPanel',
+                timestamp: Date.now(),
+                payload: { packages },
+              });
+            }}
             style={{
-              height: '40px',
-              padding: '0 16px',
-              borderBottom: `1px solid ${theme.colors.border}`,
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              flexShrink: 0,
+              gap: '4px',
+              padding: '4px 8px',
+              backgroundColor: theme.colors.backgroundTertiary,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '4px',
+              color: theme.colors.text,
+              fontSize: theme.fontSizes[0],
+              fontFamily: theme.fonts.body,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = theme.colors.primary;
+              e.currentTarget.style.backgroundColor =
+                theme.colors.primary + '15';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = theme.colors.border;
+              e.currentTarget.style.backgroundColor =
+                theme.colors.backgroundTertiary;
+            }}
+            title="Open dependency graph in new tab"
           >
-            <FileCode size={16} color={theme.colors.primary} />
-            <span
-              style={{
-                fontSize: theme.fontSizes[1],
-                fontFamily: theme.fonts.body,
-                color: theme.colors.textSecondary,
-                flex: 1,
-              }}
-            >
-              {packages.length} packages
-            </span>
-            {packages.length > 1 && (
-              <button
-                onClick={() => {
-                  events?.emit({
-                    type: 'dependency-graph:open',
-                    source: 'PackageCompositionPanel',
-                    timestamp: Date.now(),
-                    payload: { packages },
-                  });
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '4px 8px',
-                  backgroundColor: theme.colors.backgroundTertiary,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: '4px',
-                  color: theme.colors.text,
-                  fontSize: theme.fontSizes[0],
-                  fontFamily: theme.fonts.body,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = theme.colors.primary;
-                  e.currentTarget.style.backgroundColor =
-                    theme.colors.primary + '15';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = theme.colors.border;
-                  e.currentTarget.style.backgroundColor =
-                    theme.colors.backgroundTertiary;
-                }}
-                title="Open dependency graph in new tab"
-              >
-                <GitBranch size={12} />
-                View Graph
-              </button>
-            )}
-          </div>
+            <GitBranch size={12} />
+            View Graph
+          </button>
+        )}
+      </div>
 
-          {/* Summary Cards */}
+      {/* Content Area */}
+      <div
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        {isSinglePackage ? (
+          // Single package: show detail directly
+          <PackageDetailCard
+            pkg={packages[0]}
+            isExpanded={true}
+            onToggle={() => {}}
+            onCommandClick={onCommandClick}
+            onConfigClick={onConfigClick}
+            onPackageClick={onPackageClick}
+            standalone
+            readFile={readFile}
+          />
+        ) : (
+          // Multi-package: sliding panels
           <div
             style={{
-              flex: 1,
-              overflow: 'auto',
               display: 'flex',
-              flexDirection: 'column',
+              width: '200%',
+              height: '100%',
+              transform: selectedPackage ? 'translateX(-50%)' : 'translateX(0)',
+              transition: 'transform 0.25s ease-in-out',
             }}
           >
-            {sortedPackages.map((pkg) => (
-              <PackageSummaryCard
-                key={pkg.id}
-                pkg={pkg}
-                allPackages={packages}
-                onClick={() => {
-                  setSelectedPackageId(pkg.id);
-                  onPackageSelect?.(pkg);
-                }}
-                onHover={onPackageHover}
-              />
-            ))}
-          </div>
-        </div>
+            {/* Summary View (left panel) */}
+            <div
+              style={{
+                width: '50%',
+                height: '100%',
+                overflow: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {sortedPackages.map((pkg) => (
+                <PackageSummaryCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  allPackages={packages}
+                  onClick={() => {
+                    setSelectedPackageId(pkg.id);
+                    onPackageSelect?.(pkg);
+                  }}
+                  onHover={onPackageHover}
+                />
+              ))}
+            </div>
 
-        {/* Detail View (right panel) */}
-        <div
-          style={{
-            width: '50%',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Package Detail */}
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            {selectedPackage && (
-              <PackageDetailCard
-                pkg={selectedPackage}
-                isExpanded={true}
-                onToggle={() => {}}
-                onCommandClick={onCommandClick}
-                onConfigClick={onConfigClick}
-                onPackageClick={onPackageClick}
-                standalone
-                readFile={readFile}
-                onClose={() => {
-                  setSelectedPackageId(null);
-                  onPackageSelect?.(null);
-                }}
-              />
-            )}
+            {/* Detail View (right panel) */}
+            <div
+              style={{
+                width: '50%',
+                height: '100%',
+                overflow: 'hidden',
+              }}
+            >
+              {selectedPackage && (
+                <PackageDetailCard
+                  pkg={selectedPackage}
+                  isExpanded={true}
+                  onToggle={() => {}}
+                  onCommandClick={onCommandClick}
+                  onConfigClick={onConfigClick}
+                  onPackageClick={onPackageClick}
+                  standalone
+                  readFile={readFile}
+                  onClose={() => {
+                    setSelectedPackageId(null);
+                    onPackageSelect?.(null);
+                  }}
+                />
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -326,11 +347,13 @@ export const PackageCompositionPanelPreview: React.FC = () => {
 export const PackageCompositionPanel: React.FC<
   PackageCompositionPanelPropsTyped
 > = ({ context, actions, events }) => {
-  // Get packages slice from typed context (direct property access)
+  // Get slices from typed context
   const packagesSlice = context.packages;
+  const repositorySlice = context.repository;
 
   const packages = packagesSlice?.data?.packages ?? [];
   const isLoading = packagesSlice?.loading || false;
+  const isGitHubPublic = repositorySlice?.data?.github?.isPublic;
 
   // Emit package:hover events when hovering over packages
   const handlePackageHover = (pkg: PackageLayer | null) => {
@@ -366,6 +389,7 @@ export const PackageCompositionPanel: React.FC<
     <PackageCompositionPanelContent
       packages={packages}
       isLoading={isLoading}
+      isGitHubPublic={isGitHubPublic}
       onPackageHover={handlePackageHover}
       onPackageSelect={handlePackageSelect}
       events={events}
