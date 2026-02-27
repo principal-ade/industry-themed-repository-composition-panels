@@ -5,7 +5,6 @@ import {
   Terminal,
   Settings,
   Package,
-  GitBranch,
   Lock,
   Globe,
 } from 'lucide-react';
@@ -156,46 +155,6 @@ export const PackageCompositionPanelContent: React.FC<
               ? 'Public Repo'
               : `${packages.length} packages`}
         </span>
-        {packages.length > 1 && (
-          <button
-            onClick={() => {
-              events?.emit({
-                type: 'dependency-graph:open',
-                source: 'PackageCompositionPanel',
-                timestamp: Date.now(),
-                payload: { packages },
-              });
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '4px 8px',
-              backgroundColor: theme.colors.backgroundTertiary,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: '4px',
-              color: theme.colors.text,
-              fontSize: theme.fontSizes[0],
-              fontFamily: theme.fonts.body,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = theme.colors.primary;
-              e.currentTarget.style.backgroundColor =
-                theme.colors.primary + '15';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = theme.colors.border;
-              e.currentTarget.style.backgroundColor =
-                theme.colors.backgroundTertiary;
-            }}
-            title="Open dependency graph in new tab"
-          >
-            <GitBranch size={12} />
-            View Graph
-          </button>
-        )}
       </div>
 
       {/* Content Area */}
