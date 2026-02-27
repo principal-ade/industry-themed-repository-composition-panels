@@ -9,6 +9,7 @@ import {
   CheckCircle,
   ExternalLink,
   X,
+  Lock,
 } from 'lucide-react';
 import { PackageManagerIcon } from './PackageManagerIcon';
 import { DependencyRow } from './DependencyRow';
@@ -328,16 +329,38 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
                 fontSize: theme.fontSizes[2],
                 fontWeight: theme.fontWeights.semibold,
                 fontFamily: theme.fonts.body,
                 color: theme.colors.text,
                 overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
               }}
             >
-              {pkg.packageData.name}
+              <span
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {pkg.packageData.name}
+              </span>
+              {pkg.packageData.isPrivate && (
+                <span
+                  title="Private package - not published to npm"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                    color: theme.colors.textSecondary,
+                  }}
+                >
+                  <Lock size={14} />
+                </span>
+              )}
             </div>
             <div
               style={{
@@ -898,15 +921,37 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
               fontSize: theme.fontSizes[2],
               fontWeight: theme.fontWeights.semibold,
               fontFamily: theme.fonts.body,
               overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
             }}
           >
-            {pkg.packageData.name}
+            <span
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {pkg.packageData.name}
+            </span>
+            {pkg.packageData.isPrivate && (
+              <span
+                title="Private package - not published to npm"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexShrink: 0,
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                <Lock size={14} />
+              </span>
+            )}
           </div>
           <div
             style={{

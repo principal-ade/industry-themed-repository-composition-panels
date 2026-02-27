@@ -67,6 +67,7 @@ const createMockPackage = (config: {
     peerDependencies: config.packageData.peerDependencies ?? {},
     isMonorepoRoot: config.packageData.isMonorepoRoot ?? false,
     isWorkspace: config.packageData.isWorkspace ?? false,
+    isPrivate: config.packageData.isPrivate ?? false,
     version: config.packageData.version,
     license: config.packageData.license,
     availableCommands: config.packageData.availableCommands,
@@ -88,6 +89,7 @@ const samplePackages: PackageLayer[] = [
       packageManager: 'npm',
       isMonorepoRoot: true,
       isWorkspace: false,
+      isPrivate: true,
       monorepoMetadata: {
         orchestrator: 'turbo',
         orchestratorConfigPath: 'turbo.json',
@@ -998,6 +1000,147 @@ export const WithEnvJson: Story = {
     onCommandClick: (_command: PackageCommand, _packagePath: string) => {},
     onConfigClick: (_config: ConfigFile) => {},
     onPackageClick: (_packagePath: string) => {},
+  },
+};
+
+/**
+ * Private vs Public packages
+ *
+ * Demonstrates the private package indicator (lock icon).
+ * - Private packages show a lock icon next to their name
+ * - Hovering shows a tooltip explaining the package won't be published to npm
+ * - Typically monorepo roots and internal apps are private
+ */
+export const PrivatePackages: Story = {
+  args: {
+    packages: [
+      createMockPackage({
+        packageData: {
+          name: 'my-private-monorepo',
+          version: '1.0.0',
+          license: 'UNLICENSED',
+          path: '',
+          manifestPath: 'package.json',
+          packageManager: 'pnpm',
+          isMonorepoRoot: true,
+          isWorkspace: false,
+          isPrivate: true,
+          monorepoMetadata: {
+            orchestrator: 'turbo',
+            orchestratorConfigPath: 'turbo.json',
+            workspacePatterns: ['packages/*', 'apps/*'],
+          },
+          dependencies: {},
+          devDependencies: {
+            turbo: '^2.0.0',
+            typescript: '^5.0.0',
+          },
+          peerDependencies: {},
+          availableCommands: [
+            { name: 'build', command: 'turbo build', type: 'script' },
+            { name: 'dev', command: 'turbo dev', type: 'script' },
+          ],
+        },
+        configFiles: {
+          typescript: { path: 'tsconfig.json', exists: true, type: 'json' },
+        },
+      }),
+      createMockPackage({
+        packageData: {
+          name: '@my-org/shared-ui',
+          version: '1.2.0',
+          license: 'MIT',
+          path: 'packages/shared-ui',
+          manifestPath: 'packages/shared-ui/package.json',
+          packageManager: 'pnpm',
+          isMonorepoRoot: false,
+          isWorkspace: true,
+          isPrivate: false,
+          dependencies: {
+            react: '^19.0.0',
+          },
+          devDependencies: {
+            typescript: '^5.0.0',
+          },
+          peerDependencies: {},
+          availableCommands: [
+            { name: 'build', command: 'tsup', type: 'script' },
+          ],
+        },
+        configFiles: {
+          typescript: {
+            path: 'packages/shared-ui/tsconfig.json',
+            exists: true,
+            type: 'json',
+          },
+        },
+      }),
+      createMockPackage({
+        packageData: {
+          name: '@my-org/internal-tools',
+          version: '0.1.0',
+          license: 'UNLICENSED',
+          path: 'packages/internal-tools',
+          manifestPath: 'packages/internal-tools/package.json',
+          packageManager: 'pnpm',
+          isMonorepoRoot: false,
+          isWorkspace: true,
+          isPrivate: true,
+          dependencies: {},
+          devDependencies: {
+            typescript: '^5.0.0',
+          },
+          peerDependencies: {},
+          availableCommands: [],
+        },
+        configFiles: {},
+      }),
+      createMockPackage({
+        packageData: {
+          name: 'web-app',
+          version: '2.0.0',
+          license: 'UNLICENSED',
+          path: 'apps/web',
+          manifestPath: 'apps/web/package.json',
+          packageManager: 'pnpm',
+          isMonorepoRoot: false,
+          isWorkspace: true,
+          isPrivate: true,
+          dependencies: {
+            react: '^19.0.0',
+            '@my-org/shared-ui': 'workspace:*',
+          },
+          devDependencies: {
+            typescript: '^5.0.0',
+            vite: '^6.0.0',
+          },
+          peerDependencies: {},
+          availableCommands: [
+            { name: 'dev', command: 'vite', type: 'script' },
+            { name: 'build', command: 'vite build', type: 'script' },
+          ],
+        },
+        configFiles: {
+          typescript: {
+            path: 'apps/web/tsconfig.json',
+            exists: true,
+            type: 'json',
+          },
+          vite: { path: 'apps/web/vite.config.ts', exists: true, type: 'ts' },
+        },
+      }),
+    ],
+    onCommandClick: (_command: PackageCommand, _packagePath: string) => {},
+    onConfigClick: (_config: ConfigFile) => {},
+    onPackageClick: (_packagePath: string) => {},
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Shows private packages with a lock icon. Private packages (private: true in package.json) are not published to npm. Hover over the lock icon for more details.',
+      },
+    },
   },
 };
 

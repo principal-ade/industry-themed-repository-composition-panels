@@ -1,6 +1,13 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { ChevronRight, Package, Layers, Box, LayoutGrid } from 'lucide-react';
+import {
+  ChevronRight,
+  Package,
+  Layers,
+  Box,
+  LayoutGrid,
+  Lock,
+} from 'lucide-react';
 import { PackageManagerIcon } from './PackageManagerIcon';
 import { OrchestratorBadge } from './OrchestratorBadge';
 import { getLicenseColor } from '../../utils/licenseColors';
@@ -120,16 +127,38 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
               fontSize: theme.fontSizes[3],
               fontWeight: theme.fontWeights.semibold,
               fontFamily: theme.fonts.body,
               color: theme.colors.text,
               overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
             }}
           >
-            {pkg.packageData.name}
+            <span
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {pkg.packageData.name}
+            </span>
+            {pkg.packageData.isPrivate && (
+              <span
+                title="Private package - not published to npm"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexShrink: 0,
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                <Lock size={14} />
+              </span>
+            )}
           </div>
           <div
             style={{
