@@ -349,11 +349,11 @@ export const PackageCompositionPanel: React.FC<
 > = ({ context, actions, events }) => {
   // Get slices from typed context
   const packagesSlice = context.packages;
-  const repositorySlice = context.repository;
+  const repositoryEntrySlice = context.repositoryEntry;
 
   const packages = packagesSlice?.data?.packages ?? [];
   const isLoading = packagesSlice?.loading || false;
-  const isGitHubPublic = repositorySlice?.data?.github?.isPublic;
+  const isGitHubPublic = repositoryEntrySlice?.data?.github?.isPublic;
 
   // Emit package:hover events when hovering over packages
   const handlePackageHover = (pkg: PackageLayer | null) => {

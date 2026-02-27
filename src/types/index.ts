@@ -131,7 +131,7 @@ export type GitChangesPanelPropsTyped = CorePanelComponentProps<
 export interface PackageCompositionPanelContext {
   packages: DataSlice<PackagesSliceData | null>;
   /** Alexandria repository entry with GitHub metadata */
-  repository: DataSlice<AlexandriaEntry | null>;
+  repositoryEntry: DataSlice<AlexandriaEntry | null>;
 }
 
 /**
