@@ -68,6 +68,7 @@ const createMockPackage = (config: {
     isMonorepoRoot: config.packageData.isMonorepoRoot ?? false,
     isWorkspace: config.packageData.isWorkspace ?? false,
     version: config.packageData.version,
+    license: config.packageData.license,
     availableCommands: config.packageData.availableCommands,
     monorepoMetadata: config.packageData.monorepoMetadata,
   },
@@ -81,6 +82,7 @@ const samplePackages: PackageLayer[] = [
     packageData: {
       name: 'my-app',
       version: '1.0.0',
+      license: 'MIT',
       path: '',
       manifestPath: 'package.json',
       packageManager: 'npm',
@@ -152,6 +154,7 @@ const samplePackages: PackageLayer[] = [
     packageData: {
       name: '@my-app/ui',
       version: '0.1.0',
+      license: 'MIT',
       path: 'packages/ui',
       manifestPath: 'packages/ui/package.json',
       packageManager: 'npm',
@@ -353,6 +356,7 @@ const samplePackages: PackageLayer[] = [
     packageData: {
       name: '@my-app/utils',
       version: '0.1.0',
+      license: 'MIT',
       path: 'packages/utils',
       manifestPath: 'packages/utils/package.json',
       packageManager: 'npm',
@@ -406,6 +410,7 @@ const samplePackages: PackageLayer[] = [
     packageData: {
       name: '@my-app/api',
       version: '0.1.0',
+      license: 'Apache-2.0',
       path: 'packages/api',
       manifestPath: 'packages/api/package.json',
       packageManager: 'npm',

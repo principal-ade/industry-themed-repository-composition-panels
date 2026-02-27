@@ -413,7 +413,17 @@ const IntegrationHarness: React.FC<{
   initialCollection: Collection;
   initialMemberships: CollectionMembership[];
   initialRepositories?: AlexandriaEntryWithMetrics[];
-}> = ({ initialCollection, initialMemberships, initialRepositories }) => {
+  /** Simulate async save delay (in ms) to test race conditions */
+  asyncSaveDelay?: number;
+  /** If true, state updates AFTER delay (buggy). If false, state updates BEFORE delay (fixed). */
+  delayBeforeStateUpdate?: boolean;
+}> = ({
+  initialCollection,
+  initialMemberships,
+  initialRepositories,
+  asyncSaveDelay = 0,
+  delayBeforeStateUpdate = false,
+}) => {
   // Merge initial memberships into collection.members
   const [collection, setCollection] = useState<Collection>(() => ({
     ...initialCollection,
@@ -571,17 +581,38 @@ const IntegrationHarness: React.FC<{
         `Updating position for ${repositoryId}: (${layout.gridX}, ${layout.gridY})`
       );
 
-      setCollection((prev) => ({
-        ...prev,
-        members: prev.members.map((m) =>
-          m.repositoryId === repositoryId
-            ? {
-                ...m,
-                metadata: { ...m.metadata, layout },
-              }
-            : m
-        ),
-      }));
+      const updateState = () => {
+        setCollection((prev) => ({
+          ...prev,
+          members: prev.members.map((m) =>
+            m.repositoryId === repositoryId
+              ? {
+                  ...m,
+                  metadata: { ...m.metadata, layout },
+                }
+              : m
+          ),
+        }));
+      };
+
+      const simulateSave = async () => {
+        if (asyncSaveDelay > 0) {
+          logEvent(`Simulating async save (${asyncSaveDelay}ms)...`);
+          await new Promise((resolve) => setTimeout(resolve, asyncSaveDelay));
+          logEvent(`Async save complete`);
+        }
+      };
+
+      if (delayBeforeStateUpdate && asyncSaveDelay > 0) {
+        // BUGGY: State updates AFTER async save - causes snap-back
+        logEvent(`⚠️ BUG MODE: Delaying state update until after save`);
+        await simulateSave();
+        updateState();
+      } else {
+        // FIXED: State updates immediately (optimistic), save in background
+        updateState();
+        await simulateSave();
+      }
 
       eventEmitter.emit(
         'industry-theme.user-collections:collection:repository-position-updated',
@@ -591,7 +622,7 @@ const IntegrationHarness: React.FC<{
         `Position saved: ${repositoryId} at (${layout.gridX}, ${layout.gridY})`
       );
     },
-    [logEvent, eventEmitter]
+    [logEvent, eventEmitter, asyncSaveDelay, delayBeforeStateUpdate]
   );
 
   const onBatchLayoutInitialized = useCallback(
@@ -1655,4 +1686,120 @@ export const MonorepoPackages: Story = {
       }
     />
   ),
+};
+
+/**
+ * Demonstrates the snap-back BUG when state updates are delayed.
+ *
+ * This simulates the old behavior where state updates happened AFTER
+ * the async GitHub save completed, causing the sprite to snap back
+ * to its original position before jumping to the correct position.
+ *
+ * Try dragging a sprite - you'll see it snap back briefly.
+ */
+export const AsyncDelayBugDemo: StoryObj<typeof meta> = {
+  render: () => (
+    <IntegrationHarness
+      initialCollection={{
+        id: 'col-bug-demo',
+        name: 'Bug Demo Collection',
+        description: 'Demonstrates the snap-back bug',
+        theme: 'industry',
+        icon: 'Bug',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        members: [],
+        metadata: {
+          customRegions: [
+            {
+              id: 'region-0-0',
+              name: 'Test Region',
+              order: 0,
+              createdAt: Date.now(),
+            },
+          ],
+        },
+      }}
+      initialMemberships={mockRepositories.slice(0, 3).map((repo, i) => ({
+        collectionId: 'col-bug-demo',
+        repositoryId: repo.path,
+        addedAt: Date.now(),
+        metadata: {
+          regionId: 'region-0-0',
+          layout: { gridX: 2 + i * 3, gridY: 2 },
+        },
+      }))}
+      initialRepositories={
+        mockRepositories.slice(0, 3) as unknown as AlexandriaEntryWithMetrics[]
+      }
+      asyncSaveDelay={1500}
+      delayBeforeStateUpdate={true}
+    />
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '⚠️ **BUG DEMO**: Shows the snap-back issue when state updates are delayed. Drag a sprite and watch it snap back before moving to correct position.',
+      },
+    },
+  },
+};
+
+/**
+ * Demonstrates the FIX with optimistic state updates.
+ *
+ * This simulates the fixed behavior where state updates happen
+ * IMMEDIATELY (optimistic update) and the async save happens
+ * in the background. The sprite stays in place smoothly.
+ *
+ * Try dragging a sprite - it should stay in place.
+ */
+export const AsyncDelayFixDemo: StoryObj<typeof meta> = {
+  render: () => (
+    <IntegrationHarness
+      initialCollection={{
+        id: 'col-fix-demo',
+        name: 'Fix Demo Collection',
+        description: 'Demonstrates the optimistic update fix',
+        theme: 'industry',
+        icon: 'Check',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        members: [],
+        metadata: {
+          customRegions: [
+            {
+              id: 'region-0-0',
+              name: 'Test Region',
+              order: 0,
+              createdAt: Date.now(),
+            },
+          ],
+        },
+      }}
+      initialMemberships={mockRepositories.slice(0, 3).map((repo, i) => ({
+        collectionId: 'col-fix-demo',
+        repositoryId: repo.path,
+        addedAt: Date.now(),
+        metadata: {
+          regionId: 'region-0-0',
+          layout: { gridX: 2 + i * 3, gridY: 2 },
+        },
+      }))}
+      initialRepositories={
+        mockRepositories.slice(0, 3) as unknown as AlexandriaEntryWithMetrics[]
+      }
+      asyncSaveDelay={1500}
+      delayBeforeStateUpdate={false}
+    />
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '✅ **FIX DEMO**: Shows the optimistic update fix. Drag a sprite and it stays in place smoothly while the async save happens in the background.',
+      },
+    },
+  },
 };

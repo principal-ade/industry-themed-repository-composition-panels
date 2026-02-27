@@ -3,6 +3,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { ChevronRight, Package, Layers, Box, LayoutGrid } from 'lucide-react';
 import { PackageManagerIcon } from './PackageManagerIcon';
 import { OrchestratorBadge } from './OrchestratorBadge';
+import { getLicenseColor } from '../../utils/licenseColors';
 import type { PackageLayer } from '../../types/composition';
 
 /**
@@ -172,54 +173,21 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
         <ChevronRight size={16} color={theme.colors.textSecondary} />
       </div>
 
-      {/* Package Metadata (description, license) */}
-      {(pkg.packageData.description || pkg.packageData.license) && (
+      {/* Package Metadata (description) */}
+      {pkg.packageData.description && (
         <div
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
+            fontSize: theme.fontSizes[1],
+            fontFamily: theme.fonts.body,
+            color: theme.colors.textSecondary,
+            lineHeight: 1.4,
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
           }}
         >
-          {pkg.packageData.description && (
-            <div
-              style={{
-                fontSize: theme.fontSizes[1],
-                fontFamily: theme.fonts.body,
-                color: theme.colors.textSecondary,
-                lineHeight: 1.4,
-                overflow: 'hidden',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-              }}
-            >
-              {pkg.packageData.description}
-            </div>
-          )}
-          {pkg.packageData.license && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: theme.fontSizes[1],
-              }}
-            >
-              <span
-                style={{
-                  padding: '1px 6px',
-                  backgroundColor: theme.colors.textSecondary + '15',
-                  color: theme.colors.textSecondary,
-                  borderRadius: '3px',
-                  fontWeight: theme.fontWeights.medium,
-                  fontFamily: theme.fonts.body,
-                }}
-              >
-                {pkg.packageData.license}
-              </span>
-            </div>
-          )}
+          {pkg.packageData.description}
         </div>
       )}
 
@@ -234,6 +202,11 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
         }}
       >
         {pkg.packageData.version && <span>v{pkg.packageData.version}</span>}
+        {pkg.packageData.license && (
+          <span style={{ color: getLicenseColor(pkg.packageData.license) }}>
+            {pkg.packageData.license}
+          </span>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Package size={12} />
           <span>{totalDeps} deps</span>

@@ -19,6 +19,7 @@ import { LensReadinessSection } from './LensReadinessSection';
 import { OtherScriptsSection } from './OtherScriptsSection';
 import { ConfigList } from './InheritedConfigIndicator';
 import { parseEnvFile, type EnvVariable } from '../../utils/envParser';
+import { getLicenseColor } from '../../utils/licenseColors';
 import type {
   PackageLayer,
   ConfigFile,
@@ -347,6 +348,16 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
             >
               {pkg.packageData.path || 'root'}
               {pkg.packageData.version && ` - v${pkg.packageData.version}`}
+              {pkg.packageData.license && (
+                <>
+                  {' - '}
+                  <span
+                    style={{ color: getLicenseColor(pkg.packageData.license) }}
+                  >
+                    {pkg.packageData.license}
+                  </span>
+                </>
+              )}
             </div>
           </div>
           {onClose && (
@@ -378,9 +389,7 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
         </div>
 
         {/* Package Metadata */}
-        {(pkg.packageData.description ||
-          pkg.packageData.license ||
-          pkg.packageData.author) && (
+        {(pkg.packageData.description || pkg.packageData.author) && (
           <div
             style={{
               padding: '8px 16px 12px',
@@ -402,41 +411,17 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
                 {pkg.packageData.description}
               </div>
             )}
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-              }}
-            >
-              {pkg.packageData.license && (
-                <span
-                  style={{
-                    padding: '2px 8px',
-                    backgroundColor: theme.colors.textSecondary + '15',
-                    color: theme.colors.textSecondary,
-                    borderRadius: '4px',
-                    fontSize: theme.fontSizes[0],
-                    fontWeight: theme.fontWeights.medium,
-                    fontFamily: theme.fonts.body,
-                  }}
-                >
-                  {pkg.packageData.license}
-                </span>
-              )}
-              {(pkg.packageData.author || pkg.packageData.authors?.[0]) && (
-                <span
-                  style={{
-                    fontSize: theme.fontSizes[0],
-                    fontFamily: theme.fonts.body,
-                    color: theme.colors.textSecondary,
-                  }}
-                >
-                  by {pkg.packageData.author || pkg.packageData.authors?.[0]}
-                </span>
-              )}
-            </div>
+            {(pkg.packageData.author || pkg.packageData.authors?.[0]) && (
+              <span
+                style={{
+                  fontSize: theme.fontSizes[0],
+                  fontFamily: theme.fonts.body,
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                by {pkg.packageData.author || pkg.packageData.authors?.[0]}
+              </span>
+            )}
           </div>
         )}
 
@@ -932,6 +917,16 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
           >
             {pkg.packageData.path || 'root'}
             {pkg.packageData.version && ` - v${pkg.packageData.version}`}
+            {pkg.packageData.license && (
+              <>
+                {' - '}
+                <span
+                  style={{ color: getLicenseColor(pkg.packageData.license) }}
+                >
+                  {pkg.packageData.license}
+                </span>
+              </>
+            )}
           </div>
         </div>
         {pkg.packageData.path && (
