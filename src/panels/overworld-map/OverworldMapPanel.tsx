@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CustomRegion } from '@principal-ai/alexandria-collections';
 import type { OverworldMap } from './types';
 import { generateBuildingSprite } from './components/buildingSpriteGenerator';
-import { IsometricRenderer } from './components/IsometricRenderer';
+import { IsometricRenderer, type SceneContainers } from './components/IsometricRenderer';
 import { IsometricInteractionManager } from './components/IsometricInteractionManager';
 import { IsometricPathManager } from './components/IsometricPathManager';
 import {
@@ -119,14 +119,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const [initializationComplete, setInitializationComplete] = useState(0);
   const dimensionsRef = useRef({ width: width || 800, height: height || 600 });
   const placeholdersRef = useRef<Container | null>(null);
-  const sceneContainersRef = useRef<{
-    background: Container;
-    tiles: Container;
-    licenseGrounds: Container;
-    bridges: Container;
-    paths: Container;
-    nodes: Container;
-  } | null>(null);
+  const sceneContainersRef = useRef<SceneContainers | null>(null);
   const offsetRef = useRef<{ offsetX: number; offsetY: number }>({
     offsetX: 0,
     offsetY: 0,
@@ -800,6 +793,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   // Intentionally omit mapData, onAddRegion, onProjectMoved, onViewportReady - recreating PIXI on every change would be too expensive
 
   // Separate effect to update scene when mapData changes (without recreating PIXI)
+  // Uses smart diffing to avoid full recreation when only positions changed
   useEffect(() => {
     // Wait for initialization to complete
     if (!isInitializedRef.current) {
@@ -863,6 +857,71 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         buildingGraphics.destroy();
       }
     }
+
+    // === SMART DIFFING: Check if we can avoid full scene recreation ===
+    const currentSprites = sceneContainersRef.current?.spriteInstances;
+
+    if (currentSprites && currentSprites.size > 0) {
+      const newNodeMap = new Map(mapData.nodes.map(n => [n.id, n]));
+      const currentIds = new Set(currentSprites.keys());
+      const newIds = new Set(newNodeMap.keys());
+
+      // Find what changed
+      const toRemove = [...currentIds].filter(id => !newIds.has(id));
+      const toAdd = [...newIds].filter(id => !currentIds.has(id));
+
+      // Check if any existing nodes need visual recreation (sprite key changed)
+      const toRecreate = [...newIds].filter(id => {
+        if (!currentIds.has(id)) return false;
+        const node = newNodeMap.get(id)!;
+        const sprite = currentSprites.get(id)!;
+        return node.sprite !== sprite.spriteKey; // Visual changed
+      });
+
+      // Check which nodes just need position updates
+      const toUpdatePosition = [...newIds].filter(id => {
+        if (!currentIds.has(id)) return false;
+        const node = newNodeMap.get(id)!;
+        const sprite = currentSprites.get(id)!;
+        // Same visual, but different position
+        return node.sprite === sprite.spriteKey &&
+          (node.gridX !== sprite.gridPosition.gridX ||
+           node.gridY !== sprite.gridPosition.gridY);
+      });
+
+      // FAST PATH: Only position updates (no adds, removes, or visual changes)
+      if (toRemove.length === 0 && toAdd.length === 0 && toRecreate.length === 0) {
+        // Just update positions of sprites that moved
+        for (const id of toUpdatePosition) {
+          const node = newNodeMap.get(id)!;
+          const sprite = currentSprites.get(id)!;
+          sprite.update(node.gridX, node.gridY);
+        }
+
+        // Update paths if any positions changed
+        if (toUpdatePosition.length > 0 && pathManagerRef.current) {
+          // Rebuild paths with new positions
+          for (const id of toUpdatePosition) {
+            const node = newNodeMap.get(id)!;
+            pathManagerRef.current.updateNodePosition(id, node.gridX, node.gridY);
+          }
+        }
+
+        // Skip full recreation - we're done!
+        return;
+      }
+
+      // Log when we need full recreation (for debugging)
+      if (toRemove.length > 0 || toAdd.length > 0 || toRecreate.length > 0) {
+        console.log('[OverworldMapPanel] Full recreation needed:', {
+          toRemove: toRemove.length,
+          toAdd: toAdd.length,
+          toRecreate: toRecreate.length,
+        });
+      }
+    }
+
+    // === SLOW PATH: Full scene recreation (only when structure changes) ===
 
     // Remove and destroy old scene containers to prevent memory leaks
     if (sceneContainersRef.current) {

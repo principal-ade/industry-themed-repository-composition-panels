@@ -56,6 +56,7 @@ export interface SpriteInstance {
   licenseSign?: Container; // License-based sign/archway
   gridPosition: { gridX: number; gridY: number };
   size: number; // Size multiplier for boundary calculations
+  spriteKey: string; // Texture key for diffing (e.g., "building-3-#ff0000-50-10")
 
   update(gridX: number, gridY: number): void;
   destroy(): void;
@@ -547,25 +548,6 @@ export class IsometricRenderer {
       });
 
       container.addChild(sprite);
-
-      // Only show individual labels if there are 5 or fewer packages
-      if (subCount <= 5) {
-        const subLabel = new Text({
-          text: sub.name,
-          style: {
-            fontSize: 10,
-            fill: 0xffffff,
-            fontFamily: 'Arial',
-            fontWeight: '400',
-          },
-          resolution: 2,
-        });
-        subLabel.x = offset.x;
-        subLabel.y = offset.y + sprite.height * 0.15 + 4;
-        subLabel.anchor.set(0.5, 0);
-
-        container.addChild(subLabel);
-      }
     }
 
     // Position decorations below footprint, slightly above where repo name label appears
@@ -753,6 +735,7 @@ export class IsometricRenderer {
       licenseSign,
       gridPosition: { gridX: node.gridX, gridY: node.gridY },
       size: sizeMultiplier,
+      spriteKey: node.sprite, // Store for diffing - allows detecting visual changes
       update: (gridX: number, gridY: number) => {
         const pos = gridToScreen(gridX, gridY);
         container.x = pos.screenX;
@@ -943,6 +926,7 @@ export class IsometricRenderer {
         licenseSign,
         gridPosition: { gridX: node.gridX, gridY: node.gridY },
         size: sizeMultiplier,
+        spriteKey: node.sprite, // Store for diffing - allows detecting visual changes
         update: (gridX: number, gridY: number) => {
           const pos = gridToScreen(gridX, gridY);
           sprite.x = pos.screenX;
