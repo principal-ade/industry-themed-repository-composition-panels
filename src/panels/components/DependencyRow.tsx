@@ -20,7 +20,7 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
 
   const getDependencyTypeBadgeStyle = (type: DependencyType) => {
     const baseStyle = {
-      fontSize: '9px',
+      fontSize: `${theme.fontSizes[0]}px`,
       fontWeight: theme.fontWeights.medium,
       fontFamily: theme.fonts.body,
       lineHeight: 1.2,
@@ -86,7 +86,7 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
         padding: `${theme.space[2]}px ${theme.space[3]}px`,
         backgroundColor: theme.colors.background,
         borderRadius: 0,
-        fontSize: `${theme.fontSizes[1]}px`,
+        fontSize: `${theme.fontSizes[0]}px`,
         fontFamily: theme.fonts.body,
         borderBottom: `1px solid ${theme.colors.border}`,
         transition: 'all 0.2s',
@@ -95,7 +95,7 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Stacked: top row (namespace + badges or just badges), bottom row (package name) */}
+      {/* Stacked: top row (package name), bottom row (scope + badges) */}
       <div
         style={{
           display: 'flex',
@@ -105,32 +105,18 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
           minWidth: 0,
         }}
       >
-        {/* Top row: namespace (if any) + badges */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}
-        >
-          {dependency.namespace && (
-            <span
-              style={{
-                fontSize: '10px',
-                color: theme.colors.textSecondary,
-                fontFamily: theme.fonts.body,
-              }}
-            >
-              {dependency.namespace}
-            </span>
-          )}
-          {/* Type badges */}
-          {dependency.dependencyTypes.map((type) => (
-            <span key={type} style={getDependencyTypeBadgeStyle(type)}>
-              {typeLabels[type]}
-            </span>
-          ))}
-        </div>
+        {/* Top row: namespace (if any) */}
+        {dependency.namespace && (
+          <span
+            style={{
+              fontSize: `${theme.fontSizes[0]}px`,
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fonts.body,
+            }}
+          >
+            {dependency.namespace}
+          </span>
+        )}
         {/* Package name row */}
         <div
           style={{
@@ -141,6 +127,7 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
         >
           <span
             style={{
+              fontSize: `${theme.fontSizes[2]}px`,
               fontWeight: theme.fontWeights.medium,
               color: theme.colors.text,
               overflow: 'hidden',
@@ -168,39 +155,52 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
         </div>
       </div>
 
-      {/* Copy button and version */}
+      {/* Badges and version stacked */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '2px',
         }}
       >
-        {/* Copy button - left of version */}
-        <button
-          type="button"
-          onClick={handleCopy}
-          style={{
-            ...actionButtonStyle,
-            color: copied
-              ? theme.colors.success || '#10b981'
-              : theme.colors.textSecondary,
-          }}
-          title={
-            copied ? 'Copied!' : `Copy ${dependency.name}@${dependency.version}`
-          }
-        >
-          {copied ? <Check size={12} /> : <Copy size={12} />}
-        </button>
-
-        <span
-          style={{
-            color: theme.colors.textSecondary,
-            fontFamily: theme.fonts.body,
-          }}
-        >
-          {dependency.version}
-        </span>
+        {/* Type badges */}
+        <div style={{ display: 'flex', gap: '4px' }}>
+          {dependency.dependencyTypes.map((type) => (
+            <span key={type} style={getDependencyTypeBadgeStyle(type)}>
+              {typeLabels[type]}
+            </span>
+          ))}
+        </div>
+        {/* Version row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            type="button"
+            onClick={handleCopy}
+            style={{
+              ...actionButtonStyle,
+              color: copied
+                ? theme.colors.success || '#10b981'
+                : theme.colors.textSecondary,
+            }}
+            title={
+              copied
+                ? 'Copied!'
+                : `Copy ${dependency.name}@${dependency.version}`
+            }
+          >
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+          </button>
+          <span
+            style={{
+              fontSize: `${theme.fontSizes[2]}px`,
+              color: theme.colors.textSecondary,
+              fontFamily: theme.fonts.body,
+            }}
+          >
+            {dependency.version}
+          </span>
+        </div>
       </div>
     </div>
   );

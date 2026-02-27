@@ -118,7 +118,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 style={{
                   flex: 1,
                   padding: `${theme.space[2]}px ${theme.space[2]}px`,
-                  fontSize: `${theme.fontSizes[0]}px`,
+                  fontSize: `${theme.fontSizes[1]}px`,
                   fontWeight: theme.fontWeights.medium,
                   fontFamily: theme.fonts.body,
                   borderRadius: 0,

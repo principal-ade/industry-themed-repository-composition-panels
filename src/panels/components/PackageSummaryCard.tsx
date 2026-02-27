@@ -1,14 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import {
-  ChevronRight,
-  Terminal,
-  Settings,
-  Package,
-  Layers,
-  Box,
-  LayoutGrid,
-} from 'lucide-react';
+import { ChevronRight, Package, Layers, Box, LayoutGrid } from 'lucide-react';
 import { PackageManagerIcon } from './PackageManagerIcon';
 import { OrchestratorBadge } from './OrchestratorBadge';
 import type { PackageLayer } from '../../types/composition';
@@ -71,15 +63,6 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
     Object.keys(devDeps).length +
     Object.keys(peerDeps).length;
 
-  const configFilesArray = pkg.configFiles
-    ? Object.values(pkg.configFiles).filter((c) => c?.exists)
-    : [];
-  const inheritedConfigs = configFilesArray.filter(
-    (c) => c?.isInherited
-  ).length;
-
-  const commands = pkg.packageData.availableCommands?.length || 0;
-
   const { dependsOn, usedBy } = useMemo(
     () => findInternalDependencies(pkg, allPackages),
     [pkg, allPackages]
@@ -131,7 +114,7 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <PackageManagerIcon
           packageManager={pkg.packageData.packageManager}
-          size={20}
+          size={32}
         />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
@@ -149,13 +132,12 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
           </div>
           <div
             style={{
-              fontSize: theme.fontSizes[1],
+              fontSize: theme.fontSizes[0],
               fontFamily: theme.fonts.body,
               color: theme.colors.textSecondary,
             }}
           >
             {pkg.packageData.path || 'root'}
-            {pkg.packageData.version && ` • v${pkg.packageData.version}`}
           </div>
         </div>
         {/* Orchestrator badge for monorepo root packages */}
@@ -251,25 +233,10 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
           color: theme.colors.textSecondary,
         }}
       >
+        {pkg.packageData.version && <span>v{pkg.packageData.version}</span>}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Package size={12} />
           <span>{totalDeps} deps</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Settings size={12} />
-          <span>
-            {configFilesArray.length} configs
-            {inheritedConfigs > 0 && (
-              <span style={{ color: theme.colors.primary }}>
-                {' '}
-                ({inheritedConfigs}↑)
-              </span>
-            )}
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Terminal size={12} />
-          <span>{commands} commands</span>
         </div>
       </div>
     </button>

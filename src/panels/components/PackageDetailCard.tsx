@@ -153,9 +153,9 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
   readFile,
 }) => {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<
-    'dependencies' | 'env' | 'configs' | 'lenses'
-  >('dependencies');
+  const [activeTab, setActiveTab] = useState<'dependencies' | 'env' | 'lenses'>(
+    'dependencies'
+  );
   const [activeFilters, setActiveFilters] = useState<
     Set<'production' | 'development' | 'peer'>
   >(new Set());
@@ -457,12 +457,6 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
                 ]
               : []),
             {
-              id: 'configs' as const,
-              label: 'Configs',
-              count: configCounts.total,
-              inherited: configCounts.inherited,
-            },
-            {
               id: 'lenses' as const,
               label: 'Lenses',
               count: pkg.qualityMetrics?.lensReadiness
@@ -513,11 +507,7 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
                   fontFamily: theme.fonts.body,
                 }}
               >
-                {'total' in tab
-                  ? `${tab.count}/${tab.total}`
-                  : 'inherited' in tab && (tab.inherited ?? 0) > 0
-                    ? `${tab.count} (${tab.inherited}↑)`
-                    : tab.count}
+                {'total' in tab ? `${tab.count}/${tab.total}` : tab.count}
               </span>
             </button>
           ))}
@@ -778,12 +768,6 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
             </div>
           )}
 
-          {activeTab === 'configs' && (
-            <div style={{ padding: '12px' }}>
-              <ConfigList configs={configFiles} onConfigClick={onConfigClick} />
-            </div>
-          )}
-
           {activeTab === 'lenses' && (
             <div
               style={{
@@ -998,12 +982,6 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
                   ]
                 : []),
               {
-                id: 'configs' as const,
-                label: 'Configs',
-                count: configCounts.total,
-                inherited: configCounts.inherited,
-              },
-              {
                 id: 'lenses' as const,
                 label: 'Lenses',
                 count: pkg.qualityMetrics?.lensReadiness
@@ -1054,11 +1032,7 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
                     fontFamily: theme.fonts.body,
                   }}
                 >
-                  {'total' in tab
-                    ? `${tab.count}/${tab.total}`
-                    : 'inherited' in tab && (tab.inherited ?? 0) > 0
-                      ? `${tab.count} (${tab.inherited}↑)`
-                      : tab.count}
+                  {'total' in tab ? `${tab.count}/${tab.total}` : tab.count}
                 </span>
               </button>
             ))}
@@ -1317,15 +1291,6 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
                       Click the file to view environment variables
                     </div>
                   )}
-              </div>
-            )}
-
-            {activeTab === 'configs' && (
-              <div style={{ padding: '12px' }}>
-                <ConfigList
-                  configs={configFiles}
-                  onConfigClick={onConfigClick}
-                />
               </div>
             )}
 
