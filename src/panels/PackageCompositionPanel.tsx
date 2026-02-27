@@ -1,13 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import {
-  ChevronLeft,
-  FileCode,
-  Terminal,
-  Settings,
-  Package,
-  GitBranch,
-} from 'lucide-react';
+import { FileCode, Terminal, Settings, Package, GitBranch } from 'lucide-react';
 import { PackageManagerIcon } from './components/PackageManagerIcon';
 import { PackageDetailCard, PackageSummaryCard } from './components';
 import { EmptyDependencies } from './components/EmptyDependencies';
@@ -246,49 +239,6 @@ export const PackageCompositionPanelContent: React.FC<
             overflow: 'hidden',
           }}
         >
-          {/* Back Header */}
-          <div
-            style={{
-              padding: '8px 12px',
-              borderBottom: `1px solid ${theme.colors.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexShrink: 0,
-            }}
-          >
-            <button
-              onClick={() => {
-                setSelectedPackageId(null);
-                onPackageSelect?.(null);
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '4px 8px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                borderRadius: '4px',
-                color: theme.colors.accent,
-                fontSize: theme.fontSizes[1],
-                fontFamily: theme.fonts.body,
-                cursor: 'pointer',
-                transition: 'background-color 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor =
-                  theme.colors.backgroundTertiary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <ChevronLeft size={16} />
-              All Packages
-            </button>
-          </div>
-
           {/* Package Detail */}
           <div style={{ flex: 1, overflow: 'hidden' }}>
             {selectedPackage && (
@@ -301,6 +251,10 @@ export const PackageCompositionPanelContent: React.FC<
                 onPackageClick={onPackageClick}
                 standalone
                 readFile={readFile}
+                onClose={() => {
+                  setSelectedPackageId(null);
+                  onPackageSelect?.(null);
+                }}
               />
             )}
           </div>

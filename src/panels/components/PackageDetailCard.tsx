@@ -8,6 +8,7 @@ import {
   AlertCircle,
   CheckCircle,
   ExternalLink,
+  X,
 } from 'lucide-react';
 import { PackageManagerIcon } from './PackageManagerIcon';
 import { DependencyRow } from './DependencyRow';
@@ -140,6 +141,8 @@ export interface PackageDetailCardProps {
   standalone?: boolean;
   /** Read file content from the repository */
   readFile?: (filePath: string) => Promise<string>;
+  /** Callback when close button is clicked (only shown in standalone mode) */
+  onClose?: () => void;
 }
 
 export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
@@ -151,6 +154,7 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
   onPackageClick,
   standalone = false,
   readFile,
+  onClose,
 }) => {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'dependencies' | 'env' | 'lenses'>(
@@ -318,7 +322,7 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
         >
           <PackageManagerIcon
             packageManager={pkg.packageData.packageManager}
-            size={18}
+            size={32}
           />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
@@ -334,38 +338,41 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
             >
               {pkg.packageData.name}
             </div>
-            {pkg.packageData.version && (
-              <div
-                style={{
-                  fontSize: theme.fontSizes[0],
-                  fontFamily: theme.fonts.body,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                v{pkg.packageData.version}
-              </div>
-            )}
+            <div
+              style={{
+                fontSize: theme.fontSizes[0],
+                fontFamily: theme.fonts.body,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              {pkg.packageData.path || 'root'}
+              {pkg.packageData.version && ` - v${pkg.packageData.version}`}
+            </div>
           </div>
-          {pkg.packageData.path && (
+          {onClose && (
             <button
-              onClick={() => onPackageClick?.(pkg.packageData.path)}
+              onClick={onClose}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '4px 8px',
-                backgroundColor: theme.colors.backgroundTertiary,
-                border: `1px solid ${theme.colors.border}`,
+                justifyContent: 'center',
+                padding: '4px',
+                backgroundColor: 'transparent',
+                border: 'none',
                 borderRadius: '4px',
                 color: theme.colors.textSecondary,
-                fontSize: theme.fontSizes[0],
-                fontFamily: theme.fonts.body,
                 cursor: 'pointer',
+                transition: 'color 0.15s ease',
               }}
-              title="Open package folder"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = theme.colors.text;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = theme.colors.textSecondary;
+              }}
+              title="Close"
             >
-              <Folder size={12} />
-              {pkg.packageData.path || 'root'}
+              <X size={18} />
             </button>
           )}
         </div>
@@ -916,17 +923,16 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
           >
             {pkg.packageData.name}
           </div>
-          {pkg.packageData.version && (
-            <div
-              style={{
-                fontSize: theme.fontSizes[0],
-                fontFamily: theme.fonts.body,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              v{pkg.packageData.version}
-            </div>
-          )}
+          <div
+            style={{
+              fontSize: theme.fontSizes[0],
+              fontFamily: theme.fonts.body,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {pkg.packageData.path || 'root'}
+            {pkg.packageData.version && ` - v${pkg.packageData.version}`}
+          </div>
         </div>
         {pkg.packageData.path && (
           <button
