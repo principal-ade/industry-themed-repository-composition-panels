@@ -1,11 +1,37 @@
 {
   "nodes": [
     {
-      "id": "convert-nodes",
+      "id": "collection-selected",
       "type": "text",
-      "text": "# Convert Nodes\nTransforms Alexandria repositories to GenericNode format for map visualization",
+      "text": "# Collection Selected\nEntry point when user selects a collection to view",
       "x": 100,
       "y": 100,
+      "width": 250,
+      "height": 100,
+      "color": "#3b82f6",
+      "pv": {
+        "event": {
+          "name": "collection-map.collection-selected",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "collection.name": { "type": "string", "required": true },
+            "members.count": { "type": "number", "required": true }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "lifecycle",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "convert-nodes",
+      "type": "text",
+      "text": "# Convert Nodes\nTransforms collection memberships + repositories to GenericNode format",
+      "x": 100,
+      "y": 250,
       "width": 250,
       "height": 120,
       "color": "#22c55e",
@@ -19,7 +45,6 @@
             "nodes.created": { "type": "number", "required": true }
           }
         },
-        "sources": ["src/panels/CollectionMapPanel.tsx"],
         "status": "implemented",
         "otel": {
           "kind": "span",
@@ -29,11 +54,39 @@
       }
     },
     {
+      "id": "validate-nodes",
+      "type": "text",
+      "text": "# Validate Nodes\nSplits nodes into valid (can render) and unplaced (need user placement)",
+      "x": 400,
+      "y": 250,
+      "width": 250,
+      "height": 120,
+      "color": "#22c55e",
+      "pv": {
+        "event": {
+          "name": "collection-map.validate-nodes",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "nodes.total": { "type": "number", "required": true },
+            "nodes.valid": { "type": "number", "required": true },
+            "nodes.unplaced": { "type": "number", "required": true },
+            "is.initial.load": { "type": "boolean", "required": true }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "validation",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
       "id": "initialize-layout",
       "type": "text",
-      "text": "# Initialize Layout\nComputes initial layout with regions and positions for nodes",
-      "x": 400,
-      "y": 100,
+      "text": "# Initialize Layout\nRuns layout engine to compute regions and positions (only on initial load)",
+      "x": 100,
+      "y": 420,
       "width": 250,
       "height": 120,
       "color": "#22c55e",
@@ -49,7 +102,6 @@
             "nodes.positioned": { "type": "number", "required": false }
           }
         },
-        "sources": ["src/panels/CollectionMapPanel.tsx"],
         "status": "implemented",
         "otel": {
           "kind": "span",
@@ -59,25 +111,105 @@
       }
     },
     {
-      "id": "project-drop",
+      "id": "batch-save",
       "type": "text",
-      "text": "# Project Drop\nHandles drag-and-drop of repositories onto the map",
-      "x": 100,
-      "y": 280,
+      "text": "# Batch Save\nPersists computed regions, assignments, and positions in one call",
+      "x": 400,
+      "y": 420,
       "width": 250,
       "height": 120,
+      "color": "#22c55e",
+      "pv": {
+        "event": {
+          "name": "collection-map.batch-save",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "regions.saved": { "type": "number", "required": true },
+            "assignments.saved": { "type": "number", "required": true },
+            "positions.saved": { "type": "number", "required": true }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "persistence",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "map-rendered",
+      "type": "text",
+      "text": "# Map Rendered\nOverworld map is rendered with all positioned nodes",
+      "x": 700,
+      "y": 420,
+      "width": 250,
+      "height": 120,
+      "color": "#22c55e",
+      "pv": {
+        "event": {
+          "name": "collection-map.map-rendered",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "nodes.rendered": { "type": "number", "required": true },
+            "regions.rendered": { "type": "number", "required": true },
+            "unplaced.count": { "type": "number", "required": true }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "render",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "project-drop",
+      "type": "text",
+      "text": "# Project Drop\nExternal repository dragged onto the map from another panel",
+      "x": 100,
+      "y": 600,
+      "width": 250,
+      "height": 100,
       "color": "#f59e0b",
       "pv": {
         "event": {
           "name": "collection-map.project-drop",
           "attributes": {
+            "collection.id": { "type": "string", "required": true },
             "source.type": { "type": "string", "required": true },
             "repository.id": { "type": "string", "required": true },
             "grid.x": { "type": "number", "required": true },
             "grid.y": { "type": "number", "required": true }
           }
         },
-        "sources": ["src/panels/CollectionMapPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "user-interaction"
+        }
+      }
+    },
+    {
+      "id": "drawer-drop",
+      "type": "text",
+      "text": "# Drawer Drop\nUnplaced node dragged from bottom drawer onto the map",
+      "x": 100,
+      "y": 740,
+      "width": 250,
+      "height": 100,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "collection-map.drawer-drop",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "repository.id": { "type": "string", "required": true },
+            "grid.x": { "type": "number", "required": true },
+            "grid.y": { "type": "number", "required": true }
+          }
+        },
         "status": "draft",
         "otel": {
           "kind": "span",
@@ -88,24 +220,78 @@
     {
       "id": "project-moved",
       "type": "text",
-      "text": "# Project Moved\nHandles repositioning of a project sprite on the map",
+      "text": "# Project Moved\nNode position changed (from drop or drag within map)",
       "x": 400,
-      "y": 280,
+      "y": 670,
       "width": 250,
-      "height": 120,
+      "height": 100,
       "color": "#f59e0b",
       "pv": {
         "event": {
           "name": "collection-map.project-moved",
           "attributes": {
+            "collection.id": { "type": "string", "required": true },
             "repository.id": { "type": "string", "required": true },
-            "is_new_repo": { "type": "boolean", "required": true },
+            "is.new.repo": { "type": "boolean", "required": true },
+            "is.first.placement": { "type": "boolean", "required": true },
             "region.id": { "type": "string", "required": true },
             "grid.x": { "type": "number", "required": true },
             "grid.y": { "type": "number", "required": true }
           }
         },
-        "sources": ["src/panels/CollectionMapPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "user-interaction"
+        }
+      }
+    },
+    {
+      "id": "position-saved",
+      "type": "text",
+      "text": "# Position Saved\nNode position persisted to collection metadata",
+      "x": 700,
+      "y": 670,
+      "width": 250,
+      "height": 100,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "collection-map.position-saved",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "repository.id": { "type": "string", "required": true },
+            "region.id": { "type": "string", "required": true },
+            "region.changed": { "type": "boolean", "required": true },
+            "grid.x": { "type": "number", "required": true },
+            "grid.y": { "type": "number", "required": true }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "span",
+          "category": "persistence"
+        }
+      }
+    },
+    {
+      "id": "repository-clicked",
+      "type": "text",
+      "text": "# Repository Clicked\nUser clicks on a repository sprite or empty space",
+      "x": 100,
+      "y": 900,
+      "width": 250,
+      "height": 100,
+      "color": "#8b5cf6",
+      "pv": {
+        "event": {
+          "name": "collection-map.repository-clicked",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "repository.id": { "type": "string", "required": false },
+            "action": { "type": "string", "required": true }
+          }
+        },
         "status": "draft",
         "otel": {
           "kind": "span",
@@ -116,22 +302,22 @@
     {
       "id": "region-created",
       "type": "text",
-      "text": "# Region Created\nA new region is created on the map",
-      "x": 100,
-      "y": 460,
-      "width": 250,
+      "text": "# Region Created\nUser creates a new region on the map",
+      "x": 400,
+      "y": 900,
+      "width": 220,
       "height": 100,
-      "color": "#f59e0b",
+      "color": "#ec4899",
       "pv": {
         "event": {
           "name": "collection-map.region-created",
           "attributes": {
             "collection.id": { "type": "string", "required": true },
+            "region.id": { "type": "string", "required": true },
             "region.name": { "type": "string", "required": true },
             "region.order": { "type": "number", "required": true }
           }
         },
-        "sources": ["src/panels/CollectionMapPanel.tsx"],
         "status": "draft",
         "otel": {
           "kind": "span",
@@ -142,22 +328,22 @@
     {
       "id": "region-renamed",
       "type": "text",
-      "text": "# Region Renamed\nA region's name is updated",
-      "x": 400,
-      "y": 460,
-      "width": 250,
+      "text": "# Region Renamed\nUser renames an existing region",
+      "x": 650,
+      "y": 900,
+      "width": 220,
       "height": 100,
-      "color": "#f59e0b",
+      "color": "#ec4899",
       "pv": {
         "event": {
           "name": "collection-map.region-renamed",
           "attributes": {
             "collection.id": { "type": "string", "required": true },
             "region.id": { "type": "string", "required": true },
-            "region.new_name": { "type": "string", "required": true }
+            "region.old.name": { "type": "string", "required": true },
+            "region.new.name": { "type": "string", "required": true }
           }
         },
-        "sources": ["src/panels/CollectionMapPanel.tsx"],
         "status": "draft",
         "otel": {
           "kind": "span",
@@ -168,21 +354,22 @@
     {
       "id": "region-deleted",
       "type": "text",
-      "text": "# Region Deleted\nA region is removed from the map",
-      "x": 700,
-      "y": 460,
-      "width": 250,
+      "text": "# Region Deleted\nUser deletes a region from the map",
+      "x": 900,
+      "y": 900,
+      "width": 220,
       "height": 100,
-      "color": "#f59e0b",
+      "color": "#ec4899",
       "pv": {
         "event": {
           "name": "collection-map.region-deleted",
           "attributes": {
             "collection.id": { "type": "string", "required": true },
-            "region.id": { "type": "string", "required": true }
+            "region.id": { "type": "string", "required": true },
+            "region.name": { "type": "string", "required": true },
+            "nodes.orphaned": { "type": "number", "required": true }
           }
         },
-        "sources": ["src/panels/CollectionMapPanel.tsx"],
         "status": "draft",
         "otel": {
           "kind": "span",
@@ -191,39 +378,253 @@
       }
     },
     {
-      "id": "repository-clicked",
+      "id": "host-batch-layout",
       "type": "text",
-      "text": "# Repository Clicked\nUser clicks on a repository sprite",
-      "x": 700,
-      "y": 280,
-      "width": 250,
+      "text": "# Host: onBatchLayoutInitialized\nPersists regions, assignments, and positions to collection store",
+      "x": 1050,
+      "y": 380,
+      "width": 280,
       "height": 100,
-      "color": "#f59e0b",
+      "color": "#06b6d4",
       "pv": {
-        "event": {
-          "name": "collection-map.repository-clicked",
-          "attributes": {
-            "repository.id": { "type": "string", "required": false }
-          }
+        "nodeType": "boundary",
+        "boundary": {
+          "type": "host-callback",
+          "action": "onBatchLayoutInitialized",
+          "interface": "RegionCallbacks"
         },
-        "sources": ["src/panels/CollectionMapPanel.tsx"],
-        "status": "draft",
         "otel": {
-          "kind": "span",
-          "category": "user-interaction"
+          "kind": "client",
+          "category": "host-boundary"
+        }
+      }
+    },
+    {
+      "id": "host-add-repository",
+      "type": "text",
+      "text": "# Host: addRepositoryToCollection\nAdds new repository to collection with metadata",
+      "x": 1050,
+      "y": 500,
+      "width": 280,
+      "height": 100,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "boundary",
+        "boundary": {
+          "type": "host-callback",
+          "action": "addRepositoryToCollection",
+          "interface": "CollectionMapPanelActions"
+        },
+        "otel": {
+          "kind": "client",
+          "category": "host-boundary"
+        }
+      }
+    },
+    {
+      "id": "host-position-updated",
+      "type": "text",
+      "text": "# Host: onRepositoryPositionUpdated\nUpdates repository position in collection metadata",
+      "x": 1050,
+      "y": 620,
+      "width": 280,
+      "height": 100,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "boundary",
+        "boundary": {
+          "type": "host-callback",
+          "action": "onRepositoryPositionUpdated",
+          "interface": "RegionCallbacks"
+        },
+        "otel": {
+          "kind": "client",
+          "category": "host-boundary"
+        }
+      }
+    },
+    {
+      "id": "host-repository-assigned",
+      "type": "text",
+      "text": "# Host: onRepositoryAssigned\nAssigns repository to a region",
+      "x": 1050,
+      "y": 740,
+      "width": 280,
+      "height": 100,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "boundary",
+        "boundary": {
+          "type": "host-callback",
+          "action": "onRepositoryAssigned",
+          "interface": "RegionCallbacks"
+        },
+        "otel": {
+          "kind": "client",
+          "category": "host-boundary"
+        }
+      }
+    },
+    {
+      "id": "host-repository-clicked",
+      "type": "text",
+      "text": "# Host: onRepositoryClicked\nNotifies host of selection change",
+      "x": 1050,
+      "y": 860,
+      "width": 280,
+      "height": 80,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "boundary",
+        "boundary": {
+          "type": "host-callback",
+          "action": "onRepositoryClicked",
+          "interface": "CollectionMapPanelActions"
+        },
+        "otel": {
+          "kind": "client",
+          "category": "host-boundary"
+        }
+      }
+    },
+    {
+      "id": "host-region-created",
+      "type": "text",
+      "text": "# Host: onRegionCreated\nCreates new region in collection store",
+      "x": 1050,
+      "y": 960,
+      "width": 280,
+      "height": 80,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "boundary",
+        "boundary": {
+          "type": "host-callback",
+          "action": "onRegionCreated",
+          "interface": "RegionCallbacks"
+        },
+        "otel": {
+          "kind": "client",
+          "category": "host-boundary"
+        }
+      }
+    },
+    {
+      "id": "host-region-updated",
+      "type": "text",
+      "text": "# Host: onRegionUpdated\nUpdates region properties (rename)",
+      "x": 1050,
+      "y": 1060,
+      "width": 280,
+      "height": 80,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "boundary",
+        "boundary": {
+          "type": "host-callback",
+          "action": "onRegionUpdated",
+          "interface": "RegionCallbacks"
+        },
+        "otel": {
+          "kind": "client",
+          "category": "host-boundary"
+        }
+      }
+    },
+    {
+      "id": "host-region-deleted",
+      "type": "text",
+      "text": "# Host: onRegionDeleted\nRemoves region from collection store",
+      "x": 1050,
+      "y": 1160,
+      "width": 280,
+      "height": 80,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "boundary",
+        "boundary": {
+          "type": "host-callback",
+          "action": "onRegionDeleted",
+          "interface": "RegionCallbacks"
+        },
+        "otel": {
+          "kind": "client",
+          "category": "host-boundary"
         }
       }
     }
   ],
   "edges": [
     {
-      "id": "convert-to-layout",
+      "id": "selected-to-convert",
+      "fromNode": "collection-selected",
+      "toNode": "convert-nodes",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "convert-to-validate",
       "fromNode": "convert-nodes",
-      "toNode": "initialize-layout",
+      "toNode": "validate-nodes",
       "fromSide": "right",
       "toSide": "left",
       "pv": {
         "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "validate-to-layout",
+      "fromNode": "validate-nodes",
+      "toNode": "initialize-layout",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "needs layout",
+      "pv": {
+        "edgeType": "conditional"
+      }
+    },
+    {
+      "id": "validate-to-rendered",
+      "fromNode": "validate-nodes",
+      "toNode": "map-rendered",
+      "fromSide": "right",
+      "toSide": "top",
+      "label": "has positions",
+      "pv": {
+        "edgeType": "conditional"
+      }
+    },
+    {
+      "id": "layout-to-batch",
+      "fromNode": "initialize-layout",
+      "toNode": "batch-save",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "batch-to-rendered",
+      "fromNode": "batch-save",
+      "toNode": "map-rendered",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "batch-to-host",
+      "fromNode": "batch-save",
+      "toNode": "host-batch-layout",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "host-call"
       }
     },
     {
@@ -235,16 +636,172 @@
       "pv": {
         "edgeType": "sequence"
       }
+    },
+    {
+      "id": "drop-to-host-add",
+      "fromNode": "project-drop",
+      "toNode": "host-add-repository",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "new repo",
+      "pv": {
+        "edgeType": "host-call"
+      }
+    },
+    {
+      "id": "drawer-to-moved",
+      "fromNode": "drawer-drop",
+      "toNode": "project-moved",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "moved-to-saved",
+      "fromNode": "project-moved",
+      "toNode": "position-saved",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "saved-to-rendered",
+      "fromNode": "position-saved",
+      "toNode": "map-rendered",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "saved-to-host-position",
+      "fromNode": "position-saved",
+      "toNode": "host-position-updated",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "host-call"
+      }
+    },
+    {
+      "id": "saved-to-host-assigned",
+      "fromNode": "position-saved",
+      "toNode": "host-repository-assigned",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "region changed",
+      "pv": {
+        "edgeType": "host-call"
+      }
+    },
+    {
+      "id": "clicked-to-host",
+      "fromNode": "repository-clicked",
+      "toNode": "host-repository-clicked",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "host-call"
+      }
+    },
+    {
+      "id": "region-created-to-rendered",
+      "fromNode": "region-created",
+      "toNode": "map-rendered",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "region-created-to-host",
+      "fromNode": "region-created",
+      "toNode": "host-region-created",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "host-call"
+      }
+    },
+    {
+      "id": "region-renamed-to-rendered",
+      "fromNode": "region-renamed",
+      "toNode": "map-rendered",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "region-renamed-to-host",
+      "fromNode": "region-renamed",
+      "toNode": "host-region-updated",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "host-call"
+      }
+    },
+    {
+      "id": "region-deleted-to-rendered",
+      "fromNode": "region-deleted",
+      "toNode": "map-rendered",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "region-deleted-to-host",
+      "fromNode": "region-deleted",
+      "toNode": "host-region-deleted",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "host-call"
+      }
     }
   ],
   "pv": {
     "name": "Collection Map Panel",
-    "version": "1.0.0",
+    "version": "2.1.0",
     "markdown": ".principal-views/collection-map-panel/collection-map-panel.md",
+    "nodeTypes": {
+      "boundary": {
+        "description": "External boundary node representing host callbacks or external service calls",
+        "label": "Host Boundary",
+        "color": "#06b6d4",
+        "icon": "ExternalLink",
+        "shape": "rectangle"
+      }
+    },
     "edgeTypes": {
       "sequence": {
         "style": "solid",
         "color": "#64748b",
+        "width": 2
+      },
+      "conditional": {
+        "style": "dashed",
+        "color": "#f59e0b",
+        "width": 2
+      },
+      "triggers": {
+        "style": "dotted",
+        "color": "#8b5cf6",
+        "width": 1
+      },
+      "host-call": {
+        "style": "solid",
+        "color": "#06b6d4",
         "width": 2
       }
     }

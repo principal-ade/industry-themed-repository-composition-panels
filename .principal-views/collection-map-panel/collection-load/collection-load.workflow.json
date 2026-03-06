@@ -2,19 +2,23 @@
   "version": "1.0.0",
   "canvas": ".principal-views/collection-map-panel/collection-map-panel.otel.canvas",
   "name": "Collection Load",
-  "description": "Loading and rendering a collection as an overworld map",
-  "spanPattern": "collection-map.load",
+  "description": "Full lifecycle when a collection is selected and loaded as an overworld map",
+  "spanPattern": "collection-map.collection-selected",
   "mode": "span-tree",
   "scenarios": [
     {
       "id": "collection-loaded",
-      "description": "Collection loaded and rendered as overworld map",
+      "description": "Collection loaded and displayed as overworld map (layout computed on first load, skipped on return visits)",
       "priority": 1,
       "template": {
-        "summary": "Loaded collection with {{nodes.created}} repositories",
+        "summary": "Loaded collection '{{collection.name}}' ({{collection.id}}) with {{members.count}} members",
         "events": {
-          "collection-map.convert-nodes": "Converted {{memberships.count}} memberships to {{nodes.created}} nodes",
-          "collection-map.initialize-layout": "{{#if regions.computed}}Initialized {{regions.computed}} regions, {{nodes.positioned}} positioned{{else}}Layout already initialized{{/if}}"
+          "collection-map.collection-selected": "Selected collection '{{collection.name}}' ({{collection.id}}) with {{members.count}} members",
+          "collection-map.convert-nodes": "Converted {{memberships.count}} memberships ({{repositories.count}} repositories) to {{nodes.created}} nodes for collection {{collection.id}}",
+          "collection-map.validate-nodes": "Validated {{nodes.total}} nodes: {{nodes.valid}} valid, {{nodes.unplaced}} unplaced (is.initial.load={{is.initial.load}}) for collection {{collection.id}}",
+          "collection-map.initialize-layout": "Computed layout for {{nodes.count}} nodes (needs.regions={{needs.regions}}, needs.layout={{needs.layout}}): {{regions.computed}} regions, {{nodes.positioned}} positioned for collection {{collection.id}}",
+          "collection-map.batch-save": "Saved {{regions.saved}} regions, {{assignments.saved}} assignments, {{positions.saved}} positions for collection {{collection.id}}",
+          "collection-map.map-rendered": "Rendered map with {{nodes.rendered}} nodes in {{regions.rendered}} regions ({{unplaced.count}} unplaced) for collection {{collection.id}}"
         }
       }
     }

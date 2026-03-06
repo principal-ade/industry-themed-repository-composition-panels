@@ -11,9 +11,20 @@
       "description": "User clicked on a repository to select it",
       "priority": 1,
       "template": {
-        "summary": "{{#if repository.id}}Selected {{repository.id}}{{else}}Deselected repository{{/if}}",
+        "summary": "Selected repository {{repository.id}} in collection {{collection.id}}",
         "events": {
-          "collection-map.repository-clicked": "{{#if repository.id}}Clicked on {{repository.id}}{{else}}Clicked empty space to deselect{{/if}}"
+          "collection-map.repository-clicked": "Action: {{action}} - Clicked on repository {{repository.id}} in collection {{collection.id}}"
+        }
+      }
+    },
+    {
+      "id": "repository-deselected",
+      "description": "User clicked empty space to deselect",
+      "priority": 2,
+      "template": {
+        "summary": "Deselected repository in collection {{collection.id}}",
+        "events": {
+          "collection-map.repository-clicked": "Action: {{action}} - Clicked empty space to deselect in collection {{collection.id}}"
         }
       }
     }

@@ -1,8 +1,8 @@
 {
   "version": "1.0.0",
   "canvas": ".principal-views/collection-map-panel/collection-map-panel.otel.canvas",
-  "name": "Region Management",
-  "description": "Create, rename, or delete regions on the collection map",
+  "name": "Region Created",
+  "description": "User creates a new region on the collection map",
   "spanPattern": "collection-map.region-created",
   "mode": "span-tree",
   "scenarios": [
@@ -11,9 +11,9 @@
       "description": "User created a new region",
       "priority": 1,
       "template": {
-        "summary": "Created region '{{region.name}}'",
+        "summary": "Created region '{{region.name}}' in collection {{collection.id}}",
         "events": {
-          "collection-map.region-created": "Created region '{{region.name}}' at order {{region.order}}"
+          "collection-map.region-created": "Created region '{{region.name}}' ({{region.id}}) at order {{region.order}} in collection {{collection.id}}"
         }
       }
     }

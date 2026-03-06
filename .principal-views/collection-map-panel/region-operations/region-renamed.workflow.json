@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/collection-map-panel/collection-map-panel.otel.canvas",
+  "name": "Region Renamed",
+  "description": "User renames an existing region on the collection map",
+  "spanPattern": "collection-map.region-renamed",
+  "mode": "span-tree",
+  "scenarios": [
+    {
+      "id": "region-renamed",
+      "description": "User renamed a region",
+      "priority": 1,
+      "template": {
+        "summary": "Renamed region from '{{region.old.name}}' to '{{region.new.name}}' in collection {{collection.id}}",
+        "events": {
+          "collection-map.region-renamed": "Renamed region {{region.id}} from '{{region.old.name}}' to '{{region.new.name}}' in collection {{collection.id}}"
+        }
+      }
+    }
+  ]
+}

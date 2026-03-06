@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/collection-map-panel/collection-map-panel.otel.canvas",
+  "name": "External Drop",
+  "description": "Repository dragged from external panel onto the collection map",
+  "spanPattern": "collection-map.project-drop",
+  "mode": "span-tree",
+  "scenarios": [
+    {
+      "id": "external-drop",
+      "description": "New repository dropped from external panel onto map",
+      "priority": 1,
+      "template": {
+        "summary": "Dropped {{repository.id}} from {{source.type}} onto collection {{collection.id}}",
+        "events": {
+          "collection-map.project-drop": "Dropped {{repository.id}} from {{source.type}} at ({{grid.x}}, {{grid.y}}) in collection {{collection.id}}",
+          "collection-map.project-moved": "Positioned {{repository.id}} (is.new.repo={{is.new.repo}}, is.first.placement={{is.first.placement}}) in region {{region.id}} at ({{grid.x}}, {{grid.y}}) in collection {{collection.id}}",
+          "collection-map.position-saved": "Saved position for {{repository.id}} in region {{region.id}} (region.changed={{region.changed}}) at ({{grid.x}}, {{grid.y}}) in collection {{collection.id}}"
+        }
+      }
+    }
+  ]
+}

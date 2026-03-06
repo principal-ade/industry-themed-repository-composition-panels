@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/collection-map-panel/collection-map-panel.otel.canvas",
+  "name": "Sprite Drag",
+  "description": "Existing sprite dragged to a new position within the map",
+  "spanPattern": "collection-map.project-moved",
+  "mode": "span-tree",
+  "scenarios": [
+    {
+      "id": "sprite-moved",
+      "description": "Existing sprite dragged to new position",
+      "priority": 1,
+      "template": {
+        "summary": "Moved {{repository.id}} to ({{grid.x}}, {{grid.y}}) in region {{region.id}}",
+        "events": {
+          "collection-map.project-moved": "Moved {{repository.id}} (is.new.repo={{is.new.repo}}, is.first.placement={{is.first.placement}}) to ({{grid.x}}, {{grid.y}}) in region {{region.id}} in collection {{collection.id}}",
+          "collection-map.position-saved": "Saved position for {{repository.id}} in region {{region.id}} (region.changed={{region.changed}}) at ({{grid.x}}, {{grid.y}}) in collection {{collection.id}}"
+        }
+      }
+    }
+  ]
+}
