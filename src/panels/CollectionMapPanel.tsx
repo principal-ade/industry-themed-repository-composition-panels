@@ -54,6 +54,11 @@ export interface AlexandriaEntryWithMetrics extends AlexandriaEntry {
 
   /** Optional array of packages for monorepos */
   packages?: PackageLayer[];
+
+  /** Extended github fields (supplement to AlexandriaEntry.github) */
+  github?: AlexandriaEntry['github'] & {
+    ownerAvatar?: string; // URL to owner's avatar image
+  };
 }
 
 /**
@@ -588,6 +593,9 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         // Extract license from GitHub metadata
         const license = repo.github?.license;
 
+        // Extract owner avatar from GitHub metadata
+        const ownerAvatar = repo.github?.ownerAvatar;
+
         const node: GenericNode = {
           id: membership.repositoryId,
           name: repo.name,
@@ -600,6 +608,7 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
           stars, // GitHub star count for decorations
           collaborators, // Contributor count for community space decorations
           license, // License identifier for sign/ground treatment
+          ownerAvatar, // Owner avatar URL for bottom corner display
           dependencies: dependencies[membership.repositoryId] || [],
           isRoot: membership.metadata?.pinned || false,
           regionId: membership.metadata?.regionId, // Preserve region assignment
