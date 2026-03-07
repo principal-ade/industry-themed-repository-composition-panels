@@ -9,7 +9,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CustomRegion } from '@principal-ai/alexandria-collections';
 import type { OverworldMap } from './types';
 import { generateBuildingSprite } from './components/buildingSpriteGenerator';
-import { IsometricRenderer, type SceneContainers } from './components/IsometricRenderer';
+import {
+  IsometricRenderer,
+  type SceneContainers,
+} from './components/IsometricRenderer';
 import { IsometricInteractionManager } from './components/IsometricInteractionManager';
 import { IsometricPathManager } from './components/IsometricPathManager';
 import {
@@ -115,9 +118,13 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   const pathManagerRef = useRef<IsometricPathManager | null>(null);
   const rendererRef = useRef<IsometricRenderer | null>(null);
   const [isRendering, setIsRendering] = useState(true);
-  const [isResizing, setIsResizing] = useState(false);
   const [initializationComplete, setInitializationComplete] = useState(0);
-  const dimensionsRef = useRef({ width: width || 800, height: height || 600 });
+  // Canvas renders at viewport size (stable, no resize flashing)
+  // But we track visible container dimensions for camera focus calculations
+  const visibleDimensionsRef = useRef({
+    width: width || 800,
+    height: height || 600,
+  });
   const placeholdersRef = useRef<Container | null>(null);
   const sceneContainersRef = useRef<SceneContainers | null>(null);
   const offsetRef = useRef<{ offsetX: number; offsetY: number }>({
@@ -244,19 +251,23 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         };
       }
 
-      // Get initial dimensions from container
-      const containerWidth = canvasRef.current?.clientWidth || width || 800;
-      const containerHeight = canvasRef.current?.clientHeight || height || 600;
-      dimensionsRef.current = {
-        width: containerWidth,
-        height: containerHeight,
+      // Use viewport dimensions for canvas (stable sizing, avoids resize flashing)
+      const canvasWidth = window.innerWidth;
+      const canvasHeight = window.innerHeight;
+
+      // Track visible container dimensions for camera focus calculations
+      const visibleWidth = canvasRef.current?.clientWidth || width || 800;
+      const visibleHeight = canvasRef.current?.clientHeight || height || 600;
+      visibleDimensionsRef.current = {
+        width: visibleWidth,
+        height: visibleHeight,
       };
 
-      // Create PixiJS application
+      // Create PixiJS application at viewport size (stable, no resize needed)
       app = new Application();
       await app.init({
-        width: containerWidth,
-        height: containerHeight,
+        width: canvasWidth,
+        height: canvasHeight,
         backgroundColor: 0x1a1a1a, // Dark gray background (matches LayoutEngineTest)
         antialias: false, // Pixel-perfect rendering
         preserveDrawingBuffer: true, // Prevents flash during resize
@@ -295,12 +306,13 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       }
 
       // Create viewport for pan/zoom (like LayoutEngineTest)
+      // Use visible dimensions for viewport so zoom/pan feels natural within the visible area
       const worldWidth = mapData.width * ISO_TILE_WIDTH;
       const worldHeight = mapData.height * ISO_TILE_HEIGHT;
 
       const viewport = new Viewport({
-        screenWidth: containerWidth,
-        screenHeight: containerHeight,
+        screenWidth: visibleWidth,
+        screenHeight: visibleHeight,
         worldWidth,
         worldHeight,
         events: app.renderer.events,
@@ -440,12 +452,46 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         );
         viewport.setZoom(savedCameraPosition.current.scale);
       } else if (mapData.regions.length > 0 && !hasInitializedCamera.current) {
-        // First initialization: center on first region
+        // First initialization: center on first region and fit it in view
         const firstRegion = mapData.regions[0];
-        viewport.moveCenter(
-          gridToScreen(firstRegion.centerX, firstRegion.centerY).screenX,
-          gridToScreen(firstRegion.centerX, firstRegion.centerY).screenY
+        const bounds = firstRegion.bounds;
+
+        // Calculate the 4 corners of the isometric region in screen space
+        const topCorner = gridToScreen(bounds.x, bounds.y);
+        const bottomCorner = gridToScreen(
+          bounds.x + bounds.width,
+          bounds.y + bounds.height
         );
+        const leftCorner = gridToScreen(bounds.x, bounds.y + bounds.height);
+        const rightCorner = gridToScreen(bounds.x + bounds.width, bounds.y);
+
+        // Account for sprite heights extending above tiles
+        // Sprites have anchor at 0.85, height = 50 * size
+        // Larger sprites and decorations need more headroom
+        const spriteHeightOffset = 140;
+
+        // Screen bounding box (with sprite height adjustment)
+        const screenMinX = leftCorner.screenX;
+        const screenMaxX = rightCorner.screenX;
+        const screenMinY = topCorner.screenY - spriteHeightOffset;
+        const screenMaxY = bottomCorner.screenY;
+
+        // Center of the visual bounding box
+        const screenCenterX = (screenMinX + screenMaxX) / 2;
+        const screenCenterY = (screenMinY + screenMaxY) / 2;
+
+        viewport.moveCenter(screenCenterX, screenCenterY);
+
+        // Calculate zoom to fit the region in the visible area
+        const regionScreenWidth = screenMaxX - screenMinX;
+        const regionScreenHeight = screenMaxY - screenMinY;
+
+        // Add padding (65% of visible area for comfortable border)
+        const zoomX = (visibleWidth * 0.65) / regionScreenWidth;
+        const zoomY = (visibleHeight * 0.65) / regionScreenHeight;
+        const fitZoom = Math.min(zoomX, zoomY, 1); // Don't zoom in past 1.0
+
+        viewport.setZoom(fitZoom);
         hasInitializedCamera.current = true;
       }
 
@@ -717,45 +763,26 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     };
 
     let resizeObserver: ResizeObserver | null = null;
-    let resizeTimeout: number | null = null;
 
     const initAndSetupResize = async () => {
       await initPixi();
-      // Store reference to resize observer for cleanup
-      if (canvasRef.current && appRef.current) {
+
+      // Lightweight ResizeObserver: updates viewport screen dimensions for proper zoom/pan
+      // Does NOT resize the canvas/renderer (which would cause flashing)
+      if (canvasRef.current) {
         resizeObserver = new ResizeObserver((entries) => {
-          if (!appRef.current || !viewportRef.current) return;
-
-          // Set resizing flag
-          setIsResizing(true);
-
-          // Clear existing timeout
-          if (resizeTimeout) {
-            clearTimeout(resizeTimeout);
-          }
-
           for (const entry of entries) {
             const { width: newWidth, height: newHeight } = entry.contentRect;
-
-            // Update dimensions ref
-            dimensionsRef.current = { width: newWidth, height: newHeight };
-
-            // Resize the PixiJS renderer
-            appRef.current.renderer.resize(newWidth, newHeight);
-
-            // Resize the viewport
-            viewportRef.current.resize(newWidth, newHeight);
-
-            // Update hit area for the new size
-            appRef.current.stage.hitArea = appRef.current.screen;
+            visibleDimensionsRef.current = {
+              width: newWidth,
+              height: newHeight,
+            };
+            // Update viewport's screen dimensions so zoom/pan works correctly
+            if (viewportRef.current) {
+              viewportRef.current.resize(newWidth, newHeight);
+            }
           }
-
-          // Clear resizing flag after a short delay
-          resizeTimeout = window.setTimeout(() => {
-            setIsResizing(false);
-          }, 100);
         });
-
         resizeObserver.observe(canvasRef.current);
       }
     };
@@ -765,9 +792,6 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     return () => {
       cleanup = true;
       isInitializedRef.current = false;
-      if (resizeTimeout) {
-        clearTimeout(resizeTimeout);
-      }
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
@@ -789,7 +813,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       rendererRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stableCollectionKey, width, height]); // Only recreate PIXI when collection or size changes
+  }, [stableCollectionKey]); // Only recreate PIXI when collection changes (viewport sizing is stable)
   // Intentionally omit mapData, onAddRegion, onProjectMoved, onViewportReady - recreating PIXI on every change would be too expensive
 
   // Separate effect to update scene when mapData changes (without recreating PIXI)
@@ -862,16 +886,16 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     const currentSprites = sceneContainersRef.current?.spriteInstances;
 
     if (currentSprites && currentSprites.size > 0) {
-      const newNodeMap = new Map(mapData.nodes.map(n => [n.id, n]));
+      const newNodeMap = new Map(mapData.nodes.map((n) => [n.id, n]));
       const currentIds = new Set(currentSprites.keys());
       const newIds = new Set(newNodeMap.keys());
 
       // Find what changed
-      const toRemove = [...currentIds].filter(id => !newIds.has(id));
-      const toAdd = [...newIds].filter(id => !currentIds.has(id));
+      const toRemove = [...currentIds].filter((id) => !newIds.has(id));
+      const toAdd = [...newIds].filter((id) => !currentIds.has(id));
 
       // Check if any existing nodes need visual recreation (sprite key changed)
-      const toRecreate = [...newIds].filter(id => {
+      const toRecreate = [...newIds].filter((id) => {
         if (!currentIds.has(id)) return false;
         const node = newNodeMap.get(id)!;
         const sprite = currentSprites.get(id)!;
@@ -879,18 +903,24 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       });
 
       // Check which nodes just need position updates
-      const toUpdatePosition = [...newIds].filter(id => {
+      const toUpdatePosition = [...newIds].filter((id) => {
         if (!currentIds.has(id)) return false;
         const node = newNodeMap.get(id)!;
         const sprite = currentSprites.get(id)!;
         // Same visual, but different position
-        return node.sprite === sprite.spriteKey &&
+        return (
+          node.sprite === sprite.spriteKey &&
           (node.gridX !== sprite.gridPosition.gridX ||
-           node.gridY !== sprite.gridPosition.gridY);
+            node.gridY !== sprite.gridPosition.gridY)
+        );
       });
 
       // FAST PATH: Only position updates (no adds, removes, or visual changes)
-      if (toRemove.length === 0 && toAdd.length === 0 && toRecreate.length === 0) {
+      if (
+        toRemove.length === 0 &&
+        toAdd.length === 0 &&
+        toRecreate.length === 0
+      ) {
         // Just update positions of sprites that moved
         for (const id of toUpdatePosition) {
           const node = newNodeMap.get(id)!;
@@ -903,7 +933,11 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           // Rebuild paths with new positions
           for (const id of toUpdatePosition) {
             const node = newNodeMap.get(id)!;
-            pathManagerRef.current.updateNodePosition(id, node.gridX, node.gridY);
+            pathManagerRef.current.updateNodePosition(
+              id,
+              node.gridX,
+              node.gridY
+            );
           }
         }
 
@@ -997,8 +1031,10 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
     // Subsequent changes: animate smoothly (from arrow button clicks)
     setIsAnimating(true);
-    const targetX = dimensionsRef.current.width / 2 - regionCenter.screenX;
-    const targetY = dimensionsRef.current.height / 2 - regionCenter.screenY;
+    const targetX =
+      visibleDimensionsRef.current.width / 2 - regionCenter.screenX;
+    const targetY =
+      visibleDimensionsRef.current.height / 2 - regionCenter.screenY;
     animationRef.current = {
       startTime: performance.now(),
       startX: viewport.x,
@@ -1032,6 +1068,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         width: '100%',
         height: '100%',
         overflow: 'hidden',
+        // Container clips the viewport-sized canvas to its actual bounds
       }}
     >
       {(isLoading || isRendering) && (
@@ -1058,14 +1095,12 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       <div
         ref={canvasRef}
         style={{
-          width: '100%',
-          height: '100%',
+          width: '100dvw',
+          height: '100dvh',
           imageRendering: 'pixelated',
           border: '2px solid #1f2937',
           boxSizing: 'border-box',
           backgroundColor: '#1a1a1a', // Match Pixi background to prevent flash
-          opacity: isResizing ? 0.95 : 1,
-          transition: 'opacity 0.1s ease-out',
         }}
       />
 
@@ -1075,8 +1110,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           style={{
             position: 'absolute',
             top: 8,
-            left: '50%',
-            transform: 'translateX(-50%)',
+            left: 8,
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
