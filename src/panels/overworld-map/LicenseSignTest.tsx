@@ -18,6 +18,7 @@ export const LicenseSignTest: React.FC = () => {
         size: 2.0,
         language: 'typescript',
         license: 'MIT',
+        ownerAvatar: 'https://avatars.githubusercontent.com/u/69631?s=64', // Facebook
       },
       {
         id: 'vue',
@@ -25,6 +26,7 @@ export const LicenseSignTest: React.FC = () => {
         size: 2.0,
         language: 'typescript',
         license: 'MIT',
+        ownerAvatar: 'https://avatars.githubusercontent.com/u/6128107?s=64', // Vue
       },
       {
         id: 'lodash',
@@ -32,6 +34,7 @@ export const LicenseSignTest: React.FC = () => {
         size: 1.5,
         language: 'javascript',
         license: 'MIT',
+        ownerAvatar: 'https://avatars.githubusercontent.com/u/4303?s=64', // lodash
       },
 
       // Apache licensed (formal - shield sign, cobblestone path)
@@ -41,6 +44,7 @@ export const LicenseSignTest: React.FC = () => {
         size: 2.0,
         language: 'java',
         license: 'Apache-2.0',
+        ownerAvatar: 'https://avatars.githubusercontent.com/u/47359?s=64', // Apache
       },
       {
         id: 'spark',
@@ -48,6 +52,7 @@ export const LicenseSignTest: React.FC = () => {
         size: 2.0,
         language: 'java',
         license: 'Apache-2.0',
+        ownerAvatar: 'https://avatars.githubusercontent.com/u/47359?s=64', // Apache
       },
       {
         id: 'hadoop',
@@ -55,6 +60,7 @@ export const LicenseSignTest: React.FC = () => {
         size: 1.5,
         language: 'java',
         license: 'Apache-2.0',
+        ownerAvatar: 'https://avatars.githubusercontent.com/u/47359?s=64', // Apache
       },
 
       // GPL licensed (copyleft - iron arch, picket fence)
@@ -64,6 +70,7 @@ export const LicenseSignTest: React.FC = () => {
         size: 2.0,
         language: 'c',
         license: 'GPL-3.0',
+        ownerAvatar: 'https://avatars.githubusercontent.com/u/1024025?s=64', // torvalds
       },
       {
         id: 'bash',
@@ -71,6 +78,7 @@ export const LicenseSignTest: React.FC = () => {
         size: 1.5,
         language: 'c',
         license: 'GPL-3.0',
+        ownerAvatar: 'https://avatars.githubusercontent.com/u/1000?s=64', // GNU
       },
       {
         id: 'gcc',
@@ -78,6 +86,7 @@ export const LicenseSignTest: React.FC = () => {
         size: 2.0,
         language: 'c',
         license: 'GPL-3.0',
+        ownerAvatar: 'https://avatars.githubusercontent.com/u/1000?s=64', // GNU
       },
     ];
   }, []);

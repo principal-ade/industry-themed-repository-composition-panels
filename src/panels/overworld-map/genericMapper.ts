@@ -51,6 +51,9 @@ export interface GenericNode {
   // License information
   license?: string; // SPDX license identifier (e.g., 'MIT', 'Apache-2.0', 'GPL-3.0')
 
+  // Owner information
+  ownerAvatar?: string; // URL to owner's avatar image
+
   // Connections to other nodes
   dependencies?: string[]; // IDs of nodes this depends on
   devDependencies?: string[]; // IDs of dev/optional dependencies
@@ -728,6 +731,7 @@ export function nodesToUnifiedOverworldMap(
       stars: node.stars,
       collaborators: node.collaborators,
       license: node.license,
+      ownerAvatar: node.ownerAvatar,
     };
   });
 

@@ -97,6 +97,9 @@ export interface LocationNode {
 
   // License information
   license?: string; // SPDX license identifier (e.g., 'MIT', 'Apache-2.0', 'GPL-3.0')
+
+  // Owner information
+  ownerAvatar?: string; // URL to owner's avatar image
 }
 
 /**

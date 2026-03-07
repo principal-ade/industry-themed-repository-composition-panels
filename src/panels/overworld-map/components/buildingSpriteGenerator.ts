@@ -113,9 +113,8 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
   building.lineTo(isoWidth / 2, 0);
   building.stroke();
 
-  // Position decorations below building, slightly above where repo name label appears
-  // Both decorations are positioned side by side (stars on right, collaborators on left)
-  const decorationBaseY = isoDepthY + 12; // Below building front edge
+  // Position decorations at corners of the diamond base
+  // Stars on the left corner, collaborators on the right corner
 
   // Add star decoration if stars are provided
   if (stars && stars > 0) {
@@ -135,10 +134,11 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
           break;
       }
 
-      // Position decoration to the right, below building (above label area)
-      const decorationX = collaborators && collaborators > 0 ? 35 : 0; // Offset right if collaborators exist, else center
+      // Position decoration at the left corner of the diamond base
+      const decorationX = -isoWidth / 4; // Left side, inside the diamond
+      const decorationY = 0; // Left point is at Y=0
       decoration.x = decorationX;
-      decoration.y = decorationBaseY;
+      decoration.y = decorationY;
       decoration.scale.set(1.8); // Slightly smaller scale
 
       building.addChild(decoration);
@@ -156,7 +156,7 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
         resolution: 2,
       });
       countText.x = decorationX;
-      countText.y = decorationBaseY + 18; // Below the decoration
+      countText.y = decorationY + 18; // Below the decoration
       countText.anchor.set(0.5, 0);
 
       building.addChild(countText);
@@ -184,10 +184,11 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
           break;
       }
 
-      // Position decoration to the left, below building (above label area)
-      const decorationX = stars && stars > 0 ? -35 : 0; // Offset left if stars exist, else center
+      // Position decoration at the right corner of the diamond base
+      const decorationX = isoWidth / 4; // Right side, inside the diamond
+      const decorationY = 0; // Right point is at Y=0
       decoration.x = decorationX;
-      decoration.y = decorationBaseY;
+      decoration.y = decorationY;
       decoration.scale.set(1.8); // Slightly smaller scale
 
       building.addChild(decoration);
@@ -205,7 +206,7 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
         resolution: 2,
       });
       countText.x = decorationX;
-      countText.y = decorationBaseY + 18; // Below the decoration
+      countText.y = decorationY + 18; // Below the decoration
       countText.anchor.set(0.5, 0);
 
       building.addChild(countText);

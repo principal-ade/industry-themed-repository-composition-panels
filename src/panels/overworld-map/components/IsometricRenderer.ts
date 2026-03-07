@@ -54,6 +54,7 @@ export interface SpriteInstance {
   weathering?: Graphics;
   licenseGround?: Graphics | Container; // License-based ground treatment (grass, cobblestone, fence)
   licenseSign?: Container; // License-based sign/archway
+  ownerAvatar?: Container; // Owner avatar at bottom corner
   gridPosition: { gridX: number; gridY: number };
   size: number; // Size multiplier for boundary calculations
   spriteKey: string; // Texture key for diffing (e.g., "building-3-#ff0000-50-10")
@@ -190,6 +191,11 @@ export class IsometricRenderer {
       // Add license sign after sprite (in front of building)
       if (instance.licenseSign) {
         nodes.addChild(instance.licenseSign);
+      }
+
+      // Add owner avatar at bottom corner
+      if (instance.ownerAvatar) {
+        nodes.addChild(instance.ownerAvatar);
       }
 
       nodes.addChild(instance.label); // Top: text label
@@ -550,9 +556,8 @@ export class IsometricRenderer {
       container.addChild(sprite);
     }
 
-    // Position decorations below footprint, slightly above where repo name label appears
-    // Both decorations positioned side by side (stars on right, collaborators on left)
-    const decorationBaseY = footprintHeight * 0.5; // Below footprint center, above label
+    // Position decorations at corners of the diamond
+    // Stars on the left corner, collaborators on the right corner
 
     // Add star decoration if node has stars
     if (node.stars && node.stars > 0) {
@@ -572,11 +577,11 @@ export class IsometricRenderer {
             break;
         }
 
-        // Position decoration to the right, below footprint (above label area)
-        const decorationX =
-          node.collaborators && node.collaborators > 0 ? 35 : 0;
+        // Position decoration at the left corner of the diamond
+        const decorationX = -footprintWidth / 2; // Left side, inside the diamond
+        const decorationY = 0; // Left point is at vertical center
         decoration.x = decorationX;
-        decoration.y = decorationBaseY;
+        decoration.y = decorationY;
         decoration.scale.set(1.8);
 
         container.addChild(decoration);
@@ -594,7 +599,7 @@ export class IsometricRenderer {
           resolution: 2,
         });
         countText.x = decorationX;
-        countText.y = decorationBaseY + 18;
+        countText.y = decorationY + 18;
         countText.anchor.set(0.5, 0);
 
         container.addChild(countText);
@@ -622,10 +627,11 @@ export class IsometricRenderer {
             break;
         }
 
-        // Position decoration to the left, below footprint (above label area)
-        const decorationX = node.stars && node.stars > 0 ? -35 : 0;
+        // Position decoration at the right corner of the diamond
+        const decorationX = footprintWidth / 2; // Right side, inside the diamond
+        const decorationY = 0; // Right point is at vertical center
         decoration.x = decorationX;
-        decoration.y = decorationBaseY;
+        decoration.y = decorationY;
         decoration.scale.set(1.8);
 
         container.addChild(decoration);
@@ -643,10 +649,57 @@ export class IsometricRenderer {
           resolution: 2,
         });
         countText.x = decorationX;
-        countText.y = decorationBaseY + 18;
+        countText.y = decorationY + 18;
         countText.anchor.set(0.5, 0);
 
         container.addChild(countText);
+      }
+    }
+
+    // Add owner avatar at the bottom corner of the diamond
+    if (node.ownerAvatar) {
+      try {
+        const avatarSize = 24;
+        const avatarY = footprintHeight - avatarSize / 2;
+
+        // Create circular background/placeholder
+        const background = new Graphics();
+        background.circle(0, avatarY, avatarSize / 2);
+        background.fill({ color: 0x666666 });
+        container.addChild(background);
+
+        // Create circular mask for the avatar
+        const mask = new Graphics();
+        mask.circle(0, avatarY, avatarSize / 2);
+        mask.fill({ color: 0xffffff });
+        container.addChild(mask);
+
+        // Load avatar texture and create sprite
+        const avatarTexture = Texture.from(node.ownerAvatar);
+        if (avatarTexture) {
+          const avatar = new Sprite(avatarTexture);
+          avatar.anchor.set(0.5, 0.5);
+          avatar.x = 0;
+          avatar.y = avatarY;
+          avatar.mask = mask;
+
+          // Set size - use scale to ensure proper sizing regardless of texture state
+          const updateSize = () => {
+            const w = avatarTexture.width;
+            const h = avatarTexture.height;
+            if (w > 0 && h > 0) {
+              avatar.scale.set(avatarSize / w, avatarSize / h);
+            }
+          };
+          updateSize();
+          if (avatarTexture.source) {
+            avatarTexture.source.on('update', updateSize);
+          }
+
+          container.addChild(avatar);
+        }
+      } catch {
+        // Failed to load avatar, placeholder will remain
       }
     }
 
@@ -916,6 +969,59 @@ export class IsometricRenderer {
         label.visible = false;
       }
 
+      // Create owner avatar at the bottom corner of the diamond
+      let ownerAvatar: Container | undefined;
+      if (node.ownerAvatar) {
+        try {
+          const footprint = calculateFootprint(sizeMultiplier);
+          const avatarSize = 24;
+          ownerAvatar = new Container();
+
+          // Create circular background/placeholder
+          const background = new Graphics();
+          background.circle(0, 0, avatarSize / 2);
+          background.fill({ color: 0x666666 });
+          ownerAvatar.addChild(background);
+
+          // Create circular mask for the avatar
+          const mask = new Graphics();
+          mask.circle(0, 0, avatarSize / 2);
+          mask.fill({ color: 0xffffff });
+          ownerAvatar.addChild(mask);
+
+          // Load avatar texture and create sprite
+          const avatarTexture = Texture.from(node.ownerAvatar);
+          if (avatarTexture) {
+            const avatar = new Sprite(avatarTexture);
+            avatar.anchor.set(0.5, 0.5);
+            avatar.mask = mask;
+
+            // Set size - use scale to ensure proper sizing regardless of texture state
+            const updateSize = () => {
+              const w = avatarTexture.width;
+              const h = avatarTexture.height;
+              if (w > 0 && h > 0) {
+                avatar.scale.set(avatarSize / w, avatarSize / h);
+              }
+            };
+            updateSize();
+            if (avatarTexture.source) {
+              avatarTexture.source.on('update', updateSize);
+            }
+
+            ownerAvatar.addChild(avatar);
+          }
+
+          // Position at bottom corner of the diamond
+          ownerAvatar.x = screenX;
+          ownerAvatar.y = screenY + footprint.height - avatarSize / 2;
+          ownerAvatar.zIndex = sprite.zIndex + 0.12;
+        } catch {
+          // Failed to load avatar, skip
+          ownerAvatar = undefined;
+        }
+      }
+
       // Create sprite instance
       const instance: SpriteInstance = {
         sprite,
@@ -924,6 +1030,7 @@ export class IsometricRenderer {
         weathering,
         licenseGround,
         licenseSign,
+        ownerAvatar,
         gridPosition: { gridX: node.gridX, gridY: node.gridY },
         size: sizeMultiplier,
         spriteKey: node.sprite, // Store for diffing - allows detecting visual changes
@@ -968,6 +1075,12 @@ export class IsometricRenderer {
             licenseSign.y = pos.screenY + footprint.height * 0.75;
             licenseSign.zIndex = getIsometricZIndex(gridX, gridY) + 0.15;
           }
+          if (ownerAvatar) {
+            const footprint = calculateFootprint(sizeMultiplier);
+            ownerAvatar.x = pos.screenX;
+            ownerAvatar.y = pos.screenY + footprint.height - 12;
+            ownerAvatar.zIndex = getIsometricZIndex(gridX, gridY) + 0.12;
+          }
 
           instance.gridPosition = { gridX, gridY };
         },
@@ -978,6 +1091,7 @@ export class IsometricRenderer {
           weathering?.destroy();
           licenseGround?.destroy();
           licenseSign?.destroy();
+          ownerAvatar?.destroy();
         },
       };
 
