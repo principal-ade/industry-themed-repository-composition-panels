@@ -1,4 +1,5 @@
 export { DependencyInfoModal } from './DependencyInfoModal';
+export { PackageLoadingGraph } from './PackageLoadingGraph';
 export { DependencyRow } from './DependencyRow';
 export { FilterBar } from './FilterBar';
 export {

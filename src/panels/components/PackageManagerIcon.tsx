@@ -1,7 +1,16 @@
 import React from 'react';
 import { Package } from 'lucide-react';
 
-type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun' | 'pip' | 'poetry' | 'pipenv' | 'cargo' | 'unknown';
+type PackageManager =
+  | 'npm'
+  | 'yarn'
+  | 'pnpm'
+  | 'bun'
+  | 'pip'
+  | 'poetry'
+  | 'pipenv'
+  | 'cargo'
+  | 'unknown';
 
 interface PackageManagerIconProps {
   packageManager: PackageManager;
@@ -101,7 +110,7 @@ const RustIcon: React.FC<{ size: number }> = ({ size }) => (
     width={size}
     height={size}
     viewBox="0 0 24 24"
-    fill="#000000"
+    fill="#DEA584"
     role="img"
     xmlns="http://www.w3.org/2000/svg"
   >

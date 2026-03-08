@@ -9,7 +9,11 @@ import {
   Globe,
 } from 'lucide-react';
 import { PackageManagerIcon } from './components/PackageManagerIcon';
-import { PackageDetailCard, PackageSummaryCard } from './components';
+import {
+  PackageDetailCard,
+  PackageSummaryCard,
+  PackageLoadingGraph,
+} from './components';
 import { EmptyDependencies } from './components/EmptyDependencies';
 import type {
   PackageCompositionPanelPropsTyped,
@@ -85,18 +89,7 @@ export const PackageCompositionPanelContent: React.FC<
   }, [selectedPackageId, packages]);
 
   if (isLoading) {
-    return (
-      <div
-        style={{
-          padding: '20px',
-          textAlign: 'center',
-          color: theme.colors.textSecondary,
-          fontFamily: theme.fonts.body,
-        }}
-      >
-        Loading packages...
-      </div>
-    );
+    return <PackageLoadingGraph />;
   }
 
   if (packages.length === 0) {
