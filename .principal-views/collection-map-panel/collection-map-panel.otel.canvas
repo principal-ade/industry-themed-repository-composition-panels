@@ -18,7 +18,7 @@
             "members.count": { "type": "number", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
           "category": "lifecycle",
@@ -73,7 +73,7 @@
             "is.initial.load": { "type": "boolean", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
           "category": "validation",
@@ -129,7 +129,7 @@
             "positions.saved": { "type": "number", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
           "category": "persistence",
@@ -156,7 +156,7 @@
             "unplaced.count": { "type": "number", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
           "category": "render",
@@ -184,10 +184,11 @@
             "grid.y": { "type": "number", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
-          "category": "user-interaction"
+          "category": "user-interaction",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
         }
       }
     },
@@ -210,10 +211,11 @@
             "grid.y": { "type": "number", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
-          "category": "user-interaction"
+          "category": "user-interaction",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
         }
       }
     },
@@ -239,10 +241,11 @@
             "grid.y": { "type": "number", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
-          "category": "user-interaction"
+          "category": "user-interaction",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
         }
       }
     },
@@ -267,10 +270,11 @@
             "grid.y": { "type": "number", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
-          "category": "persistence"
+          "category": "persistence",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
         }
       }
     },
@@ -292,10 +296,11 @@
             "action": { "type": "string", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
-          "category": "user-interaction"
+          "category": "user-interaction",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
         }
       }
     },
@@ -318,10 +323,11 @@
             "region.order": { "type": "number", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
-          "category": "region-management"
+          "category": "region-management",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
         }
       }
     },
@@ -344,10 +350,11 @@
             "region.new.name": { "type": "string", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
-          "category": "region-management"
+          "category": "region-management",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
         }
       }
     },
@@ -370,10 +377,11 @@
             "nodes.orphaned": { "type": "number", "required": true }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "span",
-          "category": "region-management"
+          "category": "region-management",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
         }
       }
     },
@@ -389,9 +397,8 @@
       "pv": {
         "nodeType": "boundary",
         "boundary": {
-          "type": "host-callback",
-          "action": "onBatchLayoutInitialized",
-          "interface": "RegionCallbacks"
+          "direction": "outbound",
+          "node": { "pv.event.name": "host.onBatchLayoutInitialized" }
         },
         "otel": {
           "kind": "client",
@@ -411,9 +418,8 @@
       "pv": {
         "nodeType": "boundary",
         "boundary": {
-          "type": "host-callback",
-          "action": "addRepositoryToCollection",
-          "interface": "CollectionMapPanelActions"
+          "direction": "outbound",
+          "node": { "pv.event.name": "host.addRepositoryToCollection" }
         },
         "otel": {
           "kind": "client",
@@ -433,9 +439,8 @@
       "pv": {
         "nodeType": "boundary",
         "boundary": {
-          "type": "host-callback",
-          "action": "onRepositoryPositionUpdated",
-          "interface": "RegionCallbacks"
+          "direction": "outbound",
+          "node": { "pv.event.name": "host.onRepositoryPositionUpdated" }
         },
         "otel": {
           "kind": "client",
@@ -455,9 +460,8 @@
       "pv": {
         "nodeType": "boundary",
         "boundary": {
-          "type": "host-callback",
-          "action": "onRepositoryAssigned",
-          "interface": "RegionCallbacks"
+          "direction": "outbound",
+          "node": { "pv.event.name": "host.onRepositoryAssigned" }
         },
         "otel": {
           "kind": "client",
@@ -477,9 +481,8 @@
       "pv": {
         "nodeType": "boundary",
         "boundary": {
-          "type": "host-callback",
-          "action": "onRepositoryClicked",
-          "interface": "CollectionMapPanelActions"
+          "direction": "outbound",
+          "node": { "pv.event.name": "host.onRepositoryClicked" }
         },
         "otel": {
           "kind": "client",
@@ -499,9 +502,8 @@
       "pv": {
         "nodeType": "boundary",
         "boundary": {
-          "type": "host-callback",
-          "action": "onRegionCreated",
-          "interface": "RegionCallbacks"
+          "direction": "outbound",
+          "node": { "pv.event.name": "host.onRegionCreated" }
         },
         "otel": {
           "kind": "client",
@@ -521,9 +523,8 @@
       "pv": {
         "nodeType": "boundary",
         "boundary": {
-          "type": "host-callback",
-          "action": "onRegionUpdated",
-          "interface": "RegionCallbacks"
+          "direction": "outbound",
+          "node": { "pv.event.name": "host.onRegionUpdated" }
         },
         "otel": {
           "kind": "client",
@@ -543,9 +544,8 @@
       "pv": {
         "nodeType": "boundary",
         "boundary": {
-          "type": "host-callback",
-          "action": "onRegionDeleted",
-          "interface": "RegionCallbacks"
+          "direction": "outbound",
+          "node": { "pv.event.name": "host.onRegionDeleted" }
         },
         "otel": {
           "kind": "client",

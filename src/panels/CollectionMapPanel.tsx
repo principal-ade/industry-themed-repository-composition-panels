@@ -8,7 +8,7 @@ import {
   type PanelDragData,
 } from '@principal-ade/panel-framework-core';
 import { Viewport } from 'pixi-viewport';
-import { trace } from '@opentelemetry/api';
+import { trace, type Span } from '@opentelemetry/api';
 import type {
   PanelComponentProps,
   PanelActions,
@@ -236,15 +236,40 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   // Instead, we let the layout algorithm create age-based regions on first load
   // and save them (handled in the effect after projects is defined)
 
-  // Handle renaming a region
+  // Handle renaming a region (workflow: region-renamed)
   const handleRenameRegion = useCallback(
     async (regionId: string, name: string) => {
-      await regionCallbacks.onRegionUpdated(collection.id, regionId, { name });
+      const span = getTracer().startSpan('collection-map.region-renamed');
+
+      try {
+        // Look up old name from customRegions
+        const oldRegion = customRegions.find((r) => r.id === regionId);
+        const oldName = oldRegion?.name || 'Unknown';
+
+        span.addEvent('collection-map.region-renamed', {
+          'collection.id': collection.id,
+          'region.id': regionId,
+          'region.old.name': oldName,
+          'region.new.name': name,
+        });
+
+        await regionCallbacks.onRegionUpdated(collection.id, regionId, {
+          name,
+        });
+
+        span.setStatus({ code: 1 });
+        span.end();
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({ code: 2, message: (error as Error).message });
+        span.end();
+        throw error;
+      }
     },
-    [regionCallbacks, collection.id]
+    [regionCallbacks, collection.id, customRegions]
   );
 
-  // Handle deleting a region
+  // Handle deleting a region (workflow: region-deleted)
   const handleDeleteRegion = useCallback(
     async (regionId: string) => {
       // Prevent deleting the last region - always keep at least one
@@ -256,19 +281,52 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         return;
       }
 
-      await regionCallbacks.onRegionDeleted(collection.id, regionId);
+      const span = getTracer().startSpan('collection-map.region-deleted');
+
+      try {
+        // Look up region name and count orphaned nodes
+        const region = customRegions.find((r) => r.id === regionId);
+        const regionName = region?.name || 'Unknown';
+        const orphanedCount = collection.members.filter(
+          (m) => m.metadata?.regionId === regionId
+        ).length;
+
+        span.addEvent('collection-map.region-deleted', {
+          'collection.id': collection.id,
+          'region.id': regionId,
+          'region.name': regionName,
+          'nodes.orphaned': orphanedCount,
+        });
+
+        await regionCallbacks.onRegionDeleted(collection.id, regionId);
+
+        span.setStatus({ code: 1 });
+        span.end();
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({ code: 2, message: (error as Error).message });
+        span.end();
+        throw error;
+      }
     },
-    [regionCallbacks, collection.id, customRegions.length]
+    [regionCallbacks, collection.id, customRegions, collection.members]
   );
 
   // Handle project moved (save position to metadata)
+  // Accepts optional parentSpan for workflow telemetry (from drop handlers)
   const handleProjectMoved = useCallback(
     async (
       projectId: string,
       gridX: number,
       gridY: number,
-      metadata?: RepositoryMetadata
+      metadata?: RepositoryMetadata,
+      parentSpan?: Span
     ) => {
+      // If no parent span, this is a sprite-drag workflow - create our own span
+      const span =
+        parentSpan ?? getTracer().startSpan('collection-map.project-moved');
+      const ownsSpan = !parentSpan;
+
       // Check if this is a repo being added for the first time (from drag-drop)
       const isNewRepo = !!metadata;
       const existingMembership = collection.members.find(
@@ -283,6 +341,11 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
             `This indicates a sprite was rendered without valid backing data.`
         );
         console.error(error);
+        if (ownsSpan) {
+          span.recordException(error);
+          span.setStatus({ code: 2, message: error.message });
+          span.end();
+        }
         throw error;
       }
 
@@ -319,6 +382,17 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
         newRegionId = newRegion.id;
       }
+
+      // Add project-moved event
+      span.addEvent('collection-map.project-moved', {
+        'collection.id': collection.id,
+        'repository.id': projectId,
+        'is.new.repo': isNewRepo,
+        'is.first.placement': isFirstPlacement,
+        'region.id': newRegionId,
+        'grid.x': gridX,
+        'grid.y': gridY,
+      });
 
       // If this is a first placement (new repo from drag-drop OR existing membership without regionId)
       if (isFirstPlacement) {
@@ -357,8 +431,28 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
               newRegionId
             );
           }
+
+          // Add position-saved event
+          span.addEvent('collection-map.position-saved', {
+            'collection.id': collection.id,
+            'repository.id': projectId,
+            'region.id': newRegionId,
+            'region.changed': true,
+            'grid.x': relativeGridX,
+            'grid.y': relativeGridY,
+          });
+
+          if (ownsSpan) {
+            span.setStatus({ code: 1 });
+            span.end();
+          }
         } catch (error) {
           console.error('[PLACEMENT] ✗ ERROR during placement:', error);
+          if (ownsSpan) {
+            span.recordException(error as Error);
+            span.setStatus({ code: 2, message: (error as Error).message });
+            span.end();
+          }
           throw error;
         }
         return;
@@ -390,13 +484,29 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         (m) => m.repositoryId === projectId
       );
       const oldRegionId = membership?.metadata?.regionId;
+      const regionChanged = oldRegionId !== newRegionId;
 
-      if (oldRegionId !== newRegionId) {
+      if (regionChanged) {
         await regionCallbacks.onRepositoryAssigned(
           collection.id,
           projectId,
           newRegionId
         );
+      }
+
+      // Add position-saved event
+      span.addEvent('collection-map.position-saved', {
+        'collection.id': collection.id,
+        'repository.id': projectId,
+        'region.id': newRegionId,
+        'region.changed': regionChanged,
+        'grid.x': relativeGridX,
+        'grid.y': relativeGridY,
+      });
+
+      if (ownsSpan) {
+        span.setStatus({ code: 1 });
+        span.end();
       }
     },
     [
@@ -408,34 +518,62 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     ]
   );
 
-  // Handle dropped projects
+  // Handle dropped projects (workflow: external-drop)
   const handleProjectDrop = useCallback(
     async (data: PanelDragData, event: React.DragEvent) => {
-      // Extract repository info from dropped data
-      const repositoryPath = data.primaryData as string;
-      // Type assertion: drag data metadata is expected to contain RepositoryMetadata from the drag source
-      const repositoryMetadata = (data.metadata || {}) as RepositoryMetadata;
-      const repoId = repositoryMetadata?.name || repositoryPath;
+      // Create span for external-drop workflow
+      const span = getTracer().startSpan('collection-map.project-drop');
 
-      // Convert drop position to grid coordinates
-      const gridCoords = domEventToGridCoords(
-        event.clientX,
-        event.clientY,
-        viewportRef.current,
-        canvasRef.current
-      );
+      try {
+        // Extract repository info from dropped data
+        const repositoryPath = data.primaryData as string;
+        // Type assertion: drag data metadata is expected to contain RepositoryMetadata from the drag source
+        const repositoryMetadata = (data.metadata || {}) as RepositoryMetadata;
+        const repoId = repositoryMetadata?.name || repositoryPath;
 
-      // Snap to nearest tile
-      const gridX = Math.round(gridCoords.gridX);
-      const gridY = Math.round(gridCoords.gridY);
+        // Convert drop position to grid coordinates
+        const gridCoords = domEventToGridCoords(
+          event.clientX,
+          event.clientY,
+          viewportRef.current,
+          canvasRef.current
+        );
 
-      // Place immediately at drop position, passing metadata directly
-      await handleProjectMoved(repoId, gridX, gridY, repositoryMetadata);
+        // Snap to nearest tile
+        const gridX = Math.round(gridCoords.gridX);
+        const gridY = Math.round(gridCoords.gridY);
+
+        // Add project-drop event
+        span.addEvent('collection-map.project-drop', {
+          'collection.id': collection.id,
+          'source.type': 'repository-project',
+          'repository.id': repoId,
+          'grid.x': gridX,
+          'grid.y': gridY,
+        });
+
+        // Place immediately at drop position, passing metadata and span
+        await handleProjectMoved(
+          repoId,
+          gridX,
+          gridY,
+          repositoryMetadata,
+          span
+        );
+
+        span.setStatus({ code: 1 });
+        span.end();
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({ code: 2, message: (error as Error).message });
+        span.end();
+        throw error;
+      }
     },
-    [handleProjectMoved]
+    [handleProjectMoved, collection.id]
   );
 
-  // Handle drags from the unplaced drawer
+  // Handle drags from the unplaced drawer (workflow: drawer-drop)
   const handleDrawerDrop = useCallback(
     async (event: React.DragEvent) => {
       const unplacedNodeData = event.dataTransfer.getData(
@@ -446,66 +584,116 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       event.preventDefault();
       event.stopPropagation();
 
-      const { nodeId } = JSON.parse(unplacedNodeData);
+      // Create span for drawer-drop workflow
+      const span = getTracer().startSpan('collection-map.drawer-drop');
 
-      // Convert drop position to grid coordinates
-      const gridCoords = domEventToGridCoords(
-        event.clientX,
-        event.clientY,
-        viewportRef.current,
-        canvasRef.current
-      );
+      try {
+        const { nodeId } = JSON.parse(unplacedNodeData);
 
-      const gridX = Math.round(gridCoords.gridX);
-      const gridY = Math.round(gridCoords.gridY);
+        // Convert drop position to grid coordinates
+        const gridCoords = domEventToGridCoords(
+          event.clientX,
+          event.clientY,
+          viewportRef.current,
+          canvasRef.current
+        );
 
-      // Place the node (no metadata needed - it's already in the collection)
-      await handleProjectMoved(nodeId, gridX, gridY);
+        const gridX = Math.round(gridCoords.gridX);
+        const gridY = Math.round(gridCoords.gridY);
+
+        // Add drawer-drop event
+        span.addEvent('collection-map.drawer-drop', {
+          'collection.id': collection.id,
+          'repository.id': nodeId,
+          'grid.x': gridX,
+          'grid.y': gridY,
+        });
+
+        // Place the node (no metadata needed - it's already in the collection)
+        await handleProjectMoved(nodeId, gridX, gridY, undefined, span);
+
+        span.setStatus({ code: 1 });
+        span.end();
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({ code: 2, message: (error as Error).message });
+        span.end();
+        throw error;
+      }
     },
-    [handleProjectMoved]
+    [handleProjectMoved, collection.id]
   );
 
   // Handle dropped GitHub repositories (from starred/projects panels)
+  // Uses the same external-drop workflow as handleProjectDrop
   const handleGitHubDrop = useCallback(
     async (data: PanelDragData, event: React.DragEvent) => {
-      // Extract repository info from dropped data
-      // primaryData is the full_name (e.g., "owner/repo")
-      const fullName = data.primaryData as string;
-      // Type assertion: drag data metadata contains GitHub repo info
-      const metadata = (data.metadata || {}) as {
-        name?: string;
-        owner?: string;
-        cloneUrl?: string;
-        htmlUrl?: string;
-        [key: string]: unknown;
-      };
+      // Create span for external-drop workflow
+      const span = getTracer().startSpan('collection-map.project-drop');
 
-      // Use full_name as the repo ID (matches how collection members are identified)
-      const repoId = fullName;
+      try {
+        // Extract repository info from dropped data
+        // primaryData is the full_name (e.g., "owner/repo")
+        const fullName = data.primaryData as string;
+        // Type assertion: drag data metadata contains GitHub repo info
+        const metadata = (data.metadata || {}) as {
+          name?: string;
+          owner?: string;
+          cloneUrl?: string;
+          htmlUrl?: string;
+          [key: string]: unknown;
+        };
 
-      // Build repository metadata for the collection
-      const repositoryMetadata: RepositoryMetadata = {
-        name: metadata.name || fullName.split('/')[1] || fullName,
-        path: fullName, // Use full_name as path for GitHub repos
-        ...metadata,
-      };
+        // Use full_name as the repo ID (matches how collection members are identified)
+        const repoId = fullName;
 
-      // Convert drop position to grid coordinates
-      const gridCoords = domEventToGridCoords(
-        event.clientX,
-        event.clientY,
-        viewportRef.current,
-        canvasRef.current
-      );
+        // Build repository metadata for the collection
+        const repositoryMetadata: RepositoryMetadata = {
+          name: metadata.name || fullName.split('/')[1] || fullName,
+          path: fullName, // Use full_name as path for GitHub repos
+          ...metadata,
+        };
 
-      // Snap to nearest tile
-      const gridX = Math.round(gridCoords.gridX);
-      const gridY = Math.round(gridCoords.gridY);
+        // Convert drop position to grid coordinates
+        const gridCoords = domEventToGridCoords(
+          event.clientX,
+          event.clientY,
+          viewportRef.current,
+          canvasRef.current
+        );
 
-      // Place immediately at drop position, passing metadata directly
-      await handleProjectMoved(repoId, gridX, gridY, repositoryMetadata);
+        // Snap to nearest tile
+        const gridX = Math.round(gridCoords.gridX);
+        const gridY = Math.round(gridCoords.gridY);
+
+        // Add project-drop event
+        span.addEvent('collection-map.project-drop', {
+          'collection.id': collection.id,
+          'source.type': 'repository-github',
+          'repository.id': repoId,
+          'grid.x': gridX,
+          'grid.y': gridY,
+        });
+
+        // Place immediately at drop position, passing metadata and span
+        await handleProjectMoved(
+          repoId,
+          gridX,
+          gridY,
+          repositoryMetadata,
+          span
+        );
+
+        span.setStatus({ code: 1 });
+        span.end();
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({ code: 2, message: (error as Error).message });
+        span.end();
+        throw error;
+      }
     },
-    [handleProjectMoved]
+    [handleProjectMoved, collection.id]
   );
 
   // Set up drop zone for BOTH external drags and drawer drags
@@ -719,9 +907,16 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     // while the async initialization is in progress
     hasComputedLayout.current = true;
 
-    // Create parent span for the entire load operation
-    const span = getTracer().startSpan('collection-map.load');
+    // Create parent span for the entire load operation (workflow: collection-load)
+    const span = getTracer().startSpan('collection-map.collection-selected');
     span.setAttribute('collection.id', collection.id);
+
+    // Add entry event for collection selected
+    span.addEvent('collection-map.collection-selected', {
+      'collection.id': collection.id,
+      'collection.name': collection.name,
+      'members.count': collection.members.length,
+    });
 
     // Add event for node conversion (already happened in useMemo)
     span.addEvent('collection-map.convert-nodes', {
@@ -729,6 +924,15 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
       'memberships.count': collection.members.length,
       'repositories.count': repositories.length,
       'nodes.created': nodes.length,
+    });
+
+    // Add event for node validation
+    span.addEvent('collection-map.validate-nodes', {
+      'collection.id': collection.id,
+      'nodes.total': nodes.length,
+      'nodes.valid': validNodes.length,
+      'nodes.unplaced': unplacedNodes.length,
+      'is.initial.load': isInitialLoad,
     });
 
     // Run layout engine - it will create regions AND compute positions
@@ -813,6 +1017,22 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
         await regionCallbacks.onBatchLayoutInitialized(collection.id, updates);
 
+        // Add event for batch save
+        span.addEvent('collection-map.batch-save', {
+          'collection.id': collection.id,
+          'regions.saved': updates.regions?.length || 0,
+          'assignments.saved': updates.assignments?.length || 0,
+          'positions.saved': updates.positions?.length || 0,
+        });
+
+        // Add event for map rendered
+        span.addEvent('collection-map.map-rendered', {
+          'collection.id': collection.id,
+          'nodes.rendered': validNodes.length,
+          'regions.rendered': customRegions.length || map.regions.length,
+          'unplaced.count': unplacedNodes.length,
+        });
+
         span.setStatus({ code: 1 }); // OK
         span.end();
       } catch (error) {
@@ -824,9 +1044,12 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
     })();
   }, [
     collection.id,
+    collection.name,
     collection.members.length,
     repositories.length,
     nodes,
+    validNodes.length,
+    unplacedNodes.length,
     regionLayout,
     customRegions,
     regionCallbacks,
@@ -836,6 +1059,63 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   const handleViewportReady = useCallback((viewport: Viewport) => {
     viewportRef.current = viewport;
   }, []);
+
+  // Handle repository clicked (workflow: repository-click)
+  const handleRepositoryClicked = useCallback(
+    (repositoryId: string | null) => {
+      const span = getTracer().startSpan('collection-map.repository-clicked');
+
+      span.addEvent('collection-map.repository-clicked', {
+        'collection.id': collection.id,
+        'repository.id': repositoryId || '',
+        action: repositoryId ? 'selected' : 'deselected',
+      });
+
+      span.setStatus({ code: 1 });
+      span.end();
+
+      // Call the original callback if provided
+      onRepositoryClicked?.(repositoryId);
+    },
+    [collection.id, onRepositoryClicked]
+  );
+
+  // Handle adding a region (workflow: region-created)
+  const handleAddRegion = useCallback(
+    async (position: { row: number; col: number }) => {
+      const span = getTracer().startSpan('collection-map.region-created');
+
+      try {
+        // Calculate order from grid position (row-major order)
+        const order = position.row * 10 + position.col; // Assume max 10 columns
+
+        // Generate region name
+        const name = `Region ${customRegions.length + 1}`;
+
+        const newRegion = await regionCallbacks.onRegionCreated(collection.id, {
+          name,
+          order,
+          createdAt: 0,
+        });
+
+        span.addEvent('collection-map.region-created', {
+          'collection.id': collection.id,
+          'region.id': newRegion.id,
+          'region.name': name,
+          'region.order': order,
+        });
+
+        span.setStatus({ code: 1 });
+        span.end();
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({ code: 2, message: (error as Error).message });
+        span.end();
+        throw error;
+      }
+    },
+    [collection.id, customRegions.length, regionCallbacks]
+  );
 
   // Manual drag event handlers to ensure drops work for both external and unplaced node drags
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -926,25 +1206,13 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         customRegions={customRegions}
         collectionKey={collection.id}
         onProjectMoved={handleProjectMoved}
-        onNodeClicked={onRepositoryClicked}
+        onNodeClicked={handleRepositoryClicked}
         selectedNodeId={selectedRepositoryId}
         onPackageHover={onPackageHover}
         onPackageHoverEnd={onPackageHoverEnd}
         onPackageClick={onPackageClick}
         onViewportReady={handleViewportReady}
-        onAddRegion={async (position: { row: number; col: number }) => {
-          // Calculate order from grid position (row-major order)
-          const order = position.row * 10 + position.col; // Assume max 10 columns
-
-          // Generate region name
-          const name = `Region ${customRegions.length + 1}`;
-
-          await regionCallbacks.onRegionCreated(collection.id, {
-            name,
-            order,
-            createdAt: 0,
-          });
-        }}
+        onAddRegion={handleAddRegion}
         onRenameRegion={handleRenameRegion}
         onDeleteRegion={handleDeleteRegion}
       />
