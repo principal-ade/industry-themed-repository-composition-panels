@@ -121,12 +121,14 @@ export const PackageLoadingGraph: React.FC = () => {
     <div
       style={{
         height: '100%',
+        minHeight: '200px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         color: theme.colors.textSecondary,
         padding: theme.space[5],
+        overflow: 'hidden',
       }}
     >
       <style>
@@ -212,7 +214,9 @@ export const PackageLoadingGraph: React.FC = () => {
           position: 'relative',
           width: '100%',
           maxWidth: '400px',
+          minWidth: '340px',
           height: '220px',
+          flexShrink: 0,
           marginBottom: theme.space[4],
         }}
       >
@@ -279,6 +283,7 @@ export const PackageLoadingGraph: React.FC = () => {
           color: theme.colors.text,
           textAlign: 'center',
           marginBottom: theme.space[2],
+          flexShrink: 0,
         }}
       >
         Loading packages...
@@ -290,6 +295,7 @@ export const PackageLoadingGraph: React.FC = () => {
           fontFamily: theme.fonts.body,
           color: theme.colors.textSecondary,
           textAlign: 'center',
+          flexShrink: 0,
         }}
       >
         Discovering dependencies and configurations
