@@ -1,0 +1,323 @@
+{
+  "nodes": [
+    {
+      "id": "host-data-change",
+      "type": "text",
+      "text": "# Host Data Change\nHost updates collection store:\n- Add/remove member\n- Update repository metrics\n- Change region assignment\n\nEmits new DataSlice to panel",
+      "x": 0,
+      "y": 100,
+      "width": 260,
+      "height": 140,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "boundary",
+        "boundary": {
+          "direction": "inbound",
+          "node": { "pv.event.name": "host.dataSliceChanged" }
+        }
+      }
+    },
+    {
+      "id": "props-received",
+      "type": "text",
+      "text": "# Props Received\nComponent receives new props:\n- collection\n- repositories[]\n- dependencies{}",
+      "x": 0,
+      "y": 290,
+      "width": 260,
+      "height": 120,
+      "color": "#06b6d4",
+      "pv": {
+        "event": {
+          "name": "collection-map.props-received",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "members.count": { "type": "number", "required": true },
+            "repositories.count": { "type": "number", "required": true }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "nodes-memo",
+      "type": "text",
+      "text": "# useMemo: nodes\n**Deps:** collection.id, members, repositories, dependencies\n\nRecalculates GenericNode[] when deps change:\n- Maps membership → repo data\n- Calculates size, aging, packages",
+      "x": 320,
+      "y": 100,
+      "width": 300,
+      "height": 140,
+      "color": "#22c55e",
+      "pv": {
+        "event": {
+          "name": "collection-map.nodes-memo-recalc",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "nodes.count": { "type": "number", "required": true },
+            "trigger": { "type": "string", "required": false }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "data-transform",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "validation-memo",
+      "type": "text",
+      "text": "# useMemo: valid/unplaced\n**Deps:** nodes\n\nSplits by placement state:\n- validNodes: has regionId\n- unplacedNodes: no regionId",
+      "x": 320,
+      "y": 290,
+      "width": 300,
+      "height": 130,
+      "color": "#22c55e",
+      "pv": {
+        "event": {
+          "name": "collection-map.validation-memo-recalc",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "nodes.valid": { "type": "number", "required": true },
+            "nodes.unplaced": { "type": "number", "required": true }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "validation",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "regions-memo",
+      "type": "text",
+      "text": "# useMemo: customRegions\n**Deps:** collection.metadata.customRegions\n\nExtracts regions with stable ref",
+      "x": 320,
+      "y": 470,
+      "width": 300,
+      "height": 100,
+      "color": "#22c55e",
+      "pv": {
+        "event": {
+          "name": "collection-map.regions-memo-recalc",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "regions.count": { "type": "number", "required": true }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "data-transform",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "overworld-render",
+      "type": "text",
+      "text": "# OverworldMapPanelContent\nReceives validNodes, customRegions\n\nRe-renders Pixi scene:\n- Smart diff for position changes\n- Full rebuild for structural changes",
+      "x": 680,
+      "y": 150,
+      "width": 300,
+      "height": 140,
+      "color": "#8b5cf6",
+      "pv": {
+        "event": {
+          "name": "collection-map.scene-update",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "nodes.count": { "type": "number", "required": true },
+            "update.type": { "type": "string", "required": true }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "render",
+          "files": ["src/panels/overworld-map/OverworldMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "drawer-render",
+      "type": "text",
+      "text": "# Unplaced Drawer\nRenders unplacedNodes as draggable cards. Hidden when empty.",
+      "x": 680,
+      "y": 340,
+      "width": 300,
+      "height": 80,
+      "color": "#8b5cf6",
+      "pv": {
+        "event": {
+          "name": "collection-map.drawer-update",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "unplaced.count": { "type": "number", "required": true }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "render",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "layout-effect-skip",
+      "type": "text",
+      "text": "# useEffect: Layout Skip\n**Guard:** hasComputedLayout ref\n\nSubsequent data changes skip layout init entirely.",
+      "x": 680,
+      "y": 470,
+      "width": 300,
+      "height": 100,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "collection-map.layout-effect-skip",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "reason": { "type": "string", "required": true }
+          }
+        },
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "host-to-props",
+      "fromNode": "host-data-change",
+      "toNode": "props-received",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "props-to-nodes",
+      "fromNode": "props-received",
+      "toNode": "nodes-memo",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "deps changed",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "props-to-regions",
+      "fromNode": "props-received",
+      "toNode": "regions-memo",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "deps changed",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "nodes-to-validation",
+      "fromNode": "nodes-memo",
+      "toNode": "validation-memo",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "nodes[]",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "validation-to-overworld",
+      "fromNode": "validation-memo",
+      "toNode": "overworld-render",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "validNodes",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "validation-to-drawer",
+      "fromNode": "validation-memo",
+      "toNode": "drawer-render",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "unplacedNodes",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "regions-to-overworld",
+      "fromNode": "regions-memo",
+      "toNode": "overworld-render",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "customRegions",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "nodes-to-effect",
+      "fromNode": "nodes-memo",
+      "toNode": "layout-effect-skip",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "skipped",
+      "pv": {
+        "edgeType": "conditional"
+      }
+    }
+  ],
+  "pv": {
+    "name": "Collection Map - Data Reactivity",
+    "version": "1.0.0",
+    "markdown": ".principal-views/collection-map-panel/collection-map-panel.md",
+    "description": "How changes in incoming data flow through memos and trigger re-renders. Events are draft - not yet instrumented.",
+    "nodeTypes": {
+      "boundary": {
+        "label": "Boundary",
+        "color": "#06b6d4",
+        "icon": "ExternalLink",
+        "shape": "rectangle"
+      }
+    },
+    "edgeTypes": {
+      "sequence": {
+        "label": "sequence",
+        "style": "solid",
+        "color": "#64748b",
+        "width": 2
+      },
+      "triggers": {
+        "label": "triggers",
+        "style": "dashed",
+        "color": "#f59e0b",
+        "width": 2
+      },
+      "conditional": {
+        "label": "conditional",
+        "style": "dashed",
+        "color": "#64748b",
+        "width": 1
+      }
+    }
+  }
+}

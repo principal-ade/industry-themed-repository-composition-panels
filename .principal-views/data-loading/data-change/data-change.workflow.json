@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/data-loading/data-loading.otel.canvas",
+  "name": "Data Change Reactivity",
+  "description": "How incoming data changes flow through React memos and trigger re-renders",
+  "spanPattern": "collection-map.props-received",
+  "mode": "span-tree",
+  "scenarios": [
+    {
+      "id": "data-change-full-recalc",
+      "description": "Host data change triggers full memo chain recalculation and scene update",
+      "priority": 1,
+      "template": {
+        "summary": "Data change for collection '{{collection.id}}' - {{nodes.count}} nodes recalculated",
+        "events": {
+          "collection-map.props-received": "[{{collection.id}}] Received new props: {{members.count}} members, {{repositories.count}} repositories",
+          "collection-map.nodes-memo-recalc": "[{{collection.id}}] Recalculated {{nodes.count}} GenericNodes (trigger: {{trigger}})",
+          "collection-map.validation-memo-recalc": "[{{collection.id}}] Split nodes: {{nodes.valid}} valid, {{nodes.unplaced}} unplaced",
+          "collection-map.regions-memo-recalc": "[{{collection.id}}] Extracted {{regions.count}} custom regions",
+          "collection-map.scene-update": "[{{collection.id}}] Updated Pixi scene: {{nodes.count}} nodes ({{update.type}})",
+          "collection-map.drawer-update": "[{{collection.id}}] Updated drawer: {{unplaced.count}} unplaced nodes",
+          "collection-map.layout-effect-skip": "[{{collection.id}}] Skipped layout init: {{reason}}"
+        }
+      }
+    }
+  ]
+}

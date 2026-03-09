@@ -1,0 +1,549 @@
+{
+  "nodes": [
+    {
+      "id": "host-context",
+      "type": "text",
+      "text": "# Host Context\nHost application provides `selectedCollectionView` DataSlice containing collection, repositories, and dependencies.",
+      "x": 0,
+      "y": 0,
+      "width": 280,
+      "height": 100,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "external"
+      }
+    },
+    {
+      "id": "data-slice",
+      "type": "text",
+      "text": "# DataSlice<T>\n```ts\n{\n  data: { collection, repositories, dependencies },\n  loading: boolean,\n  error?: Error\n}\n```",
+      "x": 0,
+      "y": 150,
+      "width": 280,
+      "height": 140,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "interface"
+      }
+    },
+    {
+      "id": "panel-wrapper",
+      "type": "text",
+      "text": "# CollectionMapPanel\nExtracts data from context, creates regionCallbacks from actions, renders Content or placeholder.",
+      "x": 350,
+      "y": 70,
+      "width": 280,
+      "height": 100,
+      "color": "#3b82f6",
+      "pv": {
+        "nodeType": "component",
+        "references": ["src/panels/CollectionMapPanel.tsx:1321"]
+      }
+    },
+    {
+      "id": "content-component",
+      "type": "text",
+      "text": "# CollectionMapPanelContent\nCore component that orchestrates data transformation, layout computation, and rendering.",
+      "x": 350,
+      "y": 220,
+      "width": 280,
+      "height": 100,
+      "color": "#3b82f6",
+      "pv": {
+        "nodeType": "component",
+        "references": ["src/panels/CollectionMapPanel.tsx:207"]
+      }
+    },
+    {
+      "id": "nodes-memo",
+      "type": "text",
+      "text": "# useMemo: nodes\nConverts `collection.members` + `repositories` → `GenericNode[]`\n\nTriggers on: collection.id, members, repositories, dependencies",
+      "x": 700,
+      "y": 70,
+      "width": 300,
+      "height": 120,
+      "color": "#22c55e",
+      "pv": {
+        "nodeType": "hook",
+        "references": ["src/panels/CollectionMapPanel.tsx:722"]
+      }
+    },
+    {
+      "id": "validation-memo",
+      "type": "text",
+      "text": "# useMemo: validNodes/unplacedNodes\nSplits nodes by placement state:\n- **validNodes**: has regionId (renderable)\n- **unplacedNodes**: no regionId (show in drawer)\n\nSkips validation on initial load (all go to validNodes)",
+      "x": 700,
+      "y": 240,
+      "width": 300,
+      "height": 160,
+      "color": "#22c55e",
+      "pv": {
+        "nodeType": "hook",
+        "references": ["src/panels/CollectionMapPanel.tsx:814"]
+      }
+    },
+    {
+      "id": "layout-effect",
+      "type": "text",
+      "text": "# useEffect: Layout Initialization\nRuns ONCE per collection:\n1. Detects initial load (no positions)\n2. Runs `nodesToUnifiedOverworldMap`\n3. Calls `onBatchLayoutInitialized`\n\nGuarded by `hasComputedLayout` ref",
+      "x": 700,
+      "y": 450,
+      "width": 300,
+      "height": 160,
+      "color": "#f59e0b",
+      "pv": {
+        "nodeType": "hook",
+        "references": ["src/panels/CollectionMapPanel.tsx:863"]
+      }
+    },
+    {
+      "id": "generic-mapper",
+      "type": "text",
+      "text": "# nodesToUnifiedOverworldMap\nLayout engine that:\n- Creates age-based regions\n- Runs circle-packing algorithm\n- Returns positioned OverworldMap",
+      "x": 1070,
+      "y": 450,
+      "width": 280,
+      "height": 120,
+      "color": "#f59e0b",
+      "pv": {
+        "nodeType": "module",
+        "references": ["src/panels/overworld-map/genericMapper.ts"]
+      }
+    },
+    {
+      "id": "batch-callback",
+      "type": "text",
+      "text": "# onBatchLayoutInitialized\nHost callback that persists:\n- `regions[]` - new CustomRegions\n- `assignments[]` - repo→region mappings\n- `positions[]` - gridX/gridY per repo\n\nReduces N saves → 1 save",
+      "x": 1070,
+      "y": 620,
+      "width": 280,
+      "height": 160,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "callback"
+      }
+    },
+    {
+      "id": "host-state-update",
+      "type": "text",
+      "text": "# Host State Update\nHost updates collection store:\n- `collection.metadata.customRegions`\n- `membership.metadata.regionId`\n- `membership.metadata.layout`\n\nTriggers new DataSlice emission",
+      "x": 1070,
+      "y": 830,
+      "width": 280,
+      "height": 140,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "external"
+      }
+    },
+    {
+      "id": "overworld-render",
+      "type": "text",
+      "text": "# OverworldMapPanelContent\nReceives `validNodes` and renders Pixi.js scene. Re-renders when nodes change.",
+      "x": 350,
+      "y": 450,
+      "width": 280,
+      "height": 100,
+      "color": "#8b5cf6",
+      "pv": {
+        "nodeType": "component",
+        "references": ["src/panels/overworld-map/OverworldMapPanel.tsx"]
+      }
+    },
+    {
+      "id": "unplaced-drawer",
+      "type": "text",
+      "text": "# Unplaced Drawer\nShows `unplacedNodes` in bottom drawer. User drags to place on map.",
+      "x": 350,
+      "y": 600,
+      "width": 280,
+      "height": 80,
+      "color": "#8b5cf6",
+      "pv": {
+        "nodeType": "component"
+      }
+    },
+    {
+      "id": "user-drag",
+      "type": "text",
+      "text": "# User Drag/Drop\nUser drags sprite or drawer item → triggers position update",
+      "x": 50,
+      "y": 500,
+      "width": 240,
+      "height": 80,
+      "color": "#ec4899",
+      "pv": {
+        "nodeType": "interaction"
+      }
+    },
+    {
+      "id": "handle-moved",
+      "type": "text",
+      "text": "# handleProjectMoved\nConverts grid coords → region-relative coords, calls:\n- `onRepositoryPositionUpdated`\n- `onRepositoryAssigned` (if region changed)",
+      "x": 50,
+      "y": 630,
+      "width": 240,
+      "height": 120,
+      "color": "#ec4899",
+      "pv": {
+        "nodeType": "handler",
+        "references": ["src/panels/CollectionMapPanel.tsx:317"]
+      }
+    },
+    {
+      "id": "position-callback",
+      "type": "text",
+      "text": "# onRepositoryPositionUpdated\nHost callback to persist single repo position change",
+      "x": 50,
+      "y": 800,
+      "width": 240,
+      "height": 80,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "callback"
+      }
+    },
+    {
+      "id": "custom-regions-memo",
+      "type": "text",
+      "text": "# useMemo: customRegions\nExtracts regions from `collection.metadata.customRegions` with stable reference",
+      "x": 350,
+      "y": 350,
+      "width": 280,
+      "height": 80,
+      "color": "#22c55e",
+      "pv": {
+        "nodeType": "hook",
+        "references": ["src/panels/CollectionMapPanel.tsx:223"]
+      }
+    },
+    {
+      "id": "rerender-cycle",
+      "type": "text",
+      "text": "# Re-render Cycle\nHost state change → new DataSlice → component re-renders → memos recalculate → UI updates",
+      "x": 700,
+      "y": 830,
+      "width": 300,
+      "height": 80,
+      "color": "#64748b",
+      "pv": {
+        "nodeType": "flow"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "host-to-slice",
+      "fromNode": "host-context",
+      "toNode": "data-slice",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "slice-to-panel",
+      "fromNode": "data-slice",
+      "toNode": "panel-wrapper",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "context",
+      "pv": {
+        "edgeType": "data"
+      }
+    },
+    {
+      "id": "panel-to-content",
+      "fromNode": "panel-wrapper",
+      "toNode": "content-component",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "props",
+      "pv": {
+        "edgeType": "renders"
+      }
+    },
+    {
+      "id": "content-to-nodes",
+      "fromNode": "content-component",
+      "toNode": "nodes-memo",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "computes"
+      }
+    },
+    {
+      "id": "nodes-to-validation",
+      "fromNode": "nodes-memo",
+      "toNode": "validation-memo",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "nodes[]",
+      "pv": {
+        "edgeType": "data"
+      }
+    },
+    {
+      "id": "validation-to-effect",
+      "fromNode": "validation-memo",
+      "toNode": "layout-effect",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "initial load?",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "effect-to-mapper",
+      "fromNode": "layout-effect",
+      "toNode": "generic-mapper",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "compute",
+      "pv": {
+        "edgeType": "calls"
+      }
+    },
+    {
+      "id": "effect-to-batch",
+      "fromNode": "layout-effect",
+      "toNode": "batch-callback",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "persist",
+      "pv": {
+        "edgeType": "calls"
+      }
+    },
+    {
+      "id": "batch-to-host",
+      "fromNode": "batch-callback",
+      "toNode": "host-state-update",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "updates"
+      }
+    },
+    {
+      "id": "host-to-rerender",
+      "fromNode": "host-state-update",
+      "toNode": "rerender-cycle",
+      "fromSide": "left",
+      "toSide": "right",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "rerender-to-slice",
+      "fromNode": "rerender-cycle",
+      "toNode": "data-slice",
+      "fromSide": "left",
+      "toSide": "bottom",
+      "label": "new emission",
+      "pv": {
+        "edgeType": "cycle"
+      }
+    },
+    {
+      "id": "content-to-regions",
+      "fromNode": "content-component",
+      "toNode": "custom-regions-memo",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "computes"
+      }
+    },
+    {
+      "id": "content-to-overworld",
+      "fromNode": "content-component",
+      "toNode": "overworld-render",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "validNodes",
+      "pv": {
+        "edgeType": "renders"
+      }
+    },
+    {
+      "id": "content-to-drawer",
+      "fromNode": "content-component",
+      "toNode": "unplaced-drawer",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "unplacedNodes",
+      "pv": {
+        "edgeType": "renders"
+      }
+    },
+    {
+      "id": "user-to-moved",
+      "fromNode": "user-drag",
+      "toNode": "handle-moved",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "moved-to-position",
+      "fromNode": "handle-moved",
+      "toNode": "position-callback",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "calls"
+      }
+    },
+    {
+      "id": "position-to-host",
+      "fromNode": "position-callback",
+      "toNode": "host-state-update",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "updates"
+      }
+    },
+    {
+      "id": "overworld-to-user",
+      "fromNode": "overworld-render",
+      "toNode": "user-drag",
+      "fromSide": "left",
+      "toSide": "right",
+      "label": "drag event",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "drawer-to-user",
+      "fromNode": "unplaced-drawer",
+      "toNode": "user-drag",
+      "fromSide": "left",
+      "toSide": "right",
+      "label": "drag event",
+      "pv": {
+        "edgeType": "emits"
+      }
+    }
+  ],
+  "pv": {
+    "name": "Collection Map Panel Data Flow",
+    "version": "1.0.0",
+    "markdown": ".principal-views/collection-map-panel/collection-map-panel.md",
+    "description": "Data loading, transformation, and reactivity patterns in CollectionMapPanel",
+    "nodeTypes": {
+      "external": {
+        "label": "External",
+        "color": "#06b6d4",
+        "icon": "Cloud",
+        "shape": "rectangle"
+      },
+      "interface": {
+        "label": "Interface",
+        "color": "#06b6d4",
+        "icon": "FileCode",
+        "shape": "rectangle"
+      },
+      "component": {
+        "label": "Component",
+        "color": "#3b82f6",
+        "icon": "Box",
+        "shape": "rectangle"
+      },
+      "hook": {
+        "label": "React Hook",
+        "color": "#22c55e",
+        "icon": "Repeat",
+        "shape": "rectangle"
+      },
+      "module": {
+        "label": "Module",
+        "color": "#f59e0b",
+        "icon": "Cpu",
+        "shape": "rectangle"
+      },
+      "callback": {
+        "label": "Callback",
+        "color": "#06b6d4",
+        "icon": "ArrowRight",
+        "shape": "rectangle"
+      },
+      "handler": {
+        "label": "Handler",
+        "color": "#ec4899",
+        "icon": "MousePointer",
+        "shape": "rectangle"
+      },
+      "interaction": {
+        "label": "User Action",
+        "color": "#ec4899",
+        "icon": "Hand",
+        "shape": "rectangle"
+      },
+      "flow": {
+        "label": "Flow",
+        "color": "#64748b",
+        "icon": "RefreshCw",
+        "shape": "rectangle"
+      }
+    },
+    "edgeTypes": {
+      "data": {
+        "label": "data",
+        "style": "solid",
+        "color": "#22c55e",
+        "width": 2
+      },
+      "renders": {
+        "label": "renders",
+        "style": "solid",
+        "color": "#3b82f6",
+        "width": 2
+      },
+      "computes": {
+        "label": "computes",
+        "style": "dashed",
+        "color": "#22c55e",
+        "width": 1
+      },
+      "triggers": {
+        "label": "triggers",
+        "style": "dashed",
+        "color": "#f59e0b",
+        "width": 1
+      },
+      "calls": {
+        "label": "calls",
+        "style": "solid",
+        "color": "#8b5cf6",
+        "width": 2
+      },
+      "updates": {
+        "label": "updates",
+        "style": "solid",
+        "color": "#06b6d4",
+        "width": 2
+      },
+      "emits": {
+        "label": "emits",
+        "style": "dotted",
+        "color": "#ec4899",
+        "width": 1
+      },
+      "cycle": {
+        "label": "cycle",
+        "style": "dashed",
+        "color": "#64748b",
+        "width": 1
+      }
+    }
+  }
+}

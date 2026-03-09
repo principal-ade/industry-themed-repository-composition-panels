@@ -13,6 +13,7 @@ import {
   createIsometricPath,
   calculateMapBounds,
   offsetGridPositions,
+  calculateRegionCameraPosition,
   ISO_TILE_WIDTH,
   ISO_TILE_HEIGHT,
 } from './isometricUtils';
@@ -121,9 +122,15 @@ describe('isometricUtils', () => {
       const bounds = getTileBounds(0, 0);
 
       expect(bounds.top).toEqual({ x: 0, y: 0 });
-      expect(bounds.right).toEqual({ x: ISO_TILE_WIDTH / 2, y: ISO_TILE_HEIGHT / 2 });
+      expect(bounds.right).toEqual({
+        x: ISO_TILE_WIDTH / 2,
+        y: ISO_TILE_HEIGHT / 2,
+      });
       expect(bounds.bottom).toEqual({ x: 0, y: ISO_TILE_HEIGHT });
-      expect(bounds.left).toEqual({ x: -ISO_TILE_WIDTH / 2, y: ISO_TILE_HEIGHT / 2 });
+      expect(bounds.left).toEqual({
+        x: -ISO_TILE_WIDTH / 2,
+        y: ISO_TILE_HEIGHT / 2,
+      });
     });
 
     test('bounds maintain diamond shape at different positions', () => {
@@ -131,9 +138,18 @@ describe('isometricUtils', () => {
       const { screenX, screenY } = gridToScreen(2, 1);
 
       expect(bounds.top).toEqual({ x: screenX, y: screenY });
-      expect(bounds.right).toEqual({ x: screenX + ISO_TILE_WIDTH / 2, y: screenY + ISO_TILE_HEIGHT / 2 });
-      expect(bounds.bottom).toEqual({ x: screenX, y: screenY + ISO_TILE_HEIGHT });
-      expect(bounds.left).toEqual({ x: screenX - ISO_TILE_WIDTH / 2, y: screenY + ISO_TILE_HEIGHT / 2 });
+      expect(bounds.right).toEqual({
+        x: screenX + ISO_TILE_WIDTH / 2,
+        y: screenY + ISO_TILE_HEIGHT / 2,
+      });
+      expect(bounds.bottom).toEqual({
+        x: screenX,
+        y: screenY + ISO_TILE_HEIGHT,
+      });
+      expect(bounds.left).toEqual({
+        x: screenX - ISO_TILE_WIDTH / 2,
+        y: screenY + ISO_TILE_HEIGHT / 2,
+      });
     });
 
     test('diamond width and height are correct', () => {
@@ -205,7 +221,9 @@ describe('isometricUtils', () => {
       const gridY = 2;
       const center = getTileCenter(gridX, gridY);
 
-      expect(isPointInTile(center.screenX, center.screenY, gridX, gridY)).toBe(true);
+      expect(isPointInTile(center.screenX, center.screenY, gridX, gridY)).toBe(
+        true
+      );
 
       // TODO: Bug in isPointInTile - diamond hit detection is not accurate
       // A point at the center of one tile should not be detected as inside a neighboring tile
@@ -358,6 +376,127 @@ describe('isometricUtils', () => {
       const result = offsetGridPositions([], 10, 10);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('calculateRegionCameraPosition', () => {
+    test('region at origin (0,0) with size 25x25 centers at screen (0, 400)', () => {
+      const regionCenterX = 12.5; // 25 / 2
+      const regionCenterY = 12.5; // 25 / 2
+      const bounds = { x: 0, y: 0, width: 25, height: 25 };
+
+      const result = calculateRegionCameraPosition(
+        regionCenterX,
+        regionCenterY,
+        bounds
+      );
+
+      // Center should be at screen (0, 400)
+      // screenX = (12.5 - 12.5) * 32 = 0
+      // screenY = (12.5 + 12.5) * 16 = 400
+      expect(result.centerX).toBe(0);
+      expect(result.centerY).toBe(400);
+    });
+
+    test('region center is horizontally centered (screenX = 0) for square regions at origin', () => {
+      const bounds = { x: 0, y: 0, width: 25, height: 25 };
+      const regionCenterX = bounds.width / 2;
+      const regionCenterY = bounds.height / 2;
+
+      const result = calculateRegionCameraPosition(
+        regionCenterX,
+        regionCenterY,
+        bounds
+      );
+
+      // For a square region at origin, the center should have screenX = 0
+      // because the isometric diamond is symmetric around the vertical axis
+      expect(result.centerX).toBe(0);
+    });
+
+    test('region center screenY equals half the screen height of the region', () => {
+      const bounds = { x: 0, y: 0, width: 25, height: 25 };
+      const regionCenterX = bounds.width / 2;
+      const regionCenterY = bounds.height / 2;
+
+      const result = calculateRegionCameraPosition(
+        regionCenterX,
+        regionCenterY,
+        bounds
+      );
+
+      // The center screenY should be exactly half the screen height
+      // This ensures the region is vertically centered when the camera centers on this point
+      expect(result.centerY).toBe(result.screenHeight / 2);
+    });
+
+    test('screen dimensions are correct for 25x25 region', () => {
+      const bounds = { x: 0, y: 0, width: 25, height: 25 };
+      const regionCenterX = 12.5;
+      const regionCenterY = 12.5;
+
+      const result = calculateRegionCameraPosition(
+        regionCenterX,
+        regionCenterY,
+        bounds
+      );
+
+      // Screen width = rightCorner.screenX - leftCorner.screenX
+      // rightCorner = gridToScreen(25, 0) = (25 * 32, 25 * 16) = (800, 400)
+      // leftCorner = gridToScreen(0, 25) = (-25 * 32, 25 * 16) = (-800, 400)
+      // width = 800 - (-800) = 1600
+      expect(result.screenWidth).toBe(1600);
+
+      // Screen height = bottomCorner.screenY - topCorner.screenY
+      // bottomCorner = gridToScreen(25, 25) = (0, 50 * 16) = (0, 800)
+      // topCorner = gridToScreen(0, 0) = (0, 0)
+      // height = 800 - 0 = 800
+      expect(result.screenHeight).toBe(800);
+    });
+
+    test('region offset from origin calculates correct center', () => {
+      // Region at grid position (25, 0) - second column
+      const bounds = { x: 25, y: 0, width: 25, height: 25 };
+      const regionCenterX = bounds.x + bounds.width / 2; // 37.5
+      const regionCenterY = bounds.y + bounds.height / 2; // 12.5
+
+      const result = calculateRegionCameraPosition(
+        regionCenterX,
+        regionCenterY,
+        bounds
+      );
+
+      // screenX = (37.5 - 12.5) * 32 = 25 * 32 = 800
+      // screenY = (37.5 + 12.5) * 16 = 50 * 16 = 800
+      expect(result.centerX).toBe(800);
+      expect(result.centerY).toBe(800);
+    });
+
+    test('different sized regions calculate proportional centers', () => {
+      // Smaller 10x10 region
+      const bounds = { x: 0, y: 0, width: 10, height: 10 };
+      const regionCenterX = 5;
+      const regionCenterY = 5;
+
+      const result = calculateRegionCameraPosition(
+        regionCenterX,
+        regionCenterY,
+        bounds
+      );
+
+      // screenX = (5 - 5) * 32 = 0
+      // screenY = (5 + 5) * 16 = 160
+      expect(result.centerX).toBe(0);
+      expect(result.centerY).toBe(160);
+
+      // Screen dimensions should be proportionally smaller
+      // width = 10 * 64 = 640
+      // height = 10 * 32 = 320
+      expect(result.screenWidth).toBe(640);
+      expect(result.screenHeight).toBe(320);
+
+      // Center should still be at half the height
+      expect(result.centerY).toBe(result.screenHeight / 2);
     });
   });
 });

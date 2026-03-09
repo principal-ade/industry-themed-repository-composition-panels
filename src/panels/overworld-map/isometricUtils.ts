@@ -54,7 +54,10 @@ export function getTileBounds(gridX: number, gridY: number) {
 
   return {
     top: { x: screenX, y: screenY },
-    right: { x: screenX + ISO_TILE_WIDTH / 2, y: screenY + ISO_TILE_HEIGHT / 2 },
+    right: {
+      x: screenX + ISO_TILE_WIDTH / 2,
+      y: screenY + ISO_TILE_HEIGHT / 2,
+    },
     bottom: { x: screenX, y: screenY + ISO_TILE_HEIGHT },
     left: { x: screenX - ISO_TILE_WIDTH / 2, y: screenY + ISO_TILE_HEIGHT / 2 },
   };
@@ -189,6 +192,69 @@ export function offsetGridPositions(
 }
 
 /**
+ * Region bounds for camera calculations
+ */
+export interface RegionBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Camera position result for centering on a region
+ */
+export interface RegionCameraPosition {
+  /** Screen X coordinate to center the camera on */
+  centerX: number;
+  /** Screen Y coordinate to center the camera on */
+  centerY: number;
+  /** Width of the region in screen pixels */
+  screenWidth: number;
+  /** Height of the region in screen pixels */
+  screenHeight: number;
+}
+
+/**
+ * Calculate the camera position needed to center on a region
+ * This computes the screen coordinates for the center point and the
+ * screen dimensions of the region for zoom calculations.
+ *
+ * @param regionCenterX Grid X coordinate of the region center
+ * @param regionCenterY Grid Y coordinate of the region center
+ * @param bounds The region bounds in grid coordinates
+ * @returns Camera position with center point and screen dimensions
+ */
+export function calculateRegionCameraPosition(
+  regionCenterX: number,
+  regionCenterY: number,
+  bounds: RegionBounds
+): RegionCameraPosition {
+  // Convert region center to screen coordinates
+  const center = gridToScreen(regionCenterX, regionCenterY);
+
+  // Calculate the 4 corners of the isometric region in screen space
+  const topCorner = gridToScreen(bounds.x, bounds.y);
+  const bottomCorner = gridToScreen(
+    bounds.x + bounds.width,
+    bounds.y + bounds.height
+  );
+  const leftCorner = gridToScreen(bounds.x, bounds.y + bounds.height);
+  const rightCorner = gridToScreen(bounds.x + bounds.width, bounds.y);
+
+  // Calculate screen dimensions of the region
+  const screenWidth = rightCorner.screenX - leftCorner.screenX;
+  const screenHeight = bottomCorner.screenY - topCorner.screenY;
+
+  return {
+    centerX: center.screenX,
+    centerY: center.screenY,
+    screenWidth,
+    screenHeight,
+  };
+}
+
+/**
  * Convert DOM event coordinates to grid coordinates
  * This handles the full transformation pipeline:
  * 1. DOM event (clientX, clientY) -> viewport screen coords
@@ -208,7 +274,9 @@ export function domEventToGridCoords(
   canvasElement: HTMLElement | null
 ): GridPoint {
   if (!viewport || !canvasElement) {
-    console.warn('[domEventToGridCoords] Missing viewport or canvas element, returning (0, 0)');
+    console.warn(
+      '[domEventToGridCoords] Missing viewport or canvas element, returning (0, 0)'
+    );
     return { gridX: 0, gridY: 0 };
   }
 

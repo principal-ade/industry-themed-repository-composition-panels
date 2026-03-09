@@ -1,0 +1,605 @@
+{
+  "nodes": [
+    {
+      "id": "collection-map-panel",
+      "type": "text",
+      "text": "# CollectionMapPanel\nFramework wrapper that integrates with the panel system. Receives collection data via context and actions for host callbacks.",
+      "x": 400,
+      "y": -185,
+      "width": 300,
+      "height": 100,
+      "color": "#3b82f6",
+      "pv": {
+        "nodeType": "component",
+        "references": [
+          "src/panels/CollectionMapPanel.tsx"
+        ]
+      }
+    },
+    {
+      "id": "collection-map-content",
+      "type": "text",
+      "text": "# CollectionMapPanelContent\nCore orchestration component. Converts Alexandria entries to GenericNodes, manages layout initialization, and handles drag/drop coordination.",
+      "x": 400,
+      "y": 187,
+      "width": 300,
+      "height": 120,
+      "color": "#3b82f6",
+      "pv": {
+        "nodeType": "component",
+        "references": [
+          "src/panels/CollectionMapPanel.tsx"
+        ]
+      }
+    },
+    {
+      "id": "overworld-map-content",
+      "type": "text",
+      "text": "# OverworldMapPanelContent\nPixi.js canvas renderer. Manages the WebGL application, viewport, and coordinates rendering/interaction managers.",
+      "x": 400,
+      "y": 380,
+      "width": 300,
+      "height": 120,
+      "color": "#22c55e",
+      "pv": {
+        "nodeType": "component",
+        "references": [
+          "src/panels/overworld-map/OverworldMapPanel.tsx"
+        ]
+      }
+    },
+    {
+      "id": "isometric-renderer",
+      "type": "text",
+      "text": "# IsometricRenderer\nHandles scene rendering: grid, regions, building sprites, dependency paths, and decorations (stars, collaborators, licenses).",
+      "x": 421,
+      "y": 599,
+      "width": 260,
+      "height": 120,
+      "color": "#8b5cf6",
+      "pv": {
+        "nodeType": "module",
+        "references": [
+          "src/panels/overworld-map/components/IsometricRenderer.ts"
+        ]
+      }
+    },
+    {
+      "id": "isometric-interaction",
+      "type": "text",
+      "text": "# IsometricInteractionManager\nHandles user interactions: sprite dragging, click detection, region editing mode, and coordinate conversion.",
+      "x": 725,
+      "y": 600,
+      "width": 260,
+      "height": 120,
+      "color": "#8b5cf6",
+      "pv": {
+        "nodeType": "module",
+        "references": [
+          "src/panels/overworld-map/components/IsometricInteractionManager.ts"
+        ]
+      }
+    },
+    {
+      "id": "isometric-paths",
+      "type": "text",
+      "text": "# IsometricPathManager\nRenders dependency lines between repositories. Updates paths when nodes move without full scene redraw.",
+      "x": 121,
+      "y": 599,
+      "width": 260,
+      "height": 120,
+      "color": "#8b5cf6",
+      "pv": {
+        "nodeType": "module",
+        "references": [
+          "src/panels/overworld-map/components/IsometricPathManager.ts"
+        ]
+      }
+    },
+    {
+      "id": "generic-mapper",
+      "type": "text",
+      "text": "# genericMapper\nLayout engine: converts GenericNodes to OverworldMap format, creates age-based regions, runs circle-packing algorithm for positioning.",
+      "x": 39,
+      "y": 188,
+      "width": 250,
+      "height": 120,
+      "color": "#f59e0b",
+      "pv": {
+        "nodeType": "module",
+        "references": [
+          "src/panels/overworld-map/genericMapper.ts"
+        ]
+      }
+    },
+    {
+      "id": "alexandria-entry",
+      "type": "text",
+      "text": "# AlexandriaEntryWithMetrics\nInput data type extending Alexandria repository with metrics (fileCount, lineCount, lastEditedAt), packages, and GitHub metadata.",
+      "x": 979,
+      "y": -104,
+      "width": 260,
+      "height": 120,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "interface",
+        "references": [
+          "src/panels/CollectionMapPanel.tsx"
+        ]
+      }
+    },
+    {
+      "id": "generic-node",
+      "type": "text",
+      "text": "# GenericNode\nIntermediate format with: id, name, category, language, size (1-4x), aging metrics, packages, stars, collaborators, license, layout position.",
+      "x": 979,
+      "y": 90,
+      "width": 260,
+      "height": 120,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "interface",
+        "references": [
+          "src/panels/overworld-map/types.ts"
+        ]
+      }
+    },
+    {
+      "id": "overworld-map",
+      "type": "text",
+      "text": "# OverworldMap\nRenderable format with regions, locationNodes (positioned sprites), and config. Ready for Pixi.js rendering.",
+      "x": 979,
+      "y": 281,
+      "width": 260,
+      "height": 100,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "interface",
+        "references": [
+          "src/panels/overworld-map/types.ts"
+        ]
+      }
+    },
+    {
+      "id": "repo-scaling",
+      "type": "text",
+      "text": "# repositoryScaling\nCalculates building size (1.0-4.0x) from file count using logarithmic scaling.",
+      "x": 1396,
+      "y": 5,
+      "width": 220,
+      "height": 80,
+      "color": "#ec4899",
+      "pv": {
+        "nodeType": "utility",
+        "references": [
+          "src/panels/overworld-map/repositoryScaling.ts"
+        ]
+      }
+    },
+    {
+      "id": "repo-aging",
+      "type": "text",
+      "text": "# repositoryAging\nCalculates weathering effects from lastEditedAt: fading, rust, overgrowth based on staleness.",
+      "x": 1397,
+      "y": 111,
+      "width": 220,
+      "height": 80,
+      "color": "#ec4899",
+      "pv": {
+        "nodeType": "utility",
+        "references": [
+          "src/panels/overworld-map/repositoryAging.ts"
+        ]
+      }
+    },
+    {
+      "id": "package-expansion",
+      "type": "text",
+      "text": "# packageExpansion\nExtracts monorepo package subdivisions for building rendering.",
+      "x": 1397,
+      "y": 218,
+      "width": 220,
+      "height": 80,
+      "color": "#ec4899",
+      "pv": {
+        "nodeType": "utility",
+        "references": [
+          "src/panels/overworld-map/packageExpansion.ts"
+        ]
+      }
+    },
+    {
+      "id": "building-sprites",
+      "type": "text",
+      "text": "# buildingSpriteGenerator\nGenerates isometric building textures with size, color, and decoration variations.",
+      "x": -369,
+      "y": 848,
+      "width": 260,
+      "height": 80,
+      "color": "#ec4899",
+      "pv": {
+        "nodeType": "utility",
+        "references": [
+          "src/panels/overworld-map/components/buildingSpriteGenerator.ts"
+        ]
+      }
+    },
+    {
+      "id": "star-decorations",
+      "type": "text",
+      "text": "# starDecorationSprites\nAdds star count decorations to popular repositories.",
+      "x": -90,
+      "y": 848,
+      "width": 220,
+      "height": 80,
+      "color": "#ec4899",
+      "pv": {
+        "nodeType": "utility",
+        "references": [
+          "src/panels/overworld-map/components/starDecorationSprites.ts"
+        ]
+      }
+    },
+    {
+      "id": "collaborator-decorations",
+      "type": "text",
+      "text": "# collaboratorDecorationSprites\nAdds collaborator indicators for active community repos.",
+      "x": 154,
+      "y": 848,
+      "width": 260,
+      "height": 80,
+      "color": "#ec4899",
+      "pv": {
+        "nodeType": "utility",
+        "references": [
+          "src/panels/overworld-map/components/collaboratorDecorationSprites.ts"
+        ]
+      }
+    },
+    {
+      "id": "pixi-app",
+      "type": "text",
+      "text": "# Pixi.js Application\nWebGL rendering engine with viewport for pan/zoom/drag.",
+      "x": 440,
+      "y": 846,
+      "width": 220,
+      "height": 80,
+      "color": "#64748b",
+      "pv": {
+        "nodeType": "external",
+        "description": "2D WebGL renderer from pixi.js"
+      }
+    },
+    {
+      "id": "pixi-viewport",
+      "type": "text",
+      "text": "# pixi-viewport\nCamera controls: pan, zoom, drag, and pinch gestures.",
+      "x": 745,
+      "y": 783,
+      "width": 220,
+      "height": 80,
+      "color": "#64748b",
+      "pv": {
+        "nodeType": "external",
+        "description": "Viewport plugin for Pixi.js"
+      }
+    },
+    {
+      "id": "unplaced-drawer",
+      "type": "text",
+      "text": "# Unplaced Repos Drawer\nBottom UI showing repositories without positions. Drag to place on map.",
+      "x": 44,
+      "y": 380,
+      "width": 250,
+      "height": 100,
+      "color": "#22c55e",
+      "pv": {
+        "nodeType": "component",
+        "description": "Inline JSX in CollectionMapPanelContent",
+        "references": [
+          "src/panels/CollectionMapPanel.tsx"
+        ]
+      }
+    },
+    {
+      "id": "region-callbacks",
+      "type": "text",
+      "text": "# RegionCallbacks\nHost interface for persisting regions, assignments, and positions to collection store.",
+      "x": 977,
+      "y": -275,
+      "width": 260,
+      "height": 100,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "interface",
+        "references": [
+          "src/panels/CollectionMapPanel.tsx"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "panel-to-content",
+      "fromNode": "collection-map-panel",
+      "toNode": "collection-map-content",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "renders"
+      }
+    },
+    {
+      "id": "content-to-overworld",
+      "fromNode": "collection-map-content",
+      "toNode": "overworld-map-content",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "renders"
+      }
+    },
+    {
+      "id": "content-to-drawer",
+      "fromNode": "collection-map-content",
+      "toNode": "unplaced-drawer",
+      "fromSide": "left",
+      "toSide": "right",
+      "pv": {
+        "edgeType": "renders"
+      }
+    },
+    {
+      "id": "content-to-mapper",
+      "fromNode": "collection-map-content",
+      "toNode": "generic-mapper",
+      "fromSide": "left",
+      "toSide": "right",
+      "label": "layout",
+      "pv": {
+        "edgeType": "uses"
+      }
+    },
+    {
+      "id": "overworld-to-renderer",
+      "fromNode": "overworld-map-content",
+      "toNode": "isometric-renderer",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "creates"
+      }
+    },
+    {
+      "id": "overworld-to-interaction",
+      "fromNode": "overworld-map-content",
+      "toNode": "isometric-interaction",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "creates"
+      }
+    },
+    {
+      "id": "overworld-to-paths",
+      "fromNode": "overworld-map-content",
+      "toNode": "isometric-paths",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "creates"
+      }
+    },
+    {
+      "id": "renderer-to-sprites",
+      "fromNode": "isometric-renderer",
+      "toNode": "building-sprites",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "uses"
+      }
+    },
+    {
+      "id": "renderer-to-stars",
+      "fromNode": "isometric-renderer",
+      "toNode": "star-decorations",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "uses"
+      }
+    },
+    {
+      "id": "renderer-to-collabs",
+      "fromNode": "isometric-renderer",
+      "toNode": "collaborator-decorations",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "uses"
+      }
+    },
+    {
+      "id": "renderer-to-pixi",
+      "fromNode": "isometric-renderer",
+      "toNode": "pixi-app",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "uses"
+      }
+    },
+    {
+      "id": "interaction-to-viewport",
+      "fromNode": "isometric-interaction",
+      "toNode": "pixi-viewport",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "uses"
+      }
+    },
+    {
+      "id": "alexandria-to-generic",
+      "fromNode": "alexandria-entry",
+      "toNode": "generic-node",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "useMemo",
+      "pv": {
+        "edgeType": "transforms"
+      }
+    },
+    {
+      "id": "generic-to-overworld",
+      "fromNode": "generic-node",
+      "toNode": "overworld-map",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "genericMapper",
+      "pv": {
+        "edgeType": "transforms"
+      }
+    },
+    {
+      "id": "panel-to-alexandria",
+      "fromNode": "collection-map-panel",
+      "toNode": "alexandria-entry",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "context",
+      "pv": {
+        "edgeType": "receives"
+      }
+    },
+    {
+      "id": "panel-to-callbacks",
+      "fromNode": "collection-map-panel",
+      "toNode": "region-callbacks",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "actions",
+      "pv": {
+        "edgeType": "receives"
+      }
+    },
+    {
+      "id": "edge-repo-scaling-generic-node-1773070535064",
+      "fromNode": "repo-scaling",
+      "toNode": "generic-node",
+      "fromSide": "left",
+      "toSide": "right",
+      "pv": {
+        "edgeType": "provides"
+      }
+    },
+    {
+      "id": "edge-repo-aging-generic-node-1773070535065",
+      "fromNode": "repo-aging",
+      "toNode": "generic-node",
+      "fromSide": "left",
+      "toSide": "right",
+      "pv": {
+        "edgeType": "provides"
+      }
+    },
+    {
+      "id": "edge-package-expansion-generic-node-1773070535065",
+      "fromNode": "package-expansion",
+      "toNode": "generic-node",
+      "fromSide": "left",
+      "toSide": "right",
+      "pv": {
+        "edgeType": "provides"
+      }
+    },
+    {
+      "id": "overworld-map-to-content",
+      "fromNode": "overworld-map",
+      "toNode": "overworld-map-content",
+      "fromSide": "left",
+      "toSide": "right",
+      "label": "props",
+      "pv": {
+        "edgeType": "receives"
+      }
+    }
+  ],
+  "pv": {
+    "name": "Collection Map Panel Architecture",
+    "version": "1.0.0",
+    "markdown": ".principal-views/collection-map-panel/collection-map-panel.md",
+    "description": "Component architecture and data flow for the CollectionMapPanel isometric visualization",
+    "nodeTypes": {
+      "component": {
+        "label": "Component",
+        "color": "#3b82f6",
+        "icon": "Layers",
+        "shape": "rectangle"
+      },
+      "module": {
+        "label": "Module",
+        "color": "#8b5cf6",
+        "icon": "Box",
+        "shape": "rectangle"
+      },
+      "utility": {
+        "label": "Utility",
+        "color": "#ec4899",
+        "icon": "Wrench",
+        "shape": "rectangle"
+      },
+      "interface": {
+        "label": "Interface",
+        "color": "#06b6d4",
+        "icon": "FileCode",
+        "shape": "rectangle"
+      },
+      "external": {
+        "label": "External",
+        "color": "#64748b",
+        "icon": "Package",
+        "shape": "rectangle"
+      }
+    },
+    "edgeTypes": {
+      "renders": {
+        "label": "renders",
+        "style": "solid",
+        "color": "#3b82f6",
+        "width": 2
+      },
+      "creates": {
+        "label": "creates",
+        "style": "solid",
+        "color": "#8b5cf6",
+        "width": 2
+      },
+      "uses": {
+        "label": "uses",
+        "style": "dashed",
+        "color": "#64748b",
+        "width": 1
+      },
+      "transforms": {
+        "label": "transforms",
+        "style": "solid",
+        "color": "#22c55e",
+        "width": 2
+      },
+      "provides": {
+        "label": "provides",
+        "style": "dotted",
+        "color": "#ec4899",
+        "width": 1
+      },
+      "receives": {
+        "label": "receives",
+        "style": "dashed",
+        "color": "#06b6d4",
+        "width": 1
+      }
+    }
+  }
+}

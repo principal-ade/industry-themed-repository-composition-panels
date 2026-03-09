@@ -17,6 +17,7 @@ import { IsometricInteractionManager } from './components/IsometricInteractionMa
 import { IsometricPathManager } from './components/IsometricPathManager';
 import {
   gridToScreen,
+  calculateRegionCameraPosition,
   ISO_TILE_WIDTH,
   ISO_TILE_HEIGHT,
 } from './isometricUtils';
@@ -148,6 +149,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   } | null>(null);
   const hasInitializedCamera = useRef(false);
   const skipNextAnimation = useRef(false); // Skip animation when region changes from dragging
+  const skipInitialAnimation = useRef(false); // Skip animation triggered by initial isRendering change
   const previousCollectionKeyRef = useRef<string | null>(null);
   const savedCameraPosition = useRef<{
     x: number;
@@ -454,44 +456,25 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       } else if (mapData.regions.length > 0 && !hasInitializedCamera.current) {
         // First initialization: center on first region and fit it in view
         const firstRegion = mapData.regions[0];
-        const bounds = firstRegion.bounds;
 
-        // Calculate the 4 corners of the isometric region in screen space
-        const topCorner = gridToScreen(bounds.x, bounds.y);
-        const bottomCorner = gridToScreen(
-          bounds.x + bounds.width,
-          bounds.y + bounds.height
+        // Calculate camera position using tested utility function
+        const cameraPosition = calculateRegionCameraPosition(
+          firstRegion.centerX,
+          firstRegion.centerY,
+          firstRegion.bounds
         );
-        const leftCorner = gridToScreen(bounds.x, bounds.y + bounds.height);
-        const rightCorner = gridToScreen(bounds.x + bounds.width, bounds.y);
-
-        // Account for sprite heights extending above tiles
-        // Sprites have anchor at 0.85, height = 50 * size
-        // Larger sprites and decorations need more headroom
-        const spriteHeightOffset = 140;
-
-        // Screen bounding box (with sprite height adjustment)
-        const screenMinX = leftCorner.screenX;
-        const screenMaxX = rightCorner.screenX;
-        const screenMinY = topCorner.screenY - spriteHeightOffset;
-        const screenMaxY = bottomCorner.screenY;
-
-        // Center of the visual bounding box
-        const screenCenterX = (screenMinX + screenMaxX) / 2;
-        const screenCenterY = (screenMinY + screenMaxY) / 2;
-
-        viewport.moveCenter(screenCenterX, screenCenterY);
 
         // Calculate zoom to fit the region in the visible area
-        const regionScreenWidth = screenMaxX - screenMinX;
-        const regionScreenHeight = screenMaxY - screenMinY;
-
         // Add padding (65% of visible area for comfortable border)
-        const zoomX = (visibleWidth * 0.65) / regionScreenWidth;
-        const zoomY = (visibleHeight * 0.65) / regionScreenHeight;
+        const zoomX = (visibleWidth * 0.65) / cameraPosition.screenWidth;
+        const zoomY = (visibleHeight * 0.65) / cameraPosition.screenHeight;
         const fitZoom = Math.min(zoomX, zoomY, 1); // Don't zoom in past 1.0
 
+        // IMPORTANT: setZoom first, then moveCenter
+        // setZoom changes the center point, so we must re-center after zooming
         viewport.setZoom(fitZoom);
+        viewport.moveCenter(cameraPosition.centerX, cameraPosition.centerY);
+
         hasInitializedCamera.current = true;
       }
 
@@ -758,6 +741,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
       setIsRendering(false);
       isInitializedRef.current = true;
+      skipInitialAnimation.current = true; // Prevent region effect from animating
       // Trigger scene update effect to run
       setInitializationComplete((prev) => prev + 1);
     };
@@ -1026,6 +1010,12 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
     // Skip animation if region change came from dragging
     if (skipNextAnimation.current) {
       skipNextAnimation.current = false;
+      return;
+    }
+
+    // Skip animation triggered by initial isRendering change
+    if (skipInitialAnimation.current) {
+      skipInitialAnimation.current = false;
       return;
     }
 
