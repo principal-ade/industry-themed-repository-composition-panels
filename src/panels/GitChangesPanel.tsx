@@ -255,6 +255,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
     // Expand untracked directories to show all files
     const expandedUntracked = expandDirectories(gitStatus.untrackedFiles);
 
+    // Build git status data (not filtered by search - we show status on all matching files)
     const statusData: GitFileStatus[] = [
       ...gitStatus.stagedFiles.map((filePath) => ({
         filePath,
@@ -282,52 +283,31 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
       })),
     ];
 
-    // Filter statusData based on search term
-    const filteredStatusData = searchTerm
-      ? statusData.filter((item) =>
-          item.filePath.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      : statusData;
-
-    // Filter fileTree to only include matching files and their parent directories
+    // Filter fileTree based on search term (searches entire tree, not just git changes)
     let filteredTree = fileTree;
     if (searchTerm && fileTree.allFiles) {
-      const rootPath = fileTree.root.path;
+      const searchLower = searchTerm.toLowerCase();
 
-      // Detect if FileTree uses absolute or relative paths
-      const usesAbsolutePaths =
-        fileTree.allFiles.length > 0 &&
-        fileTree.allFiles[0].path.startsWith('/');
+      // Find all files matching the search term
+      const matchingFiles = fileTree.allFiles.filter((file) =>
+        file.path.toLowerCase().includes(searchLower)
+      );
 
-      // Build matching paths set
+      // Build set of paths to include (matching files + their parent directories)
       const matchingPaths = new Set<string>();
 
-      filteredStatusData.forEach((item) => {
-        if (usesAbsolutePaths) {
-          // Add the absolute path
-          const absolutePath = `${rootPath}/${item.filePath}`;
-          matchingPaths.add(absolutePath);
+      matchingFiles.forEach((file) => {
+        matchingPaths.add(file.path);
 
-          // Also include parent directories
-          const parts = item.filePath.split('/');
-          for (let i = 1; i < parts.length; i++) {
-            const parentPath = `${rootPath}/${parts.slice(0, i).join('/')}`;
-            matchingPaths.add(parentPath);
-          }
-        } else {
-          // Use relative paths directly
-          matchingPaths.add(item.filePath);
-
-          // Also include parent directories
-          const parts = item.filePath.split('/');
-          for (let i = 1; i < parts.length; i++) {
-            matchingPaths.add(parts.slice(0, i).join('/'));
-          }
+        // Add parent directories
+        const parts = file.path.split('/');
+        for (let i = 1; i < parts.length; i++) {
+          matchingPaths.add(parts.slice(0, i).join('/'));
         }
       });
 
       // Always include the root directory
-      matchingPaths.add(rootPath);
+      matchingPaths.add(fileTree.root.path);
 
       // Filter allFiles and allDirectories
       const filteredAllFiles = fileTree.allFiles.filter((file) =>
@@ -371,7 +351,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
       };
     }
 
-    return { tree: filteredTree, statusData: filteredStatusData };
+    return { tree: filteredTree, statusData };
   }, [isLoading, fileTree, gitStatus, searchTerm]);
 
   // Render content based on state
@@ -439,40 +419,25 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Search bar - 40px total height including border */}
-      <div
+      <input
+        type="text"
+        placeholder="Filter files..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
         style={{
-          padding: '6px 16px',
+          width: '100%',
+          padding: '0 16px',
+          fontSize: theme.fontSizes[1],
+          fontFamily: theme.fonts.body,
+          color: theme.colors.text,
+          backgroundColor: theme.colors.backgroundSecondary,
+          border: 'none',
           borderBottom: `1px solid ${theme.colors.border}`,
-          backgroundColor: theme.colors.background,
-          height: '40px',
+          outline: 'none',
           boxSizing: 'border-box',
+          height: '40px',
         }}
-      >
-        <input
-          type="text"
-          placeholder="Filter files..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '4px 10px',
-            fontSize: theme.fontSizes[1],
-            fontFamily: theme.fonts.body,
-            color: theme.colors.text,
-            backgroundColor: theme.colors.backgroundSecondary,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: '4px',
-            outline: 'none',
-            boxSizing: 'border-box',
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = theme.colors.primary;
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = theme.colors.border;
-          }}
-        />
-      </div>
+      />
 
       <div style={{ flex: 1, overflow: 'auto' }}>{renderContent()}</div>
 
