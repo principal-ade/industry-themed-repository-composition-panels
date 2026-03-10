@@ -467,9 +467,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         );
 
         // Calculate zoom to fit the region in the visible area
-        // Add padding (65% of visible area for comfortable border)
-        const zoomX = (visibleWidth * 0.65) / cameraPosition.screenWidth;
-        const zoomY = (visibleHeight * 0.65) / cameraPosition.screenHeight;
+        // Add padding (95% of visible area for closer initial view)
+        const zoomX = (visibleWidth * 0.95) / cameraPosition.screenWidth;
+        const zoomY = (visibleHeight * 0.95) / cameraPosition.screenHeight;
         const fitZoom = Math.min(zoomX, zoomY, 1); // Don't zoom in past 1.0
 
         // IMPORTANT: setZoom first, then moveCenter
