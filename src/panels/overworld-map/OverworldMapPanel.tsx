@@ -111,6 +111,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
   collectionKey,
   onViewportReady,
 }) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
   const viewportRef = useRef<Viewport | null>(null);
@@ -258,8 +259,9 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
       const canvasHeight = window.innerHeight;
 
       // Track visible container dimensions for camera focus calculations
-      const visibleWidth = canvasRef.current?.clientWidth || width || 800;
-      const visibleHeight = canvasRef.current?.clientHeight || height || 600;
+      // Use wrapper dimensions (the panel's visible area) not canvas dimensions (which is 100dvw)
+      const visibleWidth = wrapperRef.current?.clientWidth || width || 800;
+      const visibleHeight = wrapperRef.current?.clientHeight || height || 600;
       visibleDimensionsRef.current = {
         width: visibleWidth,
         height: visibleHeight,
@@ -1053,6 +1055,7 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
   return (
     <div
+      ref={wrapperRef}
       style={{
         position: 'relative',
         width: '100%',

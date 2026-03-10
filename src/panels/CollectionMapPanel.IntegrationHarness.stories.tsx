@@ -18,6 +18,11 @@ import type {
 } from '@principal-ai/alexandria-collections';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library/types';
 import type { PackageLayer } from '../types/composition';
+import {
+  ConfigurablePanelLayout,
+  type PanelDefinitionWithContent,
+} from '@principal-ade/panels';
+import type { Theme } from '@principal-ade/industry-theme';
 
 // Browser-compatible EventEmitter
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1799,6 +1804,462 @@ export const AsyncDelayFixDemo: StoryObj<typeof meta> = {
       description: {
         story:
           '✅ **FIX DEMO**: Shows the optimistic update fix. Drag a sprite and it stays in place smoothly while the async save happens in the background.',
+      },
+    },
+  },
+};
+
+// Mock theme for three-panel layout (dark theme)
+const mockTheme: Theme = {
+  space: [0, 4, 8, 16, 32, 64, 128, 256, 512],
+  fonts: {
+    body: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    heading:
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    monospace:
+      '"SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace',
+  },
+  fontSizes: [12, 14, 16, 20, 24, 32, 48, 64, 96],
+  fontWeights: {
+    body: 400,
+    heading: 700,
+    bold: 700,
+    light: 300,
+    medium: 500,
+    semibold: 600,
+  },
+  lineHeights: {
+    body: 1.5,
+    heading: 1.25,
+    tight: 1.25,
+    relaxed: 1.75,
+  },
+  breakpoints: ['40em', '52em', '64em'],
+  sizes: [0, 4, 8, 16, 32, 64, 128, 256, 512],
+  radii: [0, 2, 4, 8, 16],
+  shadows: [
+    'none',
+    '0 1px 3px rgba(0,0,0,0.12)',
+    '0 4px 6px rgba(0,0,0,0.1)',
+    '0 10px 20px rgba(0,0,0,0.15)',
+  ],
+  zIndices: [0, 10, 20, 30, 40, 50],
+  colors: {
+    text: '#e4e4e7',
+    background: '#1a1a2e',
+    primary: '#e94560',
+    secondary: '#0f3460',
+    accent: '#00d9ff',
+    highlight: '#fbd38d',
+    muted: '#374151',
+    success: '#10b981',
+    warning: '#f59e0b',
+    error: '#ef4444',
+    info: '#4299e1',
+    border: '#0f3460',
+    backgroundSecondary: '#16213e',
+    backgroundTertiary: '#1f2b4a',
+    backgroundLight: '#16213e',
+    backgroundHover: '#1f2b4a',
+    surface: '#16213e',
+    textSecondary: '#a1a1aa',
+    textTertiary: '#71717a',
+    textMuted: '#52525b',
+    highlightBg: '#1f2937',
+    highlightBorder: '#374151',
+    textOnPrimary: '#ffffff',
+  },
+  buttons: {
+    primary: {
+      color: '#ffffff',
+      backgroundColor: '#e94560',
+      padding: '8px 16px',
+      fontSize: 14,
+      fontWeight: 500,
+      cursor: 'pointer',
+      '&:hover': { backgroundColor: '#ff6b6b' },
+    },
+    secondary: {
+      color: '#e4e4e7',
+      backgroundColor: '#0f3460',
+      padding: '8px 16px',
+      fontSize: 14,
+      fontWeight: 500,
+      cursor: 'pointer',
+      '&:hover': { backgroundColor: '#1a4a7a' },
+    },
+    ghost: {
+      color: '#00d9ff',
+      backgroundColor: 'transparent',
+      padding: '8px 16px',
+      fontSize: 14,
+      fontWeight: 500,
+      cursor: 'pointer',
+      '&:hover': { backgroundColor: '#1f2b4a' },
+    },
+  },
+  text: {
+    heading: {
+      fontSize: 24,
+      fontWeight: 700,
+      lineHeight: 1.25,
+      color: '#e4e4e7',
+    },
+    body: { fontSize: 16, fontWeight: 400, lineHeight: 1.5, color: '#e4e4e7' },
+    caption: {
+      fontSize: 14,
+      fontWeight: 400,
+      lineHeight: 1.5,
+      color: '#a1a1aa',
+    },
+  },
+  cards: {
+    primary: {
+      padding: 16,
+      backgroundColor: '#16213e',
+      borderRadius: 8,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+    },
+    secondary: {
+      padding: 16,
+      backgroundColor: '#1f2b4a',
+      borderRadius: 8,
+      border: '1px solid #0f3460',
+    },
+  },
+};
+
+// Placeholder panel components for three-panel layout
+const LeftPanelContent: React.FC = () => (
+  <div
+    style={{
+      padding: 16,
+      color: '#e4e4e7',
+      height: '100%',
+      backgroundColor: '#16213e',
+    }}
+  >
+    <h3 style={{ margin: '0 0 16px 0', fontSize: 14, fontWeight: 600 }}>
+      Navigation
+    </h3>
+    <p style={{ color: '#a1a1aa', fontSize: 12 }}>
+      This simulates the web-ade navigation panel.
+    </p>
+    <ul style={{ listStyle: 'none', padding: 0, margin: '16px 0' }}>
+      <li
+        style={{
+          padding: '8px 0',
+          borderBottom: '1px solid #0f3460',
+          fontSize: 13,
+        }}
+      >
+        Collections
+      </li>
+      <li
+        style={{
+          padding: '8px 0',
+          borderBottom: '1px solid #0f3460',
+          fontSize: 13,
+        }}
+      >
+        Repositories
+      </li>
+      <li
+        style={{
+          padding: '8px 0',
+          borderBottom: '1px solid #0f3460',
+          fontSize: 13,
+        }}
+      >
+        Settings
+      </li>
+    </ul>
+  </div>
+);
+
+const RightPanelContent: React.FC = () => (
+  <div
+    style={{
+      padding: 16,
+      color: '#e4e4e7',
+      height: '100%',
+      backgroundColor: '#16213e',
+    }}
+  >
+    <h3 style={{ margin: '0 0 16px 0', fontSize: 14, fontWeight: 600 }}>
+      Details
+    </h3>
+    <p style={{ color: '#a1a1aa', fontSize: 12 }}>
+      This simulates the web-ade details panel.
+    </p>
+    <div
+      style={{
+        marginTop: 16,
+        padding: 12,
+        backgroundColor: '#1a1a2e',
+        borderRadius: 8,
+      }}
+    >
+      <div style={{ marginBottom: 8, fontSize: 12 }}>
+        <span style={{ color: '#a1a1aa' }}>Selected: </span>
+        <span>None</span>
+      </div>
+    </div>
+  </div>
+);
+
+/**
+ * Three-Panel Layout Test
+ *
+ * Tests the CollectionMapPanel in a three-panel layout (like web-ade).
+ * This verifies that usePanelBounds correctly calculates the panel offset
+ * so the viewport-sized canvas renders at the correct position.
+ *
+ * The map should fill the middle panel correctly without overflow issues.
+ */
+export const ThreePanelLayout: Story = {
+  render: () => {
+    const ThreePanelHarness = () => {
+      const [collection, setCollection] = useState<Collection>({
+        id: 'col-three-panel',
+        name: 'Three Panel Test',
+        description: 'Tests viewport bounds in multi-panel layout',
+        theme: 'industry',
+        icon: 'Layout',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        members: mockRepositories.slice(0, 8).map((repo, idx) => ({
+          repositoryId: repo.name,
+          collectionId: 'col-three-panel',
+          addedAt: Date.now(),
+          metadata: { regionId: 'region-0-0' },
+        })),
+        metadata: {
+          customRegions: [
+            {
+              id: 'region-0-0',
+              name: 'Active Projects',
+              order: 0,
+              createdAt: 0,
+            },
+            { id: 'region-0-1', name: 'Archive', order: 1, createdAt: 0 },
+          ],
+        },
+      });
+
+      const eventEmitter = useMemo(() => new SimpleEventEmitter(), []);
+
+      const panelProps = useMemo<
+        PanelComponentProps<
+          CollectionMapPanelActions,
+          CollectionMapPanelContext
+        >
+      >(
+        () => ({
+          context: {
+            selectedCollection: collection,
+            selectedCollectionView: {
+              data: {
+                collection,
+                repositories: mockRepositories.slice(0, 8),
+                dependencies: {},
+              },
+              loading: false,
+              error: null,
+            },
+            scope: { type: 'workspace', workspaceId: 'test-workspace' },
+            refresh: async () => {},
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+          actions: {
+            onRegionCreated: async (
+              _collectionId: string,
+              region: Omit<CustomRegion, 'id'>
+            ) => {
+              const row = Math.floor(region.order / 10);
+              const col = region.order % 10;
+              const newRegion: CustomRegion = {
+                ...region,
+                id: `region-${row}-${col}`,
+              };
+              setCollection((prev) => ({
+                ...prev,
+                metadata: {
+                  ...prev.metadata,
+                  customRegions: [
+                    ...(prev.metadata?.customRegions || []),
+                    newRegion,
+                  ],
+                },
+              }));
+              return newRegion;
+            },
+            onRegionUpdated: async (
+              _collectionId: string,
+              regionId: string,
+              updates: Partial<CustomRegion>
+            ) => {
+              setCollection((prev) => ({
+                ...prev,
+                metadata: {
+                  ...prev.metadata,
+                  customRegions: prev.metadata?.customRegions?.map((r) =>
+                    r.id === regionId ? { ...r, ...updates } : r
+                  ),
+                },
+              }));
+            },
+            onRegionDeleted: async (
+              _collectionId: string,
+              regionId: string
+            ) => {
+              setCollection((prev) => ({
+                ...prev,
+                metadata: {
+                  ...prev.metadata,
+                  customRegions: prev.metadata?.customRegions?.filter(
+                    (r) => r.id !== regionId
+                  ),
+                },
+              }));
+            },
+            onRepositoryAssigned: async (
+              _collectionId: string,
+              repositoryId: string,
+              regionId: string | null
+            ) => {
+              setCollection((prev) => ({
+                ...prev,
+                members: prev.members.map((m) =>
+                  m.repositoryId === repositoryId
+                    ? {
+                        ...m,
+                        metadata: {
+                          ...m.metadata,
+                          regionId: regionId || undefined,
+                        },
+                      }
+                    : m
+                ),
+              }));
+            },
+            onRepositoryPositionUpdated: async (
+              _collectionId: string,
+              repositoryId: string,
+              layout: RepositoryLayoutData
+            ) => {
+              setCollection((prev) => ({
+                ...prev,
+                members: prev.members.map((m) =>
+                  m.repositoryId === repositoryId
+                    ? { ...m, metadata: { ...m.metadata, layout } }
+                    : m
+                ),
+              }));
+            },
+            onBatchLayoutInitialized: async (
+              _collectionId: string,
+              updates: {
+                regions?: CustomRegion[];
+                assignments?: Array<{ repositoryId: string; regionId: string }>;
+                positions?: Array<{
+                  repositoryId: string;
+                  layout: RepositoryLayoutData;
+                }>;
+              }
+            ) => {
+              setCollection((prev) => ({
+                ...prev,
+                metadata: {
+                  ...prev.metadata,
+                  ...(updates.regions && { customRegions: updates.regions }),
+                },
+                members: prev.members.map((m) => {
+                  const assignment = updates.assignments?.find(
+                    (a: { repositoryId: string }) =>
+                      a.repositoryId === m.repositoryId
+                  );
+                  const position = updates.positions?.find(
+                    (p: { repositoryId: string }) =>
+                      p.repositoryId === m.repositoryId
+                  );
+                  if (!assignment && !position) return m;
+                  return {
+                    ...m,
+                    metadata: {
+                      ...m.metadata,
+                      ...(assignment && { regionId: assignment.regionId }),
+                      ...(position && { layout: position.layout }),
+                    },
+                  };
+                }),
+              }));
+            },
+            openRepository: async () => {},
+            addRepositoryToCollection: async () => {},
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          events: eventEmitter as any,
+        }),
+        [collection, eventEmitter]
+      );
+
+      const panels: PanelDefinitionWithContent[] = useMemo(
+        () => [
+          {
+            id: 'nav-panel',
+            label: 'Navigation',
+            content: <LeftPanelContent />,
+          },
+          {
+            id: 'map-panel',
+            label: 'Collection Map',
+            content: <CollectionMapPanel {...panelProps} />,
+          },
+          {
+            id: 'details-panel',
+            label: 'Details',
+            content: <RightPanelContent />,
+          },
+        ],
+        [panelProps]
+      );
+
+      return (
+        <div
+          style={{
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: '#1a1a2e',
+          }}
+        >
+          <ConfigurablePanelLayout
+            panels={panels}
+            layout={{
+              left: 'nav-panel',
+              middle: 'map-panel',
+              right: 'details-panel',
+            }}
+            theme={mockTheme}
+            defaultSizes={{ left: 20, middle: 60, right: 20 }}
+            collapsiblePanels={{
+              left: true,
+              middle: false,
+              right: true,
+            }}
+          />
+        </div>
+      );
+    };
+
+    return <ThreePanelHarness />;
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Tests the CollectionMapPanel in a three-panel layout like web-ade. Verifies that usePanelBounds correctly offsets the viewport-sized canvas.',
       },
     },
   },
