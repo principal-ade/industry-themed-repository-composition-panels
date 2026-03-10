@@ -1,31 +1,14 @@
 /**
  * Building Sprite Generator
  * Creates isometric building sprites for repository visualization
+ * Note: Star and collaborator decorations are handled separately in IsometricRenderer
  */
 
-import { Graphics, Text } from 'pixi.js';
-import { getStarTier, formatStarCount } from '../starDecoration';
-import {
-  generateFlagSprite,
-  generateTrophySprite,
-  generateStatueSprite,
-} from './starDecorationSprites';
-import {
-  getCollaboratorTier,
-  formatCollaboratorCount,
-} from '../collaboratorDecoration';
-import {
-  generateBenchSprite,
-  generatePavilionSprite,
-  generateGazeboSprite,
-  generateBandstandSprite,
-} from './collaboratorDecorationSprites';
+import { Graphics } from 'pixi.js';
 
 export interface BuildingSpriteConfig {
   size: number; // Size multiplier (1.0 - 4.0)
   color?: number; // Optional color override (default: tan/brown)
-  stars?: number; // GitHub star count for decoration
-  collaborators?: number; // Contributor count for community space decoration
 }
 
 /**
@@ -36,7 +19,7 @@ export interface BuildingSpriteConfig {
  * @returns Graphics object ready for texture generation
  */
 export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
-  const { size, color = 0xd2691e, stars, collaborators } = config;
+  const { size, color = 0xd2691e } = config;
 
   const building = new Graphics();
 
@@ -112,106 +95,6 @@ export function generateBuildingSprite(config: BuildingSpriteConfig): Graphics {
   // Right edge
   building.lineTo(isoWidth / 2, 0);
   building.stroke();
-
-  // Position decorations at corners of the diamond base
-  // Stars on the left corner, collaborators on the right corner
-
-  // Add star decoration if stars are provided
-  if (stars && stars > 0) {
-    const tier = getStarTier(stars);
-    if (tier) {
-      // Generate decoration graphic based on type
-      let decoration: Graphics;
-      switch (tier.decorationType) {
-        case 'flag':
-          decoration = generateFlagSprite(tier.color);
-          break;
-        case 'trophy':
-          decoration = generateTrophySprite(tier.color);
-          break;
-        case 'statue':
-          decoration = generateStatueSprite(tier.color);
-          break;
-      }
-
-      // Position decoration at the left corner of the diamond base
-      const decorationX = -isoWidth / 4; // Left side, inside the diamond
-      const decorationY = 0; // Left point is at Y=0
-      decoration.x = decorationX;
-      decoration.y = decorationY;
-      decoration.scale.set(1.8); // Slightly smaller scale
-
-      building.addChild(decoration);
-
-      // Add star count text
-      const countText = new Text({
-        text: formatStarCount(stars),
-        style: {
-          fontSize: 10,
-          fill: 0xffffff,
-          fontFamily: 'Arial',
-          fontWeight: 'bold',
-          stroke: { color: 0x000000, width: 2 },
-        },
-        resolution: 2,
-      });
-      countText.x = decorationX;
-      countText.y = decorationY + 18; // Below the decoration
-      countText.anchor.set(0.5, 0);
-
-      building.addChild(countText);
-    }
-  }
-
-  // Add collaborator decoration if collaborators are provided
-  if (collaborators && collaborators > 0) {
-    const tier = getCollaboratorTier(collaborators);
-    if (tier) {
-      // Generate decoration graphic based on type
-      let decoration: Graphics;
-      switch (tier.decorationType) {
-        case 'bench':
-          decoration = generateBenchSprite(tier.color);
-          break;
-        case 'pavilion':
-          decoration = generatePavilionSprite(tier.color);
-          break;
-        case 'gazebo':
-          decoration = generateGazeboSprite(tier.color);
-          break;
-        case 'bandstand':
-          decoration = generateBandstandSprite(tier.color);
-          break;
-      }
-
-      // Position decoration at the right corner of the diamond base
-      const decorationX = isoWidth / 4; // Right side, inside the diamond
-      const decorationY = 0; // Right point is at Y=0
-      decoration.x = decorationX;
-      decoration.y = decorationY;
-      decoration.scale.set(1.8); // Slightly smaller scale
-
-      building.addChild(decoration);
-
-      // Add collaborator count text
-      const countText = new Text({
-        text: formatCollaboratorCount(collaborators),
-        style: {
-          fontSize: 10,
-          fill: 0xffffff,
-          fontFamily: 'Arial',
-          fontWeight: 'bold',
-          stroke: { color: 0x000000, width: 2 },
-        },
-        resolution: 2,
-      });
-      countText.x = decorationX;
-      countText.y = decorationY + 18; // Below the decoration
-      countText.anchor.set(0.5, 0);
-
-      building.addChild(countText);
-    }
-  }
 
   return building;
 }

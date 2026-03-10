@@ -55,6 +55,8 @@ export interface SpriteInstance {
   licenseGround?: Graphics | Container; // License-based ground treatment (grass, cobblestone, fence)
   licenseSign?: Container; // License-based sign/archway
   ownerAvatar?: Container; // Owner avatar at bottom corner
+  starDecoration?: Container; // Star decoration on left corner
+  collaboratorDecoration?: Container; // Collaborator decoration on right corner
   gridPosition: { gridX: number; gridY: number };
   size: number; // Size multiplier for boundary calculations
   spriteKey: string; // Texture key for diffing (e.g., "building-3-#ff0000-50-10")
@@ -196,6 +198,16 @@ export class IsometricRenderer {
       // Add owner avatar at bottom corner
       if (instance.ownerAvatar) {
         nodes.addChild(instance.ownerAvatar);
+      }
+
+      // Add star decoration at left corner
+      if (instance.starDecoration) {
+        nodes.addChild(instance.starDecoration);
+      }
+
+      // Add collaborator decoration at right corner
+      if (instance.collaboratorDecoration) {
+        nodes.addChild(instance.collaboratorDecoration);
       }
 
       nodes.addChild(instance.label); // Top: text label
@@ -577,18 +589,30 @@ export class IsometricRenderer {
             break;
         }
 
+        // Anchor at bottom-right so decoration extends toward the left corner
+        const decorationDimensions: Record<string, { w: number; h: number }> = {
+          flag: { w: 8, h: 12 },
+          trophy: { w: 8, h: 10 },
+          statue: { w: 10, h: 15 },
+        };
+        const dim = decorationDimensions[tier.decorationType] || {
+          w: 8,
+          h: 12,
+        };
+        decoration.pivot.set(dim.w, dim.h);
+
         // Position decoration at the left corner of the diamond
-        const decorationX = -footprintWidth / 2; // Left side, inside the diamond
-        const decorationY = 0; // Left point is at vertical center
+        const decorationX = -footprintWidth / 2;
+        const decorationY = 0;
         decoration.x = decorationX;
         decoration.y = decorationY;
-        decoration.scale.set(1.8);
+        decoration.scale.set(1.5 * sizeMultiplier);
 
         container.addChild(decoration);
 
-        // Add star count text
+        // Add star count text centered below decoration
         const countText = new Text({
-          text: formatStarCount(node.stars),
+          text: `${formatStarCount(node.stars)} stars`,
           style: {
             fontSize: 10,
             fill: 0xffffff,
@@ -598,8 +622,9 @@ export class IsometricRenderer {
           },
           resolution: 2,
         });
-        countText.x = decorationX;
-        countText.y = decorationY + 18;
+        // Center text under decoration (pivot is at right edge, so center is at x - width/2)
+        countText.x = decorationX - (dim.w * 1.5 * sizeMultiplier) / 2;
+        countText.y = decorationY + 4;
         countText.anchor.set(0.5, 0);
 
         container.addChild(countText);
@@ -627,18 +652,31 @@ export class IsometricRenderer {
             break;
         }
 
+        // Anchor at bottom-left so decoration extends toward the right corner
+        const decorationDimensions: Record<string, { w: number; h: number }> = {
+          bench: { w: 8, h: 9 },
+          pavilion: { w: 12, h: 12 },
+          gazebo: { w: 14, h: 14 },
+          bandstand: { w: 16, h: 16 },
+        };
+        const dim = decorationDimensions[tier.decorationType] || {
+          w: 12,
+          h: 12,
+        };
+        decoration.pivot.set(0, dim.h);
+
         // Position decoration at the right corner of the diamond
-        const decorationX = footprintWidth / 2; // Right side, inside the diamond
-        const decorationY = 0; // Right point is at vertical center
+        const decorationX = footprintWidth / 2;
+        const decorationY = 0;
         decoration.x = decorationX;
         decoration.y = decorationY;
-        decoration.scale.set(1.8);
+        decoration.scale.set(1.5 * sizeMultiplier);
 
         container.addChild(decoration);
 
-        // Add collaborator count text
+        // Add collaborator count text centered below decoration
         const countText = new Text({
-          text: formatCollaboratorCount(node.collaborators),
+          text: `${formatCollaboratorCount(node.collaborators)} collabs`,
           style: {
             fontSize: 10,
             fill: 0xffffff,
@@ -648,8 +686,9 @@ export class IsometricRenderer {
           },
           resolution: 2,
         });
-        countText.x = decorationX;
-        countText.y = decorationY + 18;
+        // Center text under decoration (pivot is at left edge, so center is at x + width/2)
+        countText.x = decorationX + (dim.w * 1.5 * sizeMultiplier) / 2;
+        countText.y = decorationY + 4;
         countText.anchor.set(0.5, 0);
 
         container.addChild(countText);
@@ -1022,6 +1061,136 @@ export class IsometricRenderer {
         }
       }
 
+      // Create star decoration if node has stars
+      let starDecoration: Container | undefined;
+      if (node.stars && node.stars > 0) {
+        const tier = getStarTier(node.stars);
+        if (tier) {
+          const footprint = calculateFootprint(sizeMultiplier);
+          starDecoration = new Container();
+
+          // Generate decoration graphic based on type
+          let decoration: Graphics;
+          switch (tier.decorationType) {
+            case 'flag':
+              decoration = generateFlagSprite(tier.color);
+              break;
+            case 'trophy':
+              decoration = generateTrophySprite(tier.color);
+              break;
+            case 'statue':
+              decoration = generateStatueSprite(tier.color);
+              break;
+          }
+
+          // Anchor at bottom-right so decoration extends toward the left corner
+          const decorationDimensions: Record<string, { w: number; h: number }> =
+            {
+              flag: { w: 8, h: 12 },
+              trophy: { w: 8, h: 10 },
+              statue: { w: 10, h: 15 },
+            };
+          const dim = decorationDimensions[tier.decorationType] || {
+            w: 8,
+            h: 12,
+          };
+          decoration.pivot.set(dim.w, dim.h);
+
+          decoration.scale.set(1.5 * sizeMultiplier);
+          starDecoration.addChild(decoration);
+
+          // Add star count text centered below decoration
+          const countText = new Text({
+            text: `${formatStarCount(node.stars)} stars`,
+            style: {
+              fontSize: 10,
+              fill: 0xffffff,
+              fontFamily: 'Arial',
+              fontWeight: 'bold',
+              stroke: { color: 0x000000, width: 2 },
+            },
+            resolution: 2,
+          });
+          // Center text under decoration (pivot is at right edge, so center is at -width/2)
+          countText.x = -(dim.w * 1.5 * sizeMultiplier) / 2;
+          countText.y = 4;
+          countText.anchor.set(0.5, 0);
+          starDecoration.addChild(countText);
+
+          // Position at left corner of the diamond (on horizontal center line)
+          starDecoration.x = screenX - footprint.width / 2;
+          starDecoration.y = screenY;
+          starDecoration.zIndex = sprite.zIndex + 0.11;
+        }
+      }
+
+      // Create collaborator decoration if node has collaborators
+      let collaboratorDecoration: Container | undefined;
+      if (node.collaborators && node.collaborators > 0) {
+        const tier = getCollaboratorTier(node.collaborators);
+        if (tier) {
+          const footprint = calculateFootprint(sizeMultiplier);
+          collaboratorDecoration = new Container();
+
+          // Generate decoration graphic based on type
+          let decoration: Graphics;
+          switch (tier.decorationType) {
+            case 'bench':
+              decoration = generateBenchSprite(tier.color);
+              break;
+            case 'pavilion':
+              decoration = generatePavilionSprite(tier.color);
+              break;
+            case 'gazebo':
+              decoration = generateGazeboSprite(tier.color);
+              break;
+            case 'bandstand':
+              decoration = generateBandstandSprite(tier.color);
+              break;
+          }
+
+          // Anchor at bottom-left so decoration extends toward the right corner
+          const decorationDimensions: Record<string, { w: number; h: number }> =
+            {
+              bench: { w: 8, h: 9 },
+              pavilion: { w: 12, h: 12 },
+              gazebo: { w: 14, h: 14 },
+              bandstand: { w: 16, h: 16 },
+            };
+          const dim = decorationDimensions[tier.decorationType] || {
+            w: 12,
+            h: 12,
+          };
+          decoration.pivot.set(0, dim.h);
+
+          decoration.scale.set(1.5 * sizeMultiplier);
+          collaboratorDecoration.addChild(decoration);
+
+          // Add collaborator count text centered below decoration
+          const countText = new Text({
+            text: `${formatCollaboratorCount(node.collaborators)} collabs`,
+            style: {
+              fontSize: 10,
+              fill: 0xffffff,
+              fontFamily: 'Arial',
+              fontWeight: 'bold',
+              stroke: { color: 0x000000, width: 2 },
+            },
+            resolution: 2,
+          });
+          // Center text under decoration (pivot is at left edge, so center is at +width/2)
+          countText.x = (dim.w * 1.5 * sizeMultiplier) / 2;
+          countText.y = 4;
+          countText.anchor.set(0.5, 0);
+          collaboratorDecoration.addChild(countText);
+
+          // Position at right corner of the diamond (on horizontal center line)
+          collaboratorDecoration.x = screenX + footprint.width / 2;
+          collaboratorDecoration.y = screenY;
+          collaboratorDecoration.zIndex = sprite.zIndex + 0.11;
+        }
+      }
+
       // Create sprite instance
       const instance: SpriteInstance = {
         sprite,
@@ -1031,6 +1200,8 @@ export class IsometricRenderer {
         licenseGround,
         licenseSign,
         ownerAvatar,
+        starDecoration,
+        collaboratorDecoration,
         gridPosition: { gridX: node.gridX, gridY: node.gridY },
         size: sizeMultiplier,
         spriteKey: node.sprite, // Store for diffing - allows detecting visual changes
@@ -1081,6 +1252,19 @@ export class IsometricRenderer {
             ownerAvatar.y = pos.screenY + footprint.height - 12;
             ownerAvatar.zIndex = getIsometricZIndex(gridX, gridY) + 0.12;
           }
+          if (starDecoration) {
+            const footprint = calculateFootprint(sizeMultiplier);
+            starDecoration.x = pos.screenX - footprint.width / 2;
+            starDecoration.y = pos.screenY;
+            starDecoration.zIndex = getIsometricZIndex(gridX, gridY) + 0.11;
+          }
+          if (collaboratorDecoration) {
+            const footprint = calculateFootprint(sizeMultiplier);
+            collaboratorDecoration.x = pos.screenX + footprint.width / 2;
+            collaboratorDecoration.y = pos.screenY;
+            collaboratorDecoration.zIndex =
+              getIsometricZIndex(gridX, gridY) + 0.11;
+          }
 
           instance.gridPosition = { gridX, gridY };
         },
@@ -1092,6 +1276,8 @@ export class IsometricRenderer {
           licenseGround?.destroy();
           licenseSign?.destroy();
           ownerAvatar?.destroy();
+          starDecoration?.destroy();
+          collaboratorDecoration?.destroy();
         },
       };
 

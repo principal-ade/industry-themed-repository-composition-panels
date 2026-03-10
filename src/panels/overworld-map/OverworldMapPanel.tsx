@@ -853,11 +853,10 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
         const stars = parseInt(starsStr) || 0;
         const collaborators = parseInt(collaboratorsStr) || 0;
 
+        // Note: stars and collaborators are rendered separately in IsometricRenderer
         const buildingGraphics = generateBuildingSprite({
           size,
           color,
-          stars,
-          collaborators,
         });
         const texture = app.renderer.generateTexture({
           target: buildingGraphics,

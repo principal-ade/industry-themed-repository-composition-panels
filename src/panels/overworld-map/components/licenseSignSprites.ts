@@ -1200,11 +1200,10 @@ export function generateLicensedBuilding(
   container.addChild(ground);
 
   // 2. Building sprite (centered at origin)
+  // Note: stars and collaborators decorations are rendered separately in IsometricRenderer
   const buildingConfig: BuildingSpriteConfig = {
     size,
     color,
-    stars,
-    collaborators,
   };
   const building = generateBuildingSprite(buildingConfig);
   building.zIndex = 1;
