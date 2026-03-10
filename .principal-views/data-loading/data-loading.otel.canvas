@@ -44,6 +44,35 @@
       }
     },
     {
+      "id": "metrics-snapshot",
+      "type": "text",
+      "text": "# Metrics Snapshot\nCapture repository metrics state:\n- repositories[] ref identity\n- fileCount/lineCount sums\n- latest lastEditedAt\n\nDetects if file tree changes propagated",
+      "x": 0,
+      "y": 460,
+      "width": 260,
+      "height": 150,
+      "color": "#f97316",
+      "pv": {
+        "event": {
+          "name": "collection-map.metrics-received",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "repositories.count": { "type": "number", "required": true },
+            "repositories.ref.hash": { "type": "string", "required": true, "description": "Hash of array reference to detect identity changes" },
+            "metrics.total.files": { "type": "number", "required": false },
+            "metrics.total.lines": { "type": "number", "required": false },
+            "metrics.latest.edited": { "type": "string", "required": false, "description": "ISO timestamp of most recent lastEditedAt" }
+          }
+        },
+        "status": "implemented",
+        "otel": {
+          "kind": "event",
+          "category": "data-snapshot",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
       "id": "nodes-memo",
       "type": "text",
       "text": "# useMemo: nodes\n**Deps:** collection.id, members, repositories, dependencies\n\nRecalculates GenericNode[] when deps change:\n- Maps membership → repo data\n- Calculates size, aging, packages",
@@ -58,10 +87,12 @@
           "attributes": {
             "collection.id": { "type": "string", "required": true },
             "nodes.count": { "type": "number", "required": true },
-            "trigger": { "type": "string", "required": false }
+            "trigger.dep": { "type": "string", "required": true, "description": "Which dependency triggered recalc: collection.id | members | repositories | dependencies" },
+            "trigger.metrics.changed": { "type": "boolean", "required": false, "description": "True if repositories metrics content changed" },
+            "computed.total.size": { "type": "number", "required": false, "description": "Sum of all node sizes (derived from metrics)" }
           }
         },
-        "status": "draft",
+        "status": "implemented",
         "otel": {
           "kind": "event",
           "category": "data-transform",
@@ -195,6 +226,58 @@
           "files": ["src/panels/CollectionMapPanel.tsx"]
         }
       }
+    },
+    {
+      "id": "initial-load-marker",
+      "type": "text",
+      "text": "# Initial Load (No Metrics)\nMarker event emitted when repos load without file metrics.\n\nPhase 1 of two-phase loading.",
+      "x": 0,
+      "y": 660,
+      "width": 260,
+      "height": 100,
+      "color": "#ec4899",
+      "pv": {
+        "event": {
+          "name": "collection-map.initial-load-no-metrics",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "repositories.count": { "type": "number", "required": true }
+          }
+        },
+        "status": "implemented",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
+    },
+    {
+      "id": "file-metrics-marker",
+      "type": "text",
+      "text": "# File Metrics Arrived\nMarker event emitted when file metrics update from zero.\n\nPhase 2 of two-phase loading.",
+      "x": 320,
+      "y": 660,
+      "width": 260,
+      "height": 100,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "collection-map.file-metrics-arrived",
+          "attributes": {
+            "collection.id": { "type": "string", "required": true },
+            "metrics.total.files": { "type": "number", "required": true },
+            "metrics.total.lines": { "type": "number", "required": true },
+            "prev.total.files": { "type": "number", "required": true }
+          }
+        },
+        "status": "implemented",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle",
+          "files": ["src/panels/CollectionMapPanel.tsx"]
+        }
+      }
     }
   ],
   "edges": [
@@ -209,12 +292,34 @@
       }
     },
     {
+      "id": "props-to-metrics",
+      "fromNode": "props-received",
+      "toNode": "metrics-snapshot",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "repositories[]",
+      "pv": {
+        "edgeType": "sequence"
+      }
+    },
+    {
+      "id": "metrics-to-nodes",
+      "fromNode": "metrics-snapshot",
+      "toNode": "nodes-memo",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "metrics changed?",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
       "id": "props-to-nodes",
       "fromNode": "props-received",
       "toNode": "nodes-memo",
       "fromSide": "right",
       "toSide": "left",
-      "label": "deps changed",
+      "label": "id/members/deps",
       "pv": {
         "edgeType": "triggers"
       }
@@ -281,6 +386,28 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "skipped",
+      "pv": {
+        "edgeType": "conditional"
+      }
+    },
+    {
+      "id": "metrics-to-initial-marker",
+      "fromNode": "metrics-snapshot",
+      "toNode": "initial-load-marker",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "if files=0",
+      "pv": {
+        "edgeType": "conditional"
+      }
+    },
+    {
+      "id": "metrics-to-arrived-marker",
+      "fromNode": "metrics-snapshot",
+      "toNode": "file-metrics-marker",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "if 0->files",
       "pv": {
         "edgeType": "conditional"
       }

@@ -38,6 +38,40 @@ import type {
 const getTracer = () => trace.getTracer('collection-map-panel', '0.6.9');
 
 /**
+ * Compute a simple hash to detect repository array reference/content changes
+ * Uses length + sum of metrics to detect if file tree data changed
+ */
+function computeRepositoriesHash(
+  repositories: AlexandriaEntryWithMetrics[]
+): string {
+  const totalFiles = repositories.reduce(
+    (sum, r) => sum + (r.metrics?.fileCount || 0),
+    0
+  );
+  const totalLines = repositories.reduce(
+    (sum, r) => sum + (r.metrics?.lineCount || 0),
+    0
+  );
+  return `${repositories.length}:${totalFiles}:${totalLines}`;
+}
+
+/**
+ * Get the latest lastEditedAt timestamp from repositories
+ */
+function getLatestEditTimestamp(
+  repositories: AlexandriaEntryWithMetrics[]
+): string | undefined {
+  let latest: string | undefined;
+  for (const repo of repositories) {
+    const edited = repo.metrics?.lastEditedAt;
+    if (edited && (!latest || edited > latest)) {
+      latest = edited;
+    }
+  }
+  return latest;
+}
+
+/**
  * Extended Alexandria Entry with metrics for visualization sizing
  * (Local extension until metrics are added to upstream)
  */
@@ -231,6 +265,72 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
   // Viewport reference for coordinate conversion
   const viewportRef = React.useRef<Viewport | null>(null);
   const canvasRef = React.useRef<HTMLDivElement>(null);
+
+  // Refs for tracking dependency changes (for telemetry trigger detection)
+  const prevCollectionIdForMetrics = useRef<string | null>(null);
+  const prevMembersLength = useRef<number>(0);
+  const prevRepositoriesHash = useRef<string>('');
+  const prevDependenciesKeys = useRef<string>('');
+  const prevTotalFiles = useRef<number>(0);
+
+  // Emit metrics-received telemetry when repositories change
+  // Also emit marker events for two-phase loading detection
+  useEffect(() => {
+    const currentHash = computeRepositoriesHash(repositories);
+    const totalFiles = repositories.reduce(
+      (sum, r) => sum + (r.metrics?.fileCount || 0),
+      0
+    );
+    const totalLines = repositories.reduce(
+      (sum, r) => sum + (r.metrics?.lineCount || 0),
+      0
+    );
+    const latestEdited = getLatestEditTimestamp(repositories);
+
+    const span = getTracer().startSpan('collection-map.metrics-received');
+    span.addEvent('collection-map.metrics-received', {
+      'collection.id': collection.id,
+      'repositories.count': repositories.length,
+      'repositories.ref.hash': currentHash,
+      'metrics.total.files': totalFiles,
+      'metrics.total.lines': totalLines,
+      ...(latestEdited && { 'metrics.latest.edited': latestEdited }),
+    });
+
+    // Emit marker events for two-phase loading scenarios
+    const isFirstLoadForCollection =
+      prevCollectionIdForMetrics.current !== collection.id;
+
+    if (
+      isFirstLoadForCollection &&
+      totalFiles === 0 &&
+      repositories.length > 0
+    ) {
+      // Phase 1: Initial load without file metrics
+      span.addEvent('collection-map.initial-load-no-metrics', {
+        'collection.id': collection.id,
+        'repositories.count': repositories.length,
+      });
+    } else if (
+      !isFirstLoadForCollection &&
+      prevTotalFiles.current === 0 &&
+      totalFiles > 0
+    ) {
+      // Phase 2: File metrics arrived (transition from 0 to >0)
+      span.addEvent('collection-map.file-metrics-arrived', {
+        'collection.id': collection.id,
+        'metrics.total.files': totalFiles,
+        'metrics.total.lines': totalLines,
+        'prev.total.files': prevTotalFiles.current,
+      });
+    }
+
+    // Update ref for next comparison
+    prevTotalFiles.current = totalFiles;
+
+    span.setStatus({ code: 1 });
+    span.end();
+  }, [collection.id, repositories]);
 
   // Note: We no longer force creation of a default region
   // Instead, we let the layout algorithm create age-based regions on first load
@@ -809,6 +909,51 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
 
     return memberNodes;
   }, [collection.id, collection.members, repositories, dependencies]);
+
+  // Emit nodes-memo-recalc telemetry when nodes change
+  useEffect(() => {
+    // Determine what triggered the recalculation by comparing with previous values
+    const currentRepositoriesHash = computeRepositoriesHash(repositories);
+    const currentDependenciesKeys = Object.keys(dependencies).sort().join(',');
+
+    const triggers: string[] = [];
+    if (prevCollectionIdForMetrics.current !== collection.id) {
+      triggers.push('collection.id');
+    }
+    if (prevMembersLength.current !== collection.members.length) {
+      triggers.push('members');
+    }
+    if (prevRepositoriesHash.current !== currentRepositoriesHash) {
+      triggers.push('repositories');
+    }
+    if (prevDependenciesKeys.current !== currentDependenciesKeys) {
+      triggers.push('dependencies');
+    }
+
+    // Only emit if we have previous values (skip first render)
+    if (prevCollectionIdForMetrics.current !== null) {
+      const metricsChanged =
+        prevRepositoriesHash.current !== currentRepositoriesHash;
+      const totalSize = nodes.reduce((sum, n) => sum + (n.size || 0), 0);
+
+      const span = getTracer().startSpan('collection-map.nodes-memo-recalc');
+      span.addEvent('collection-map.nodes-memo-recalc', {
+        'collection.id': collection.id,
+        'nodes.count': nodes.length,
+        'trigger.dep': triggers.length > 0 ? triggers.join(', ') : 'initial',
+        'trigger.metrics.changed': metricsChanged,
+        'computed.total.size': totalSize,
+      });
+      span.setStatus({ code: 1 });
+      span.end();
+    }
+
+    // Update refs for next comparison
+    prevCollectionIdForMetrics.current = collection.id;
+    prevMembersLength.current = collection.members.length;
+    prevRepositoriesHash.current = currentRepositoriesHash;
+    prevDependenciesKeys.current = currentDependenciesKeys;
+  }, [collection.id, collection.members, repositories, dependencies, nodes]);
 
   // Split nodes into valid (can render) and unplaced (need user placement)
   const { validNodes, unplacedNodes } = useMemo(() => {

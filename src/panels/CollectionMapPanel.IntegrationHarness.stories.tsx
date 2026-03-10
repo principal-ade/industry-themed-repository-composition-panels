@@ -2290,6 +2290,449 @@ export const CollectionSwitcher: StoryObj<{ collection: string }> = {
   },
 };
 
+/**
+ * Two-Phase Loading Test
+ *
+ * Tests the scenario where:
+ * 1. Repositories load initially WITHOUT file metrics (fileCount=0, lineCount=0)
+ * 2. After a delay, file tree scan completes and metrics are updated
+ *
+ * This tests whether the UI properly updates when file metrics arrive.
+ * Watch the telemetry for:
+ * - collection-map.initial-load-no-metrics (phase 1)
+ * - collection-map.file-metrics-arrived (phase 2)
+ * - collection-map.nodes-memo-recalc with trigger.metrics.changed=true
+ */
+export const TwoPhaseLoadingTest: Story = {
+  render: () => {
+    const TwoPhaseHarness = () => {
+      // Mix of regular repos and monorepos, all starting with NO file metrics
+      const initialRepos = [
+        ...mockRepositories.slice(0, 3),
+        ...mockMonorepos.slice(0, 3),
+      ];
+
+      // Start with repos that have NO file metrics
+      const [repositories, setRepositories] = useState<
+        AlexandriaEntryWithMetrics[]
+      >(
+        () =>
+          initialRepos.map((repo) => ({
+            ...repo,
+            metrics: {
+              fileCount: 0,
+              lineCount: 0,
+              contributors: repo.metrics?.contributors || 0,
+              lastEditedAt: repo.lastEditedAt,
+            },
+            // Strip packages temporarily - they'll come with metrics
+            packages: undefined,
+          })) as unknown as AlexandriaEntryWithMetrics[]
+      );
+
+      const [phase, setPhase] = useState<'initial' | 'loading' | 'complete'>(
+        'initial'
+      );
+      const [eventLog, setEventLog] = useState<string[]>([]);
+
+      const logEvent = useCallback((message: string) => {
+        setEventLog((prev) => [
+          ...prev.slice(-19),
+          `${new Date().toLocaleTimeString()}: ${message}`,
+        ]);
+      }, []);
+
+      // Simulate file tree scan completing after delay
+      const simulateFileTreeScan = useCallback(() => {
+        setPhase('loading');
+        logEvent('Starting file tree scan simulation...');
+
+        setTimeout(() => {
+          logEvent('File tree scan complete - updating metrics');
+
+          // Update repositories with real file metrics AND restore packages for monorepos
+          setRepositories((prev) =>
+            prev.map((repo, idx) => {
+              // Find original repo from either mockRepositories or mockMonorepos
+              const originalRepo =
+                idx < 3 ? mockRepositories[idx] : mockMonorepos[idx - 3];
+
+              // Check if this is a monorepo (has packages)
+              const isMonorepo =
+                'packages' in originalRepo && originalRepo.packages;
+
+              return {
+                ...repo,
+                metrics: {
+                  fileCount: originalRepo.metrics?.fileCount || 100 + idx * 50,
+                  lineCount:
+                    originalRepo.metrics?.lineCount || 5000 + idx * 2000,
+                  contributors: originalRepo.metrics?.contributors || 5,
+                  lastEditedAt: originalRepo.lastEditedAt,
+                },
+                // Restore packages for monorepos
+                ...(isMonorepo ? { packages: originalRepo.packages } : {}),
+              } as AlexandriaEntryWithMetrics;
+            })
+          );
+
+          setPhase('complete');
+          logEvent('Metrics updated - UI should reflect new sizes');
+        }, 2000);
+      }, [logEvent]);
+
+      const [collection, setCollection] = useState<Collection>({
+        id: 'col-two-phase',
+        name: 'Two-Phase Loading Test',
+        description: 'Tests file metrics arriving after initial load',
+        theme: 'industry',
+        icon: 'RefreshCw',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        members: [
+          // Regular repos
+          ...mockRepositories.slice(0, 3).map((repo) => ({
+            repositoryId: repo.github?.id || repo.name,
+            collectionId: 'col-two-phase',
+            addedAt: Date.now(),
+            metadata: { regionId: 'region-0-0' },
+          })),
+          // Monorepos
+          ...mockMonorepos.slice(0, 3).map((repo) => ({
+            repositoryId: repo.github?.id || repo.name,
+            collectionId: 'col-two-phase',
+            addedAt: Date.now(),
+            metadata: { regionId: 'region-0-0' },
+          })),
+        ],
+        metadata: {
+          customRegions: [
+            { id: 'region-0-0', name: 'Test Region', order: 0, createdAt: 0 },
+          ],
+        },
+      });
+
+      const eventEmitter = useMemo(() => new SimpleEventEmitter(), []);
+
+      const panelProps = useMemo<
+        PanelComponentProps<
+          CollectionMapPanelActions,
+          CollectionMapPanelContext
+        >
+      >(
+        () => ({
+          context: {
+            selectedCollection: collection,
+            selectedCollectionView: {
+              data: {
+                collection,
+                repositories, // This will update when metrics arrive
+                dependencies: {},
+              },
+              loading: false,
+              error: null,
+            },
+            scope: { type: 'workspace', workspaceId: 'test-workspace' },
+            refresh: async () => {},
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+          actions: {
+            onRegionCreated: async (
+              _collectionId: string,
+              region: Omit<CustomRegion, 'id'>
+            ) => {
+              const row = Math.floor(region.order / 10);
+              const col = region.order % 10;
+              const newRegion: CustomRegion = {
+                ...region,
+                id: `region-${row}-${col}`,
+              };
+              setCollection((prev) => ({
+                ...prev,
+                metadata: {
+                  ...prev.metadata,
+                  customRegions: [
+                    ...(prev.metadata?.customRegions || []),
+                    newRegion,
+                  ],
+                },
+              }));
+              return newRegion;
+            },
+            onRegionUpdated: async () => {},
+            onRegionDeleted: async () => {},
+            onRepositoryAssigned: async (
+              _collectionId: string,
+              repositoryId: string,
+              regionId: string
+            ) => {
+              logEvent(`Assigned ${repositoryId} -> ${regionId}`);
+              setCollection((prev) => ({
+                ...prev,
+                members: prev.members.map((m) =>
+                  m.repositoryId === repositoryId
+                    ? { ...m, metadata: { ...m.metadata, regionId } }
+                    : m
+                ),
+              }));
+            },
+            onRepositoryPositionUpdated: async (
+              _collectionId: string,
+              repositoryId: string,
+              layout: RepositoryLayoutData
+            ) => {
+              logEvent(
+                `Position ${repositoryId}: (${layout.gridX}, ${layout.gridY})`
+              );
+              setCollection((prev) => ({
+                ...prev,
+                members: prev.members.map((m) =>
+                  m.repositoryId === repositoryId
+                    ? { ...m, metadata: { ...m.metadata, layout } }
+                    : m
+                ),
+              }));
+            },
+            onBatchLayoutInitialized: async (
+              _collectionId: string,
+              updates: {
+                regions?: CustomRegion[];
+                assignments?: Array<{ repositoryId: string; regionId: string }>;
+                positions?: Array<{
+                  repositoryId: string;
+                  layout: RepositoryLayoutData;
+                }>;
+              }
+            ) => {
+              logEvent(
+                `Batch init: ${updates.positions?.length || 0} positions`
+              );
+              setCollection((prev) => ({
+                ...prev,
+                metadata: {
+                  ...prev.metadata,
+                  ...(updates.regions && { customRegions: updates.regions }),
+                },
+                members: prev.members.map((m) => {
+                  const assignment = updates.assignments?.find(
+                    (a) => a.repositoryId === m.repositoryId
+                  );
+                  const position = updates.positions?.find(
+                    (p) => p.repositoryId === m.repositoryId
+                  );
+                  if (!assignment && !position) return m;
+                  return {
+                    ...m,
+                    metadata: {
+                      ...m.metadata,
+                      ...(assignment && { regionId: assignment.regionId }),
+                      ...(position && { layout: position.layout }),
+                    },
+                  };
+                }),
+              }));
+            },
+            addRepositoryToCollection: async () => {},
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          events: eventEmitter as any,
+        }),
+        [collection, repositories, eventEmitter, logEvent]
+      );
+
+      // Calculate current metrics totals for display
+      const totalFiles = repositories.reduce(
+        (sum, r) => sum + (r.metrics?.fileCount || 0),
+        0
+      );
+      const totalLines = repositories.reduce(
+        (sum, r) => sum + (r.metrics?.lineCount || 0),
+        0
+      );
+
+      return (
+        <div
+          style={{
+            display: 'flex',
+            height: '100vh',
+            backgroundColor: '#0a0a0f',
+          }}
+        >
+          {/* Control Panel */}
+          <div
+            style={{
+              width: '300px',
+              flexShrink: 0,
+              borderRight: '1px solid #333',
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: '#1a1a2e',
+              padding: '16px',
+            }}
+          >
+            <h3
+              style={{ color: '#fff', margin: '0 0 16px 0', fontSize: '14px' }}
+            >
+              Two-Phase Loading Test
+            </h3>
+
+            {/* Status */}
+            <div
+              style={{
+                padding: '12px',
+                backgroundColor: phase === 'complete' ? '#052e16' : '#1e1e3f',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                border: `1px solid ${phase === 'complete' ? '#166534' : '#333'}`,
+              }}
+            >
+              <div
+                style={{ color: '#888', fontSize: '11px', marginBottom: '4px' }}
+              >
+                Current Phase
+              </div>
+              <div
+                style={{
+                  color: phase === 'complete' ? '#4ade80' : '#fff',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                }}
+              >
+                {phase === 'initial' && 'Initial Load (no metrics)'}
+                {phase === 'loading' && 'Scanning file tree...'}
+                {phase === 'complete' && 'Metrics loaded'}
+              </div>
+            </div>
+
+            {/* Metrics Display */}
+            <div
+              style={{
+                padding: '12px',
+                backgroundColor: '#16213e',
+                borderRadius: '8px',
+                marginBottom: '16px',
+              }}
+            >
+              <div
+                style={{ color: '#888', fontSize: '11px', marginBottom: '8px' }}
+              >
+                Current Metrics
+              </div>
+              <div style={{ color: '#fff', fontSize: '13px' }}>
+                <div>
+                  Total Files:{' '}
+                  <span
+                    style={{ color: totalFiles > 0 ? '#4ade80' : '#f87171' }}
+                  >
+                    {totalFiles}
+                  </span>
+                </div>
+                <div>
+                  Total Lines:{' '}
+                  <span
+                    style={{ color: totalLines > 0 ? '#4ade80' : '#f87171' }}
+                  >
+                    {totalLines}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <button
+              onClick={simulateFileTreeScan}
+              disabled={phase !== 'initial'}
+              style={{
+                padding: '12px 16px',
+                backgroundColor: phase === 'initial' ? '#3b82f6' : '#374151',
+                border: 'none',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: phase === 'initial' ? 'pointer' : 'not-allowed',
+                marginBottom: '16px',
+              }}
+            >
+              {phase === 'initial' && 'Simulate File Tree Scan'}
+              {phase === 'loading' && 'Scanning...'}
+              {phase === 'complete' && 'Scan Complete'}
+            </button>
+
+            {/* Instructions */}
+            <div style={{ color: '#888', fontSize: '11px', lineHeight: 1.5 }}>
+              <p>
+                <strong>Test Steps:</strong>
+              </p>
+              <ol style={{ margin: '8px 0', paddingLeft: '16px' }}>
+                <li>Observe initial load (3 repos + 3 monorepos, all small)</li>
+                <li>Click "Simulate File Tree Scan"</li>
+                <li>After 2s, metrics arrive</li>
+                <li>Buildings should resize based on new file counts</li>
+                <li>Monorepos should show package subdivisions</li>
+              </ol>
+              <p style={{ marginTop: '12px' }}>
+                <strong>If buildings don&apos;t resize:</strong> The bug is that
+                repositories array reference didn&apos;t change, so useMemo
+                didn&apos;t recalculate.
+              </p>
+            </div>
+
+            {/* Event Log */}
+            <div style={{ flex: 1, marginTop: '16px', overflow: 'auto' }}>
+              <div
+                style={{
+                  color: '#888',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  marginBottom: '8px',
+                }}
+              >
+                EVENT LOG
+              </div>
+              <div
+                style={{
+                  fontSize: '10px',
+                  color: '#888',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {eventLog.length === 0 ? (
+                  <div style={{ color: '#555', fontStyle: 'italic' }}>
+                    No events yet
+                  </div>
+                ) : (
+                  eventLog.map((log, i) => (
+                    <div key={i} style={{ marginBottom: '4px' }}>
+                      {log}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Map Panel */}
+          <div style={{ flex: 1 }}>
+            <CollectionMapPanel {...panelProps} />
+          </div>
+        </div>
+      );
+    };
+
+    return <TwoPhaseHarness />;
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Tests two-phase loading: repos load without file metrics, then metrics arrive later. Verifies UI updates when metrics change.',
+      },
+    },
+  },
+};
+
 export const ThreePanelLayout: Story = {
   render: () => {
     const ThreePanelHarness = () => {

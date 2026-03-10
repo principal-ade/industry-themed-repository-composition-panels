@@ -3,18 +3,46 @@
   "canvas": ".principal-views/data-loading/data-loading.otel.canvas",
   "name": "Data Change Reactivity",
   "description": "How incoming data changes flow through React memos and trigger re-renders",
-  "spanPattern": "collection-map.props-received",
+  "spanPattern": "collection-map.metrics-received",
   "mode": "span-tree",
   "scenarios": [
     {
-      "id": "data-change-full-recalc",
-      "description": "Host data change triggers full memo chain recalculation and scene update",
+      "id": "initial-load-without-metrics",
+      "description": "Repositories load initially without file tree metrics (fileCount=0, lineCount=0). This is phase 1 of a two-phase load.",
       "priority": 1,
+      "template": {
+        "summary": "Initial load for '{{collection.id}}' - {{repositories.count}} repos WITHOUT file metrics",
+        "events": {
+          "collection-map.metrics-received": "[{{collection.id}}] No file metrics yet: {{repositories.count}} repos, 0 files, 0 lines (hash: {{repositories.ref.hash}})",
+          "collection-map.initial-load-no-metrics": "[{{collection.id}}] MARKER: Initial load detected - {{repositories.count}} repos waiting for file tree scan"
+        }
+      }
+    },
+    {
+      "id": "file-metrics-arrived",
+      "description": "File tree metrics arrive after initial load. This is phase 2 - repos now have fileCount/lineCount. UI should update to reflect new sizes.",
+      "priority": 2,
+      "template": {
+        "summary": "File metrics arrived for '{{collection.id}}' - {{metrics.total.files}} files, {{metrics.total.lines}} lines",
+        "events": {
+          "collection-map.metrics-received": "[{{collection.id}}] File metrics: {{metrics.total.files}} files, {{metrics.total.lines}} lines (hash: {{repositories.ref.hash}})",
+          "collection-map.file-metrics-arrived": "[{{collection.id}}] MARKER: Metrics transition {{prev.total.files}} -> {{metrics.total.files}} files, {{metrics.total.lines}} lines",
+          "collection-map.nodes-memo-recalc": "[{{collection.id}}] Recalculated {{nodes.count}} nodes (trigger: {{trigger.dep}}, metrics changed: {{trigger.metrics.changed}}, total size: {{computed.total.size}})",
+          "collection-map.validation-memo-recalc": "[{{collection.id}}] Split nodes: {{nodes.valid}} valid, {{nodes.unplaced}} unplaced",
+          "collection-map.scene-update": "[{{collection.id}}] Scene updated with new sizes: {{nodes.count}} nodes ({{update.type}})"
+        }
+      }
+    },
+    {
+      "id": "data-change-full-recalc",
+      "description": "Generic data change triggers full memo chain recalculation and scene update",
+      "priority": 10,
       "template": {
         "summary": "Data change for collection '{{collection.id}}' - {{nodes.count}} nodes recalculated",
         "events": {
           "collection-map.props-received": "[{{collection.id}}] Received new props: {{members.count}} members, {{repositories.count}} repositories",
-          "collection-map.nodes-memo-recalc": "[{{collection.id}}] Recalculated {{nodes.count}} GenericNodes (trigger: {{trigger}})",
+          "collection-map.metrics-received": "[{{collection.id}}] Metrics snapshot: {{repositories.count}} repos (ref: {{repositories.ref.hash}}), {{metrics.total.files}} files, {{metrics.total.lines}} lines, latest edit: {{metrics.latest.edited}}",
+          "collection-map.nodes-memo-recalc": "[{{collection.id}}] Recalculated {{nodes.count}} GenericNodes (trigger: {{trigger.dep}}, metrics changed: {{trigger.metrics.changed}}, total size: {{computed.total.size}})",
           "collection-map.validation-memo-recalc": "[{{collection.id}}] Split nodes: {{nodes.valid}} valid, {{nodes.unplaced}} unplaced",
           "collection-map.regions-memo-recalc": "[{{collection.id}}] Extracted {{regions.count}} custom regions",
           "collection-map.scene-update": "[{{collection.id}}] Updated Pixi scene: {{nodes.count}} nodes ({{update.type}})",
