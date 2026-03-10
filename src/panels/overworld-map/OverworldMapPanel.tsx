@@ -197,9 +197,10 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
 
     previousCollectionKeyRef.current = stableCollectionKey;
 
-    // Reset initialization flag on collection change
+    // Reset initialization flags on collection change
     if (isCollectionChange) {
       isInitializedRef.current = false;
+      hasInitializedCamera.current = false;
     }
 
     // If it's only a region update, skip full PIXI recreate

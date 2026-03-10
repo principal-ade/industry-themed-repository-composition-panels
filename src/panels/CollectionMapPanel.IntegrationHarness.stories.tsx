@@ -2017,6 +2017,279 @@ const RightPanelContent: React.FC = () => (
  *
  * The map should fill the middle panel correctly without overflow issues.
  */
+// Pre-defined collections for the collection switcher
+const switchableCollections: Record<
+  string,
+  {
+    collection: Omit<Collection, 'members'>;
+    memberships: CollectionMembership[];
+    repositories?: AlexandriaEntryWithMetrics[];
+  }
+> = {
+  'active-projects': {
+    collection: {
+      id: 'col-active',
+      name: 'Active Projects',
+      description: 'Currently active development projects',
+      theme: 'industry',
+      icon: 'Zap',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      metadata: {
+        customRegions: [
+          { id: 'region-0-0', name: 'Last Month', order: 0, createdAt: 0 },
+          { id: 'region-0-1', name: 'Last 3 Months', order: 1, createdAt: 0 },
+          { id: 'region-0-2', name: 'Last Year', order: 2, createdAt: 0 },
+          { id: 'region-0-3', name: 'Older', order: 3, createdAt: 0 },
+        ],
+      },
+    },
+    memberships: mockRepositories.slice(0, 10).map((repo, idx) => ({
+      repositoryId: repo.name,
+      collectionId: 'col-active',
+      addedAt: Date.now(),
+      metadata: {
+        regionId: `region-0-${Math.min(Math.floor(idx / 3), 3)}`,
+      },
+    })),
+  },
+  monorepos: {
+    collection: {
+      id: 'col-monorepos',
+      name: 'Monorepo Collection',
+      description: 'Repositories with multiple packages',
+      theme: 'industry',
+      icon: 'Layers',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      metadata: {
+        customRegions: [
+          {
+            id: 'region-0-0',
+            name: 'Active Monorepos',
+            order: 0,
+            createdAt: 0,
+          },
+          { id: 'region-0-1', name: 'Single Repos', order: 1, createdAt: 0 },
+        ],
+      },
+    },
+    memberships: [
+      ...mockMonorepos.map((repo, idx) => ({
+        repositoryId: repo.github?.id || repo.name,
+        collectionId: 'col-monorepos',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-0' },
+      })),
+      ...mockRepositories.slice(0, 3).map((repo, idx) => ({
+        repositoryId: repo.github?.id || repo.name,
+        collectionId: 'col-monorepos',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-1' },
+      })),
+    ],
+    repositories: [
+      ...mockMonorepos,
+      ...mockRepositories,
+    ] as unknown as AlexandriaEntryWithMetrics[],
+  },
+  'custom-regions': {
+    collection: {
+      id: 'col-custom',
+      name: 'Organized by Team',
+      description: 'Projects organized by team ownership',
+      theme: 'industry',
+      icon: 'Users',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      metadata: {
+        customRegions: [
+          {
+            id: 'region-0-0',
+            name: 'Frontend Team',
+            color: '#3b82f6',
+            order: 0,
+            createdAt: 0,
+          },
+          {
+            id: 'region-0-1',
+            name: 'Backend Team',
+            color: '#10b981',
+            order: 1,
+            createdAt: 0,
+          },
+          {
+            id: 'region-0-2',
+            name: 'Platform Team',
+            color: '#f59e0b',
+            order: 2,
+            createdAt: 0,
+          },
+          {
+            id: 'region-0-3',
+            name: 'Data Team',
+            color: '#8b5cf6',
+            order: 3,
+            createdAt: 0,
+          },
+        ],
+      },
+    },
+    memberships: [
+      // Frontend
+      {
+        repositoryId: 'active-frontend',
+        collectionId: 'col-custom',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-0' },
+      },
+      {
+        repositoryId: 'design-system',
+        collectionId: 'col-custom',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-0' },
+      },
+      {
+        repositoryId: 'old-frontend',
+        collectionId: 'col-custom',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-0' },
+      },
+      // Backend
+      {
+        repositoryId: 'api-service',
+        collectionId: 'col-custom',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-1' },
+      },
+      {
+        repositoryId: 'auth-service',
+        collectionId: 'col-custom',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-1' },
+      },
+      {
+        repositoryId: 'notification-service',
+        collectionId: 'col-custom',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-1' },
+      },
+      // Platform
+      {
+        repositoryId: 'deployment-scripts',
+        collectionId: 'col-custom',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-2' },
+      },
+      {
+        repositoryId: 'testing-framework',
+        collectionId: 'col-custom',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-2' },
+      },
+      // Data
+      {
+        repositoryId: 'data-pipeline',
+        collectionId: 'col-custom',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-3' },
+      },
+      {
+        repositoryId: 'analytics-dashboard',
+        collectionId: 'col-custom',
+        addedAt: Date.now(),
+        metadata: { regionId: 'region-0-3' },
+      },
+    ],
+  },
+  empty: {
+    collection: {
+      id: 'col-empty',
+      name: 'Empty Collection',
+      description: 'A collection with no repositories',
+      theme: 'industry',
+      icon: 'FolderOpen',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      metadata: {
+        customRegions: [],
+      },
+    },
+    memberships: [],
+  },
+  'single-region': {
+    collection: {
+      id: 'col-single',
+      name: 'Single Region',
+      description: 'All repos in one region',
+      theme: 'industry',
+      icon: 'Box',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      metadata: {
+        customRegions: [
+          { id: 'region-0-0', name: 'All Projects', order: 0, createdAt: 0 },
+        ],
+      },
+    },
+    memberships: mockRepositories.slice(0, 8).map((repo) => ({
+      repositoryId: repo.name,
+      collectionId: 'col-single',
+      addedAt: Date.now(),
+      metadata: { regionId: 'region-0-0' },
+    })),
+  },
+};
+
+/**
+ * Collection Switcher
+ *
+ * A story that allows switching between different collections using Storybook controls.
+ * Use this to test how the map behaves when the collection changes.
+ */
+export const CollectionSwitcher: StoryObj<{ collection: string }> = {
+  render: (args) => {
+    const selectedKey = args.collection as keyof typeof switchableCollections;
+    const config =
+      switchableCollections[selectedKey] ||
+      switchableCollections['active-projects'];
+
+    return (
+      <IntegrationHarness
+        key={selectedKey} // Force re-mount when collection changes
+        initialCollection={{
+          ...config.collection,
+          members: [],
+        }}
+        initialMemberships={config.memberships}
+        initialRepositories={config.repositories}
+      />
+    );
+  },
+  args: {
+    collection: 'active-projects',
+  },
+  argTypes: {
+    collection: {
+      control: 'select',
+      options: Object.keys(switchableCollections),
+      description: 'Select a collection to display',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: 'active-projects' },
+      },
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Use the controls panel to switch between different collections. This tests how the map handles collection changes.',
+      },
+    },
+  },
+};
+
 export const ThreePanelLayout: Story = {
   render: () => {
     const ThreePanelHarness = () => {
