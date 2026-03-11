@@ -300,7 +300,7 @@ export function generateMITFlowerArch(config: LicenseSignConfig): Container {
       fontFamily: 'Arial',
       fontWeight: 'bold',
     },
-    resolution: 2,
+    resolution: 16,
   });
   mitText.anchor.set(0.5, 0.5);
   mitText.y = flagTop + flagHeight * 0.5;
@@ -343,7 +343,7 @@ export function generateMITFlowerArch(config: LicenseSignConfig): Container {
       fontFamily: 'Arial',
       fontWeight: '600',
     },
-    resolution: 2,
+    resolution: 16,
   });
   nameText.anchor.set(0.5, 0.5);
   nameText.y = signBoardY + signHeight / 2;
@@ -581,7 +581,7 @@ export function generateApacheSign(config: LicenseSignConfig): Container {
       fontFamily: 'Arial',
       fontWeight: '600',
     },
-    resolution: 2,
+    resolution: 16,
   });
   nameText.anchor.set(0.5, 0.5);
   nameText.y = signBoardY + signBoardHeight / 2;
@@ -749,7 +749,7 @@ export function generateGPLSign(config: LicenseSignConfig): Container {
       fontFamily: 'Arial',
       fontWeight: 'bold',
     },
-    resolution: 2,
+    resolution: 16,
   });
   gplText.anchor.set(0.5, 0.5);
   gplText.y = flagTop + flagHeight * 0.5;
@@ -798,7 +798,7 @@ export function generateGPLSign(config: LicenseSignConfig): Container {
       fontFamily: 'Arial',
       fontWeight: '600',
     },
-    resolution: 2,
+    resolution: 16,
   });
   nameText.anchor.set(0.5, 0.5);
   nameText.y = signBoardY + signBoardHeight / 2;

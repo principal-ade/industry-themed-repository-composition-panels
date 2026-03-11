@@ -508,7 +508,7 @@ export class IsometricRenderer {
         fontFamily: 'Arial',
         fontWeight: '500',
       },
-      resolution: 2,
+      resolution: 16,
     });
     hoverLabel.anchor.set(0.5, 0);
     hoverLabel.visible = false;
@@ -615,7 +615,7 @@ export class IsometricRenderer {
 
         container.addChild(decoration);
 
-        // Add star count text centered below decoration
+        // Add star count text centered below decoration (hidden by default, shown on hover)
         const countText = new Text({
           text: `${formatStarCount(node.stars)} stars`,
           style: {
@@ -625,12 +625,23 @@ export class IsometricRenderer {
             fontWeight: 'bold',
             stroke: { color: 0x000000, width: 2 },
           },
-          resolution: 2,
+          resolution: 16,
         });
         // Center text under decoration (pivot is at right edge, so center is at x - width/2)
         countText.x = decorationX - (dim.w * 1.5 * sizeMultiplier) / 2;
         countText.y = decorationY + 4;
         countText.anchor.set(0.5, 0);
+        countText.visible = false; // Hidden by default
+
+        // Make decoration interactive to show text on hover
+        decoration.eventMode = 'static';
+        decoration.cursor = 'pointer';
+        decoration.on('pointerover', () => {
+          countText.visible = true;
+        });
+        decoration.on('pointerout', () => {
+          countText.visible = false;
+        });
 
         container.addChild(countText);
       }
@@ -679,7 +690,7 @@ export class IsometricRenderer {
 
         container.addChild(decoration);
 
-        // Add collaborator count text centered below decoration
+        // Add collaborator count text centered below decoration (hidden by default, shown on hover)
         const countText = new Text({
           text: `${formatCollaboratorCount(node.collaborators)} collabs`,
           style: {
@@ -689,12 +700,23 @@ export class IsometricRenderer {
             fontWeight: 'bold',
             stroke: { color: 0x000000, width: 2 },
           },
-          resolution: 2,
+          resolution: 16,
         });
         // Center text under decoration (pivot is at left edge, so center is at x + width/2)
         countText.x = decorationX + (dim.w * 1.5 * sizeMultiplier) / 2;
         countText.y = decorationY + 4;
         countText.anchor.set(0.5, 0);
+        countText.visible = false; // Hidden by default
+
+        // Make decoration interactive to show text on hover
+        decoration.eventMode = 'static';
+        decoration.cursor = 'pointer';
+        decoration.on('pointerover', () => {
+          countText.visible = true;
+        });
+        decoration.on('pointerout', () => {
+          countText.visible = false;
+        });
 
         container.addChild(countText);
       }
@@ -766,7 +788,7 @@ export class IsometricRenderer {
         fontWeight: '500',
         fontStyle: 'italic',
       },
-      resolution: 2,
+      resolution: 16,
     });
     label.x = screenX;
     label.y = screenY + footprintHeight * 0.6 + 12;
@@ -978,7 +1000,7 @@ export class IsometricRenderer {
           fontFamily: 'Arial',
           fontWeight: '500',
         },
-        resolution: 2, // Render at 2x for crisp text on high-DPI screens
+        resolution: 16, // Render at 16x for crisp text when zoomed out
       });
       label.x = screenX;
       // Position label just below the sprite base (anchor is at 0.85, so base is ~15% from bottom)
@@ -1105,7 +1127,7 @@ export class IsometricRenderer {
           decoration.scale.set(starScale);
           starDecoration.addChild(decoration);
 
-          // Add star count text centered below decoration
+          // Add star count text centered below decoration (hidden by default, shown on hover)
           const countText = new Text({
             text: `${formatStarCount(node.stars)} stars`,
             style: {
@@ -1115,12 +1137,24 @@ export class IsometricRenderer {
               fontWeight: 'bold',
               stroke: { color: 0x000000, width: 2 },
             },
-            resolution: 2,
+            resolution: 16,
           });
           // Center text under decoration (pivot is at right edge, so center is at -width/2)
           countText.x = -(dim.w * starScale) / 2;
           countText.y = 4;
           countText.anchor.set(0.5, 0);
+          countText.visible = false; // Hidden by default
+
+          // Make decoration interactive to show text on hover
+          decoration.eventMode = 'static';
+          decoration.cursor = 'pointer';
+          decoration.on('pointerover', () => {
+            countText.visible = true;
+          });
+          decoration.on('pointerout', () => {
+            countText.visible = false;
+          });
+
           starDecoration.addChild(countText);
 
           // Position at left corner of the diamond (on horizontal center line)
@@ -1174,7 +1208,7 @@ export class IsometricRenderer {
           decoration.scale.set(collabScale);
           collaboratorDecoration.addChild(decoration);
 
-          // Add collaborator count text centered below decoration
+          // Add collaborator count text centered below decoration (hidden by default, shown on hover)
           const countText = new Text({
             text: `${formatCollaboratorCount(node.collaborators)} collabs`,
             style: {
@@ -1184,12 +1218,24 @@ export class IsometricRenderer {
               fontWeight: 'bold',
               stroke: { color: 0x000000, width: 2 },
             },
-            resolution: 2,
+            resolution: 16,
           });
           // Center text under decoration (pivot is at left edge, so center is at +width/2)
           countText.x = (dim.w * collabScale) / 2;
           countText.y = 4;
           countText.anchor.set(0.5, 0);
+          countText.visible = false; // Hidden by default
+
+          // Make decoration interactive to show text on hover
+          decoration.eventMode = 'static';
+          decoration.cursor = 'pointer';
+          decoration.on('pointerover', () => {
+            countText.visible = true;
+          });
+          decoration.on('pointerout', () => {
+            countText.visible = false;
+          });
+
           collaboratorDecoration.addChild(countText);
 
           // Position at right corner of the diamond (on horizontal center line)

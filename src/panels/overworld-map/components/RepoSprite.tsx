@@ -74,6 +74,10 @@ export interface RepoSpriteProps {
   boundaryColor?: number;
   /** Show debug outline */
   debug?: boolean;
+  /** Callback when hovering over a package in a monorepo */
+  onPackageHover?: (packageName: string) => void;
+  /** Callback when hover ends on a package in a monorepo */
+  onPackageHoverEnd?: (packageName: string) => void;
 }
 
 /**
@@ -167,6 +171,8 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
   showBoundary = true,
   boundaryColor = 0xffff00,
   debug = false,
+  onPackageHover,
+  onPackageHoverEnd,
 }) => {
   const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -260,6 +266,23 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
 
           buildingGraphics.x = pos.x;
           buildingGraphics.y = pos.y;
+
+          // Make package interactive for hover events
+          buildingGraphics.eventMode = 'static';
+          buildingGraphics.cursor = 'pointer';
+          const originalTint = buildingGraphics.tint;
+          const packageName = pkg.name;
+
+          buildingGraphics.on('pointerover', () => {
+            buildingGraphics.tint = 0x88ccff;
+            onPackageHover?.(packageName);
+          });
+
+          buildingGraphics.on('pointerout', () => {
+            buildingGraphics.tint = originalTint;
+            onPackageHoverEnd?.(packageName);
+          });
+
           mainContainer.addChild(buildingGraphics);
         }
       } else {
@@ -382,6 +405,8 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
     showBoundary,
     boundaryColor,
     debug,
+    onPackageHover,
+    onPackageHoverEnd,
   ]);
 
   // Card variant wraps the sprite in a styled card
