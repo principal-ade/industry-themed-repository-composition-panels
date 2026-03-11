@@ -19,7 +19,11 @@ import type {
   GridPoint,
 } from '../types';
 import { gridToScreen, getIsometricZIndex } from '../isometricUtils';
-import { getStarTier, formatStarCount } from '../starDecoration';
+import {
+  getStarTier,
+  formatStarCount,
+  getStarScaleFactor,
+} from '../starDecoration';
 import {
   generateFlagSprite,
   generateTrophySprite,
@@ -28,6 +32,7 @@ import {
 import {
   getCollaboratorTier,
   formatCollaboratorCount,
+  getCollaboratorScaleFactor,
 } from '../collaboratorDecoration';
 import {
   generateBenchSprite,
@@ -1096,7 +1101,8 @@ export class IsometricRenderer {
           };
           decoration.pivot.set(dim.w, dim.h);
 
-          decoration.scale.set(1.5 * sizeMultiplier);
+          const starScale = 1.5 * getStarScaleFactor(node.stars);
+          decoration.scale.set(starScale);
           starDecoration.addChild(decoration);
 
           // Add star count text centered below decoration
@@ -1112,7 +1118,7 @@ export class IsometricRenderer {
             resolution: 2,
           });
           // Center text under decoration (pivot is at right edge, so center is at -width/2)
-          countText.x = -(dim.w * 1.5 * sizeMultiplier) / 2;
+          countText.x = -(dim.w * starScale) / 2;
           countText.y = 4;
           countText.anchor.set(0.5, 0);
           starDecoration.addChild(countText);
@@ -1163,7 +1169,9 @@ export class IsometricRenderer {
           };
           decoration.pivot.set(0, dim.h);
 
-          decoration.scale.set(1.5 * sizeMultiplier);
+          const collabScale =
+            1.5 * getCollaboratorScaleFactor(node.collaborators);
+          decoration.scale.set(collabScale);
           collaboratorDecoration.addChild(decoration);
 
           // Add collaborator count text centered below decoration
@@ -1179,7 +1187,7 @@ export class IsometricRenderer {
             resolution: 2,
           });
           // Center text under decoration (pivot is at left edge, so center is at +width/2)
-          countText.x = (dim.w * 1.5 * sizeMultiplier) / 2;
+          countText.x = (dim.w * collabScale) / 2;
           countText.y = 4;
           countText.anchor.set(0.5, 0);
           collaboratorDecoration.addChild(countText);

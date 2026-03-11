@@ -106,3 +106,18 @@ export function formatCollaboratorCount(count: number): string {
     return `${(count / 1000000).toFixed(1)}M`;
   }
 }
+
+/**
+ * Calculate a scale factor for the collaborator decoration based on absolute count
+ * Uses logarithmic scaling to handle range of collaborator counts
+ *
+ * @param count - Collaborator count
+ * @returns Scale factor starting at 0.7, +0.3 per order of magnitude
+ */
+export function getCollaboratorScaleFactor(count: number): number {
+  if (count <= 0) return 0.7;
+
+  // Logarithmic scale: +0.5 per order of magnitude
+  // 1 collab → 0.7, 10 → 1.2, 100 → 1.7, 1k → 2.2
+  return 0.7 + Math.log10(count) * 0.5;
+}

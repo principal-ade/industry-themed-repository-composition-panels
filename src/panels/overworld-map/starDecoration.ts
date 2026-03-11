@@ -143,3 +143,18 @@ export function getDecorationSizeBonus(stars: number): number {
       return 0;
   }
 }
+
+/**
+ * Calculate a scale factor for the star decoration based on absolute count
+ * Uses logarithmic scaling to handle wide range of star counts
+ *
+ * @param stars - GitHub star count
+ * @returns Scale factor starting at 0.7, +0.3 per order of magnitude
+ */
+export function getStarScaleFactor(stars: number): number {
+  if (!stars || stars <= 0) return 0.7;
+
+  // Logarithmic scale: +0.5 per order of magnitude
+  // 1 star → 0.7, 10 → 1.2, 100 → 1.7, 1k → 2.2, 10k → 2.7, 100k → 3.2, 1M → 3.7
+  return 0.7 + Math.log10(stars) * 0.5;
+}
