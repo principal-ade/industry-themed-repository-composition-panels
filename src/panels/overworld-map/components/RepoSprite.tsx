@@ -514,8 +514,8 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
             : `inset 0 0 0 2px ${colors.cardHighlight}`,
         }}
       >
-        {/* Collaborators badge - top left */}
-        {collaborators !== undefined && collaborators > 0 && (
+        {/* Package count badge - top left (for monorepos) */}
+        {packages && packages.length > 1 && (
           <div
             style={{
               position: 'absolute',
@@ -523,25 +523,31 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
               left: '8px',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '6px',
               zIndex: 10,
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="#22c55e">
-              <circle cx="5" cy="5" r="2.5" />
-              <circle cx="11" cy="5" r="2.5" />
-              <path d="M1 14c0-2.5 2-4 4-4s4 1.5 4 4M7 14c0-2.5 2-4 4-4s4 1.5 4 4" />
-            </svg>
             <span
               style={{
-                fontSize: '16px',
+                fontSize: '14px',
+                fontWeight: theme.fontWeights.bold,
+                color: '#a78bfa',
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                fontFamily: theme.fonts.body,
+              }}
+            >
+              Monorepo
+            </span>
+            <span
+              style={{
+                fontSize: '14px',
                 fontWeight: theme.fontWeights.bold,
                 color: '#ffffff',
                 textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                 fontFamily: theme.fonts.body,
               }}
             >
-              {formatCount(collaborators)}
+              {packages.length}
             </span>
           </div>
         )}
@@ -588,6 +594,7 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
           style={{
             flex: 1,
             minHeight: 0,
+            position: 'relative',
             background: `linear-gradient(180deg, ${colors.windowGradient[0]} 0%, ${colors.windowGradient[1]} 100%)`,
             border: `2px solid ${colors.cardHighlight}`,
             boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)',
@@ -597,6 +604,36 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
             justifyContent: 'center',
           }}
         >
+          {/* Starfield background - tiling layers */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              backgroundImage: `
+                radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.4) 50%, transparent 50%),
+                radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,0.3) 50%, transparent 50%),
+                radial-gradient(1px 1px at 40% 10%, rgba(255,255,255,0.35) 50%, transparent 50%),
+                radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,0.25) 50%, transparent 50%),
+                radial-gradient(1px 1px at 70% 20%, rgba(255,255,255,0.4) 50%, transparent 50%),
+                radial-gradient(1px 1px at 85% 40%, rgba(255,255,255,0.3) 50%, transparent 50%),
+                radial-gradient(1px 1px at 15% 55%, rgba(255,255,255,0.35) 50%, transparent 50%),
+                radial-gradient(1px 1px at 35% 70%, rgba(255,255,255,0.25) 50%, transparent 50%),
+                radial-gradient(1px 1px at 50% 85%, rgba(255,255,255,0.4) 50%, transparent 50%),
+                radial-gradient(1px 1px at 65% 60%, rgba(255,255,255,0.3) 50%, transparent 50%),
+                radial-gradient(1px 1px at 80% 75%, rgba(255,255,255,0.35) 50%, transparent 50%),
+                radial-gradient(1px 1px at 95% 90%, rgba(255,255,255,0.25) 50%, transparent 50%),
+                radial-gradient(1.5px 1.5px at 20% 25%, rgba(255,255,255,0.5) 50%, transparent 50%),
+                radial-gradient(1.5px 1.5px at 60% 30%, rgba(200,220,255,0.45) 50%, transparent 50%),
+                radial-gradient(1.5px 1.5px at 45% 65%, rgba(255,255,255,0.5) 50%, transparent 50%),
+                radial-gradient(1.5px 1.5px at 75% 80%, rgba(220,200,255,0.45) 50%, transparent 50%),
+                radial-gradient(2px 2px at 30% 50%, rgba(255,255,255,0.6) 50%, transparent 50%),
+                radial-gradient(2px 2px at 70% 55%, rgba(200,220,255,0.55) 50%, transparent 50%),
+                radial-gradient(2px 2px at 90% 15%, rgba(255,255,255,0.6) 50%, transparent 50%)
+              `,
+              backgroundSize: '100% 100%',
+            }}
+          />
           <div
             ref={containerRef}
             style={{
@@ -664,25 +701,6 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
                   />
                 </svg>
                 {formatCount(files)}
-              </span>
-            )}
-            {packages && packages.length > 1 && (
-              <span
-                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M8 1L14 4v8l-6 3-6-3V4l6-3z"
-                    stroke="#8b5cf6"
-                    strokeWidth="1.5"
-                  />
-                  <path
-                    d="M8 8v7M8 8l6-3M8 8L2 5"
-                    stroke="#8b5cf6"
-                    strokeWidth="1"
-                  />
-                </svg>
-                {packages.length}
               </span>
             )}
           </div>
