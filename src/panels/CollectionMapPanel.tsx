@@ -1299,8 +1299,9 @@ export const CollectionMapPanelContent: React.FC<CollectionMapPanelProps> = ({
         height: '100%',
         overflow: 'hidden',
         boxSizing: 'border-box',
-        border: isDragOver ? '2px solid #3b82f6' : '2px solid transparent',
-        transition: 'border-color 0.2s ease',
+        outline: isDragOver ? '2px solid #3b82f6' : 'none',
+        outlineOffset: '-2px',
+        transition: 'outline-color 0.2s ease',
       }}
       {...dropZoneProps}
       onDragOver={handleDragOver}

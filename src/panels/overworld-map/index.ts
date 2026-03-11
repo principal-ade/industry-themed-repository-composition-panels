@@ -40,7 +40,12 @@ export {
   nodesToUnifiedOverworldMap,
   nodesToOverworldMapCollection,
 } from './genericMapper';
+export type { GenericNode, GenericMapperOptions } from './genericMapper';
+
+// Export standalone sprite component
+export { RepoSprite } from './components/RepoSprite';
 export type {
-  GenericNode,
-  GenericMapperOptions,
-} from './genericMapper';
+  RepoSpriteProps,
+  RepoSpriteVariant,
+  RepoSpritePackage,
+} from './components/RepoSprite';

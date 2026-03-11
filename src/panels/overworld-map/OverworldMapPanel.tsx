@@ -1091,7 +1091,6 @@ export const OverworldMapPanelContent: React.FC<OverworldMapPanelProps> = ({
           width: '100dvw',
           height: '100dvh',
           imageRendering: 'pixelated',
-          border: '2px solid #1f2937',
           boxSizing: 'border-box',
           backgroundColor: '#1a1a1a', // Match Pixi background to prevent flash
         }}

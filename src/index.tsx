@@ -232,6 +232,8 @@ export {
   gridToScreen,
   screenToGrid,
   MAX_NODES_PER_MAP,
+  // Standalone sprite component
+  RepoSprite,
 } from './panels/overworld-map';
 export type {
   OverworldMapPanelProps,
@@ -242,6 +244,9 @@ export type {
   PathConnection,
   GenericNode,
   GenericMapperOptions,
+  RepoSpriteProps,
+  RepoSpriteVariant,
+  RepoSpritePackage,
 } from './panels/overworld-map';
 
 export {
