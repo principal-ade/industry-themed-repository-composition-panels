@@ -43,6 +43,86 @@ export interface RepoSpritePackage {
   size?: number; // Relative size (default: 1.0)
 }
 
+/** Card color theme */
+export type CardTheme = 'blue' | 'red' | 'green' | 'purple' | 'gold' | 'dark';
+
+/** License border colors - matches licenseSignSprites visual language */
+const licenseBorderColors: Record<string, string> = {
+  MIT: '#228b22', // Forest green - open/welcoming
+  BSD: '#228b22', // Same as MIT
+  'BSD-3-Clause': '#228b22',
+  ISC: '#228b22',
+  'Apache-2.0': '#d97706', // Amber/orange - formal but welcoming
+  'GPL-3.0': '#2255aa', // GNU blue
+  'LGPL-3.0': '#2255aa',
+  'GPL-2.0': '#2255aa',
+  'AGPL-3.0': '#2255aa',
+  'MPL-2.0': '#8b5cf6', // Purple
+  UNLICENSED: '#dc2626', // Red - restrictive
+};
+
+/** Color scheme for card themes */
+const cardThemes: Record<
+  CardTheme,
+  {
+    cardBg: string;
+    cardBorder: string;
+    cardHighlight: string;
+    windowGradient: [string, string];
+    panelGradient: [string, string];
+    panelBorder: string;
+  }
+> = {
+  blue: {
+    cardBg: '#3b4a6b',
+    cardBorder: '#2a3654',
+    cardHighlight: '#4a5d8a',
+    windowGradient: ['#1a1a2e', '#16213e'],
+    panelGradient: ['#4a5d8a', '#3b4a6b'],
+    panelBorder: '#5a6d9a',
+  },
+  red: {
+    cardBg: '#6b3b3b',
+    cardBorder: '#542a2a',
+    cardHighlight: '#8a4a4a',
+    windowGradient: ['#2e1a1a', '#3e1616'],
+    panelGradient: ['#8a4a4a', '#6b3b3b'],
+    panelBorder: '#9a5a5a',
+  },
+  green: {
+    cardBg: '#3b6b4a',
+    cardBorder: '#2a5436',
+    cardHighlight: '#4a8a5d',
+    windowGradient: ['#1a2e1f', '#163e21'],
+    panelGradient: ['#4a8a5d', '#3b6b4a'],
+    panelBorder: '#5a9a6d',
+  },
+  purple: {
+    cardBg: '#5b3b6b',
+    cardBorder: '#442a54',
+    cardHighlight: '#7a4a8a',
+    windowGradient: ['#261a2e', '#30163e'],
+    panelGradient: ['#7a4a8a', '#5b3b6b'],
+    panelBorder: '#8a5a9a',
+  },
+  gold: {
+    cardBg: '#6b5a3b',
+    cardBorder: '#54462a',
+    cardHighlight: '#8a754a',
+    windowGradient: ['#2e271a', '#3e3216'],
+    panelGradient: ['#8a754a', '#6b5a3b'],
+    panelBorder: '#9a855a',
+  },
+  dark: {
+    cardBg: '#2a2a2a',
+    cardBorder: '#1a1a1a',
+    cardHighlight: '#3a3a3a',
+    windowGradient: ['#0a0a0a', '#151515'],
+    panelGradient: ['#3a3a3a', '#2a2a2a'],
+    panelBorder: '#4a4a4a',
+  },
+};
+
 export interface RepoSpriteProps {
   /** Size multiplier (1.0 - 4.0) */
   size?: number;
@@ -62,6 +142,8 @@ export interface RepoSpriteProps {
   label?: string;
   /** Display variant: 'default' | 'card' */
   variant?: RepoSpriteVariant;
+  /** Card color theme (only applies to card variant) */
+  cardTheme?: CardTheme;
   /** Width of the canvas */
   width?: number;
   /** Height of the canvas */
@@ -165,6 +247,7 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
   license,
   label,
   variant = 'default',
+  cardTheme = 'blue',
   width = 200,
   height = 200,
   backgroundColor,
@@ -409,44 +492,147 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
     onPackageHoverEnd,
   ]);
 
-  // Card variant wraps the sprite in a styled card
+  // Card variant wraps the sprite in a styled card (Pokemon card style)
   if (variant === 'card') {
+    const colors = cardThemes[cardTheme];
+    const licenseBorder = license ? licenseBorderColors[license] : null;
     return (
       <div
         style={{
+          position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: theme.colors.backgroundSecondary,
-          padding: '16px',
-          border: `2px solid ${theme.colors.border}`,
+          backgroundColor: colors.cardBg,
+          padding: '28px 12px 12px 12px',
+          border: `${licenseBorder ? '5px' : '3px'} solid ${licenseBorder || colors.cardBorder}`,
           width: '100%',
           height: '100%',
           boxSizing: 'border-box',
+          overflow: 'hidden',
+          boxShadow: licenseBorder
+            ? `inset 0 0 0 2px ${licenseBorder}40, 0 0 8px ${licenseBorder}60`
+            : `inset 0 0 0 2px ${colors.cardHighlight}`,
         }}
       >
-        {/* Sprite canvas */}
+        {/* Collaborators badge - top left */}
+        {collaborators !== undefined && collaborators > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '6px',
+              left: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              zIndex: 10,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="#22c55e">
+              <circle cx="5" cy="5" r="2.5" />
+              <circle cx="11" cy="5" r="2.5" />
+              <path d="M1 14c0-2.5 2-4 4-4s4 1.5 4 4M7 14c0-2.5 2-4 4-4s4 1.5 4 4" />
+            </svg>
+            <span
+              style={{
+                fontSize: '16px',
+                fontWeight: theme.fontWeights.bold,
+                color: '#ffffff',
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                fontFamily: theme.fonts.body,
+              }}
+            >
+              {formatCount(collaborators)}
+            </span>
+          </div>
+        )}
+
+        {/* Stars badge - top right, Pokemon HP style */}
+        {stars !== undefined && stars > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '6px',
+              right: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              zIndex: 10,
+            }}
+          >
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: theme.fontWeights.bold,
+                color: '#fbbf24',
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+              }}
+            >
+              ★
+            </span>
+            <span
+              style={{
+                fontSize: '16px',
+                fontWeight: theme.fontWeights.bold,
+                color: '#ffffff',
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                fontFamily: theme.fonts.body,
+              }}
+            >
+              {formatCount(stars)}
+            </span>
+          </div>
+        )}
+
+        {/* Sprite window frame */}
         <div
-          ref={containerRef}
           style={{
             flex: 1,
-            minHeight: height,
+            minHeight: 0,
+            background: `linear-gradient(180deg, ${colors.windowGradient[0]} 0%, ${colors.windowGradient[1]} 100%)`,
+            border: `2px solid ${colors.cardHighlight}`,
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)',
+            overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
-        />
+        >
+          <div
+            ref={containerRef}
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          />
+        </div>
 
-        {/* Card content */}
-        <div style={{ marginTop: '12px', textAlign: 'center' }}>
+        {/* Card content panel */}
+        <div
+          style={{
+            marginTop: '8px',
+            padding: '8px',
+            background: `linear-gradient(180deg, ${colors.panelGradient[0]} 0%, ${colors.panelGradient[1]} 100%)`,
+            border: `1px solid ${colors.panelBorder}`,
+            flexShrink: 0,
+          }}
+        >
           {/* Repository name */}
           {label && (
             <div
               style={{
                 fontSize: theme.fontSizes[2],
-                fontWeight: theme.fontWeights.semibold,
-                color: theme.colors.text,
-                marginBottom: '8px',
+                fontWeight: theme.fontWeights.bold,
+                color: '#ffffff',
+                marginBottom: '6px',
                 fontFamily: theme.fonts.body,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                textAlign: 'center',
               }}
             >
               {label}
@@ -458,9 +644,10 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
             style={{
               display: 'flex',
               justifyContent: 'center',
-              gap: '16px',
+              flexWrap: 'wrap',
+              gap: '10px',
               fontSize: theme.fontSizes[1],
-              color: theme.colors.textSecondary,
+              color: '#e0e0e0',
               fontFamily: theme.fonts.body,
             }}
           >
@@ -468,10 +655,10 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
               <span
                 style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
               >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="#64748b">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="#94a3b8">
                   <path
                     d="M3 1h7l3 3v11H3V1zm7 0v3h3M5 8h6M5 11h6"
-                    stroke="#64748b"
+                    stroke="#94a3b8"
                     strokeWidth="1"
                     fill="none"
                   />
@@ -498,47 +685,13 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
                 {packages.length}
               </span>
             )}
-            {stars !== undefined && stars > 0 && (
-              <span
-                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="#fbbf24">
-                  <path d="M8 1l2.2 4.4 4.8.7-3.5 3.4.8 4.8L8 12l-4.3 2.3.8-4.8L1 6.1l4.8-.7L8 1z" />
-                </svg>
-                {formatCount(stars)}
-              </span>
-            )}
-            {collaborators !== undefined && collaborators > 0 && (
-              <span
-                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="#22c55e">
-                  <circle cx="5" cy="5" r="2.5" />
-                  <circle cx="11" cy="5" r="2.5" />
-                  <path d="M1 14c0-2.5 2-4 4-4s4 1.5 4 4M7 14c0-2.5 2-4 4-4s4 1.5 4 4" />
-                </svg>
-                {formatCount(collaborators)}
-              </span>
-            )}
-            {license && (
-              <span
-                style={{
-                  backgroundColor: theme.colors.backgroundTertiary,
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontSize: theme.fontSizes[0],
-                }}
-              >
-                {license}
-              </span>
-            )}
           </div>
 
           {/* Package list for monorepos */}
           {packages && packages.length > 1 && (
             <div
               style={{
-                marginTop: '8px',
+                marginTop: '6px',
                 display: 'flex',
                 flexWrap: 'wrap',
                 justifyContent: 'center',
@@ -550,9 +703,10 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
                   key={i}
                   style={{
                     fontSize: theme.fontSizes[0],
-                    color: theme.colors.textSecondary,
-                    backgroundColor: theme.colors.backgroundTertiary,
+                    color: '#e0e0e0',
+                    backgroundColor: 'rgba(0,0,0,0.2)',
                     padding: '2px 6px',
+                    borderRadius: '3px',
                     fontFamily: theme.fonts.body,
                     borderLeft: `2px solid ${typeof pkg.color === 'string' ? pkg.color : `#${(pkg.color || 0x888888).toString(16).padStart(6, '0')}`}`,
                   }}
@@ -564,7 +718,7 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
                 <span
                   style={{
                     fontSize: theme.fontSizes[0],
-                    color: theme.colors.textSecondary,
+                    color: '#a0a0a0',
                     fontFamily: theme.fonts.body,
                   }}
                 >
@@ -574,6 +728,26 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
             </div>
           )}
         </div>
+
+        {/* License badge - bottom right corner, integrated with border */}
+        {license && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '-3px',
+              right: '-3px',
+              backgroundColor: licenseBorder || colors.cardHighlight,
+              padding: '3px 10px',
+              borderRadius: '3px 0 0 0',
+              fontSize: theme.fontSizes[0],
+              fontWeight: theme.fontWeights.bold,
+              color: '#ffffff',
+              textShadow: '0 1px 1px rgba(0,0,0,0.3)',
+            }}
+          >
+            {license}
+          </div>
+        )}
       </div>
     );
   }
