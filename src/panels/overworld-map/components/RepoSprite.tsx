@@ -69,6 +69,8 @@ export interface RepoSpriteProps {
   license?: string;
   /** Repository/package name (shown on license sign and card) */
   label?: string;
+  /** Repository owner (GitHub username/org, shown on card) */
+  owner?: string;
   /** Display variant: 'default' | 'card' */
   variant?: RepoSpriteVariant;
   /** Card color theme (only applies to card variant) */
@@ -167,6 +169,7 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
   collaborators,
   license,
   label,
+  owner,
   variant = 'default',
   cardTheme = 'blue',
   width = 200,
@@ -435,8 +438,8 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
             : `inset 0 0 0 2px ${colors.cardHighlight}`,
         }}
       >
-        {/* Package count badge - top left (for monorepos) */}
-        {packages && packages.length > 1 && (
+        {/* Owner avatar and name - top left */}
+        {owner && (
           <div
             style={{
               position: 'absolute',
@@ -448,27 +451,30 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
               zIndex: 10,
             }}
           >
+            <img
+              src={`https://github.com/${owner}.png?size=40`}
+              alt={owner}
+              style={{
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                border: '1px solid rgba(255,255,255,0.3)',
+              }}
+            />
             <span
               style={{
-                fontSize: '14px',
-                fontWeight: theme.fontWeights.bold,
-                color: '#a78bfa',
+                fontSize: '12px',
+                fontWeight: theme.fontWeights.medium,
+                color: '#e0e0e0',
                 textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                 fontFamily: theme.fonts.body,
+                maxWidth: '80px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
-              Monorepo
-            </span>
-            <span
-              style={{
-                fontSize: '14px',
-                fontWeight: theme.fontWeights.bold,
-                color: '#ffffff',
-                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                fontFamily: theme.fonts.body,
-              }}
-            >
-              {packages.length}
+              {owner}
             </span>
           </div>
         )}

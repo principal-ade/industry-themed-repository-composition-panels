@@ -189,8 +189,8 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
           : `inset 0 0 0 2px ${colors.cardHighlight}`,
       }}
     >
-      {/* Package count badge - top left (for monorepos) */}
-      {packages && packages.length > 1 && (
+      {/* Owner avatar and name - top left */}
+      {repository.github?.owner && (
         <div
           style={{
             position: 'absolute',
@@ -202,27 +202,30 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
             zIndex: 10,
           }}
         >
+          <img
+            src={`https://github.com/${repository.github.owner}.png?size=40`}
+            alt={repository.github.owner}
+            style={{
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              border: '1px solid rgba(255,255,255,0.3)',
+            }}
+          />
           <span
             style={{
-              fontSize: '14px',
-              fontWeight: theme.fontWeights.bold,
-              color: '#a78bfa',
+              fontSize: '12px',
+              fontWeight: theme.fontWeights.medium,
+              color: '#e0e0e0',
               textShadow: '0 1px 2px rgba(0,0,0,0.5)',
               fontFamily: theme.fonts.body,
+              maxWidth: '80px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
-            Monorepo
-          </span>
-          <span
-            style={{
-              fontSize: '14px',
-              fontWeight: theme.fontWeights.bold,
-              color: '#ffffff',
-              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              fontFamily: theme.fonts.body,
-            }}
-          >
-            {packages.length}
+            {repository.github.owner}
           </span>
         </div>
       )}
