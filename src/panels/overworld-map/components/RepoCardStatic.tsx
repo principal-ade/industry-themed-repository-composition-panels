@@ -70,6 +70,52 @@ function hashStringToColor(str: string): number {
 }
 
 /**
+ * Darken a hex color by a percentage
+ */
+function darkenColor(color: number, percent: number): string {
+  const r = Math.max(0, ((color >> 16) & 0xff) * (1 - percent));
+  const g = Math.max(0, ((color >> 8) & 0xff) * (1 - percent));
+  const b = Math.max(0, (color & 0xff) * (1 - percent));
+  return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+}
+
+/**
+ * Lighten a hex color by a percentage
+ */
+function lightenColor(color: number, percent: number): string {
+  const r = Math.min(
+    255,
+    ((color >> 16) & 0xff) + (255 - ((color >> 16) & 0xff)) * percent
+  );
+  const g = Math.min(
+    255,
+    ((color >> 8) & 0xff) + (255 - ((color >> 8) & 0xff)) * percent
+  );
+  const b = Math.min(255, (color & 0xff) + (255 - (color & 0xff)) * percent);
+  return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+}
+
+/**
+ * Generate card theme colors from a base color
+ */
+function generateCardColors(baseColor: number) {
+  return {
+    cardBg: darkenColor(baseColor, 0.6),
+    cardBorder: darkenColor(baseColor, 0.7),
+    cardHighlight: darkenColor(baseColor, 0.4),
+    windowGradient: [
+      darkenColor(baseColor, 0.85),
+      darkenColor(baseColor, 0.8),
+    ] as [string, string],
+    panelGradient: [
+      darkenColor(baseColor, 0.4),
+      darkenColor(baseColor, 0.6),
+    ] as [string, string],
+    panelBorder: darkenColor(baseColor, 0.3),
+  };
+}
+
+/**
  * Get color for repository
  */
 function getRepositoryColor(repository: AlexandriaEntryWithMetrics): number {
@@ -124,7 +170,6 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
   const [spriteDataUrl, setSpriteDataUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const colors = cardThemes[cardTheme];
   const license = repository.github?.license;
   const licenseBorder = license ? licenseBorderColors[license] : null;
   const stars = repository.github?.stars;
@@ -133,6 +178,9 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
   // Calculate sprite properties
   const size = calculateRepositorySize(repository.metrics);
   const color = getRepositoryColor(repository);
+
+  // Generate card colors from the repository/language color
+  const colors = generateCardColors(color);
 
   // Render sprite to image on mount
   useEffect(() => {
@@ -178,7 +226,7 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: colors.cardBg,
-        padding: '36px 12px 16px 12px',
+        padding: '36px 12px 20px 12px',
         border: `${licenseBorder ? '5px' : '3px'} solid ${licenseBorder || colors.cardBorder}`,
         width,
         height,
@@ -194,8 +242,8 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
         <div
           style={{
             position: 'absolute',
-            top: '6px',
-            left: '8px',
+            top: '10px',
+            left: '10px',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
@@ -235,8 +283,8 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
         <div
           style={{
             position: 'absolute',
-            top: '6px',
-            right: '8px',
+            top: '10px',
+            right: '10px',
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
@@ -444,6 +492,24 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
           </div>
         )}
       </div>
+
+      {/* Language - bottom left corner */}
+      {repository.github?.primaryLanguage && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '4px',
+            left: '8px',
+            fontSize: theme.fontSizes[0],
+            fontWeight: theme.fontWeights.medium,
+            color: '#e0e0e0',
+            textShadow: '0 1px 1px rgba(0,0,0,0.3)',
+            fontFamily: theme.fonts.body,
+          }}
+        >
+          {repository.github.primaryLanguage}
+        </div>
+      )}
 
       {/* License badge - bottom right corner */}
       {license && (

@@ -43,6 +43,36 @@ export type { CardTheme };
 const ISO_TILE_WIDTH = 64;
 const ISO_TILE_HEIGHT = 32;
 
+/**
+ * Darken a hex color by a percentage
+ */
+function darkenColor(color: number, percent: number): string {
+  const r = Math.max(0, ((color >> 16) & 0xff) * (1 - percent));
+  const g = Math.max(0, ((color >> 8) & 0xff) * (1 - percent));
+  const b = Math.max(0, (color & 0xff) * (1 - percent));
+  return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+}
+
+/**
+ * Generate card theme colors from a base color
+ */
+function generateCardColors(baseColor: number) {
+  return {
+    cardBg: darkenColor(baseColor, 0.6),
+    cardBorder: darkenColor(baseColor, 0.7),
+    cardHighlight: darkenColor(baseColor, 0.4),
+    windowGradient: [
+      darkenColor(baseColor, 0.85),
+      darkenColor(baseColor, 0.8),
+    ] as [string, string],
+    panelGradient: [
+      darkenColor(baseColor, 0.4),
+      darkenColor(baseColor, 0.6),
+    ] as [string, string],
+    panelBorder: darkenColor(baseColor, 0.3),
+  };
+}
+
 /** Display variant for the sprite */
 export type RepoSpriteVariant = 'default' | 'card';
 
@@ -72,6 +102,8 @@ export interface RepoSpriteProps {
   label?: string;
   /** Repository owner (GitHub username/org, shown on card) */
   owner?: string;
+  /** Primary language (shown on card) */
+  language?: string;
   /** Display variant: 'default' | 'card' */
   variant?: RepoSpriteVariant;
   /** Card color theme (only applies to card variant) */
@@ -171,6 +203,7 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
   license,
   label,
   owner,
+  language,
   variant = 'default',
   cardTheme = 'blue',
   width = 200,
@@ -415,7 +448,9 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
 
   // Card variant wraps the sprite in a styled card (Pokemon card style)
   if (variant === 'card') {
-    const colors = cardThemes[cardTheme];
+    // Generate card colors from the building/language color
+    const baseColor = parseColor(color);
+    const colors = generateCardColors(baseColor);
     const licenseBorder = license ? licenseBorderColors[license] : null;
     return (
       <div
@@ -424,7 +459,7 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: colors.cardBg,
-          padding: '36px 12px 16px 12px',
+          padding: '36px 12px 20px 12px',
           border: `${licenseBorder ? '5px' : '3px'} solid ${licenseBorder || colors.cardBorder}`,
           width: '100%',
           height: '100%',
@@ -440,8 +475,8 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
           <div
             style={{
               position: 'absolute',
-              top: '6px',
-              left: '8px',
+              top: '10px',
+              left: '10px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
@@ -481,8 +516,8 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
           <div
             style={{
               position: 'absolute',
-              top: '6px',
-              right: '8px',
+              top: '10px',
+              right: '10px',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
@@ -670,6 +705,24 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
             </div>
           )}
         </div>
+
+        {/* Language - bottom left corner */}
+        {language && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '4px',
+              left: '8px',
+              fontSize: theme.fontSizes[0],
+              fontWeight: theme.fontWeights.medium,
+              color: '#e0e0e0',
+              textShadow: '0 1px 1px rgba(0,0,0,0.3)',
+              fontFamily: theme.fonts.body,
+            }}
+          >
+            {language}
+          </div>
+        )}
 
         {/* License badge - bottom right corner, integrated with border */}
         {license && (

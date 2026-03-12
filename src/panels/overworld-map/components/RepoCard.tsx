@@ -198,6 +198,7 @@ export const RepoCard: React.FC<RepoCardProps> = ({
     license: repository.github?.license,
     label: repository.name,
     owner: repository.github?.owner,
+    language: repository.github?.primaryLanguage,
     variant,
     cardTheme,
     width,
