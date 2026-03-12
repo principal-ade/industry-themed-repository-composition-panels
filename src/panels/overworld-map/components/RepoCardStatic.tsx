@@ -178,7 +178,7 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: colors.cardBg,
-        padding: '28px 12px 12px 12px',
+        padding: '36px 12px 16px 12px',
         border: `${licenseBorder ? '5px' : '3px'} solid ${licenseBorder || colors.cardBorder}`,
         width,
         height,
@@ -350,7 +350,7 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
       {/* Card content panel */}
       <div
         style={{
-          marginTop: '8px',
+          marginTop: '12px',
           padding: '8px',
           background: `linear-gradient(180deg, ${colors.panelGradient[0]} 0%, ${colors.panelGradient[1]} 100%)`,
           border: `1px solid ${colors.panelBorder}`,
