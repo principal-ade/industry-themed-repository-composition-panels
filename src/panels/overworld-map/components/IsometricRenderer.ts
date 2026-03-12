@@ -43,6 +43,7 @@ import {
 import {
   generateLicenseSign,
   generateLicenseGround,
+  generateNeutralGround,
   calculateFootprint,
   type LicenseType,
 } from './licenseSignSprites';
@@ -816,19 +817,16 @@ export class IsometricRenderer {
       weathering.zIndex = container.zIndex + 0.1;
     }
 
-    // Create license ground and sign if node has license info
+    // Create ground (always) and license sign (if has license)
     let licenseGround: Graphics | Container | undefined;
     let licenseSign: Container | undefined;
 
+    const footprint = calculateFootprint(sizeMultiplier);
+
+    // Create ground treatment - license-specific or neutral
     if (node.license) {
       const licenseType = node.license as LicenseType;
-      const footprint = calculateFootprint(sizeMultiplier);
-
-      // Create ground treatment (grass, cobblestone, fence)
       licenseGround = generateLicenseGround(licenseType, sizeMultiplier);
-      licenseGround.x = screenX;
-      licenseGround.y = screenY;
-      licenseGround.zIndex = screenY; // Sort by Y for proper overlap
 
       // Create license sign/archway (positioned at front of diamond)
       licenseSign = generateLicenseSign(licenseType, {
@@ -841,7 +839,14 @@ export class IsometricRenderer {
 
       // Hide the label since the license sign already shows the name
       label.visible = false;
+    } else {
+      // Neutral ground for repos without license
+      licenseGround = generateNeutralGround(sizeMultiplier);
     }
+
+    licenseGround.x = screenX;
+    licenseGround.y = screenY;
+    licenseGround.zIndex = screenY; // Sort by Y for proper overlap
 
     // Create sprite instance
     const instance: SpriteInstance = {
@@ -1008,19 +1013,16 @@ export class IsometricRenderer {
       label.anchor.set(0.5, 0);
       label.zIndex = sprite.zIndex + 0.2;
 
-      // Create license ground and sign if node has license info
+      // Create ground (always) and license sign (if has license)
       let licenseGround: Graphics | Container | undefined;
       let licenseSign: Container | undefined;
 
+      const footprint = calculateFootprint(sizeMultiplier);
+
+      // Create ground treatment - license-specific or neutral
       if (node.license) {
         const licenseType = node.license as LicenseType;
-        const footprint = calculateFootprint(sizeMultiplier);
-
-        // Create ground treatment (grass, cobblestone, fence)
         licenseGround = generateLicenseGround(licenseType, sizeMultiplier);
-        licenseGround.x = screenX;
-        licenseGround.y = screenY;
-        licenseGround.zIndex = screenY; // Sort by Y for proper overlap
 
         // Create license sign/archway (positioned at front of diamond)
         licenseSign = generateLicenseSign(licenseType, {
@@ -1033,7 +1035,14 @@ export class IsometricRenderer {
 
         // Hide the label since the license sign already shows the name
         label.visible = false;
+      } else {
+        // Neutral ground for repos without license
+        licenseGround = generateNeutralGround(sizeMultiplier);
       }
+
+      licenseGround.x = screenX;
+      licenseGround.y = screenY;
+      licenseGround.zIndex = screenY; // Sort by Y for proper overlap
 
       // Create owner avatar at the bottom corner of the diamond
       let ownerAvatar: Container | undefined;

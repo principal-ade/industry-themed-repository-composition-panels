@@ -1094,6 +1094,58 @@ export function generateCobblestoneGround(sizeMultiplier: number): Graphics {
 }
 
 /**
+ * Generate neutral stone/dirt ground (for repositories without a license)
+ * Simple, unassuming base that doesn't draw attention
+ */
+export function generateNeutralGround(sizeMultiplier: number): Graphics {
+  const footprint = calculateFootprint(sizeMultiplier);
+  const ground = new Graphics();
+
+  const halfW = footprint.width;
+  const halfH = footprint.height;
+
+  // Stone/dirt color palette
+  const stoneBase = 0x8b8378; // Warm gray-brown
+  const stoneDark = 0x6b6358;
+  const stoneLight = 0x9b9388;
+
+  // Draw isometric diamond base
+  ground.moveTo(0, -halfH);
+  ground.lineTo(halfW, 0);
+  ground.lineTo(0, halfH);
+  ground.lineTo(-halfW, 0);
+  ground.closePath();
+  ground.fill(stoneBase);
+
+  // Add subtle texture variation - small stone/dirt patches
+  const textureCount = Math.max(5, Math.floor(7 * sizeMultiplier));
+  for (let i = 0; i < textureCount; i++) {
+    const angle = (i / textureCount) * Math.PI * 2;
+    const radius = 0.25 + (i % 3) * 0.15;
+    const x = Math.cos(angle) * halfW * radius;
+    const y = Math.sin(angle) * halfH * radius;
+    const dotSize = Math.max(2, 3 * sizeMultiplier);
+    ground.circle(x, y, dotSize);
+    ground.fill(i % 2 === 0 ? stoneLight : stoneDark);
+  }
+
+  // Add a few small pebbles/rocks for visual interest
+  const pebbleSize = Math.max(1.5, 2 * sizeMultiplier);
+  const pebbleSpots = [
+    { x: -halfW * 0.3, y: -halfH * 0.15 },
+    { x: halfW * 0.25, y: halfH * 0.2 },
+    { x: -halfW * 0.15, y: halfH * 0.35 },
+    { x: halfW * 0.35, y: -halfH * 0.25 },
+  ];
+  for (const spot of pebbleSpots) {
+    ground.circle(spot.x, spot.y, pebbleSize);
+    ground.fill(stoneDark);
+  }
+
+  return ground;
+}
+
+/**
  * License type enum for future expansion
  */
 export type LicenseType =

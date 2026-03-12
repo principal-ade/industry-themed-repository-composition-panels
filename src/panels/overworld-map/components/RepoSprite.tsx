@@ -26,6 +26,7 @@ import {
 import {
   generateLicenseSign,
   generateLicenseGround,
+  generateNeutralGround,
   type LicenseType,
 } from './licenseSignSprites';
 import {
@@ -238,15 +239,11 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
         mainContainer.addChild(boundary);
       }
 
-      // Add license ground (behind building)
-      if (license) {
-        const licenseGround = generateLicenseGround(
-          license as LicenseType,
-          size
-        );
-        // Ground is centered at origin
-        mainContainer.addChild(licenseGround);
-      }
+      // Add ground (behind building) - license-specific or neutral
+      const ground = license
+        ? generateLicenseGround(license as LicenseType, size)
+        : generateNeutralGround(size);
+      mainContainer.addChild(ground);
 
       // Render building(s)
       if (packages && packages.length > 1) {

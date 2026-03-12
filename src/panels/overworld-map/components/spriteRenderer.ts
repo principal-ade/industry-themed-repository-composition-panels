@@ -29,6 +29,7 @@ import {
 import {
   generateLicenseSign,
   generateLicenseGround,
+  generateNeutralGround,
   type LicenseType,
 } from './licenseSignSprites';
 import type { RepoSpritePackage } from './RepoSprite';
@@ -244,11 +245,11 @@ async function renderSpriteInternal(
     mainContainer.addChild(boundary);
   }
 
-  // Add license ground
-  if (license) {
-    const licenseGround = generateLicenseGround(license as LicenseType, size);
-    mainContainer.addChild(licenseGround);
-  }
+  // Add ground - license-specific or neutral
+  const ground = license
+    ? generateLicenseGround(license as LicenseType, size)
+    : generateNeutralGround(size);
+  mainContainer.addChild(ground);
 
   // Render building(s)
   if (packages && packages.length > 1) {
