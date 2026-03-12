@@ -1,5 +1,5 @@
 /**
- * Shared card theme definitions
+ * Shared card theme definitions and utilities
  *
  * Used by both RepoSprite (live WebGL) and RepoCardStatic (static PNG)
  * to ensure visual consistency.
@@ -7,6 +7,161 @@
 
 /** Card color theme */
 export type CardTheme = 'blue' | 'red' | 'green' | 'purple' | 'gold' | 'dark';
+
+/**
+ * Language to color mapping for repository visualization
+ * Colors are chosen to match common language branding
+ */
+export const languageColors: Record<string, number> = {
+  TypeScript: 0x3178c6,
+  JavaScript: 0xf7df1e,
+  Python: 0xffd43b,
+  Rust: 0xdea584,
+  Go: 0x00add8,
+  Java: 0xb07219,
+  'C++': 0xf34b7d,
+  C: 0x555555,
+  'C#': 0x178600,
+  Ruby: 0xcc342d,
+  PHP: 0x4f5d95,
+  Swift: 0xf05138,
+  Kotlin: 0xa97bff,
+  Scala: 0xc22d40,
+  Elixir: 0x6e4a7e,
+  Haskell: 0x5e5086,
+  Clojure: 0xdb5855,
+  Shell: 0x89e051,
+  HTML: 0xe34c26,
+  CSS: 0x563d7c,
+  Vue: 0x41b883,
+  Svelte: 0xff3e00,
+};
+
+/** Default color when language is unknown */
+export const DEFAULT_LANGUAGE_COLOR = 0xd2691e;
+
+/**
+ * Darken a hex color by a percentage
+ */
+export function darkenColor(color: number, percent: number): string {
+  const r = Math.max(0, ((color >> 16) & 0xff) * (1 - percent));
+  const g = Math.max(0, ((color >> 8) & 0xff) * (1 - percent));
+  const b = Math.max(0, (color & 0xff) * (1 - percent));
+  return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+}
+
+/**
+ * Lighten a hex color by a percentage
+ */
+export function lightenColor(color: number, percent: number): string {
+  const r = Math.min(
+    255,
+    ((color >> 16) & 0xff) + (255 - ((color >> 16) & 0xff)) * percent
+  );
+  const g = Math.min(
+    255,
+    ((color >> 8) & 0xff) + (255 - ((color >> 8) & 0xff)) * percent
+  );
+  const b = Math.min(255, (color & 0xff) + (255 - (color & 0xff)) * percent);
+  return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+}
+
+/**
+ * Convert HSL to hex color number
+ */
+export function hslToHex(h: number, s: number, l: number): number {
+  s /= 100;
+  l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color);
+  };
+  return (f(0) << 16) + (f(8) << 8) + f(4);
+}
+
+/**
+ * Derive a color from a string (used as fallback for name-based coloring)
+ */
+export function hashStringToColor(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  // Generate a muted color in the brown/earth tone range
+  const h = Math.abs(hash % 360);
+  const s = 30 + Math.abs((hash >> 8) % 30); // 30-60% saturation
+  const l = 35 + Math.abs((hash >> 16) % 20); // 35-55% lightness
+  return hslToHex(h, s, l);
+}
+
+/**
+ * Parse color from number or string format
+ */
+export function parseColor(color: number | string): number {
+  if (typeof color === 'number') return color;
+  if (color.startsWith('#')) return parseInt(color.slice(1), 16);
+  return hashStringToColor(color);
+}
+
+/** Generated card colors from a base color */
+export interface GeneratedCardColors {
+  cardBg: string;
+  cardBorder: string;
+  cardHighlight: string;
+  windowGradient: [string, string];
+  panelGradient: [string, string];
+  panelBorder: string;
+}
+
+/**
+ * Generate card theme colors from a base color
+ */
+export function generateCardColors(baseColor: number): GeneratedCardColors {
+  return {
+    cardBg: darkenColor(baseColor, 0.6),
+    cardBorder: darkenColor(baseColor, 0.7),
+    cardHighlight: darkenColor(baseColor, 0.4),
+    windowGradient: [
+      darkenColor(baseColor, 0.85),
+      darkenColor(baseColor, 0.8),
+    ] as [string, string],
+    panelGradient: [
+      darkenColor(baseColor, 0.4),
+      darkenColor(baseColor, 0.6),
+    ] as [string, string],
+    panelBorder: darkenColor(baseColor, 0.3),
+  };
+}
+
+/** Repository-like object for color resolution */
+export interface RepositoryColorSource {
+  name: string;
+  bookColor?: string;
+  github?: {
+    primaryLanguage?: string;
+  };
+}
+
+/**
+ * Get color for a repository based on its primary language or name
+ */
+export function getRepositoryColor(repository: RepositoryColorSource): number {
+  // First try bookColor if set
+  if (repository.bookColor) {
+    return parseColor(repository.bookColor);
+  }
+
+  // Then try primary language
+  const language = repository.github?.primaryLanguage;
+  if (language && languageColors[language]) {
+    return languageColors[language];
+  }
+
+  // Fallback to hash of name for consistent coloring
+  return hashStringToColor(repository.name);
+}
 
 /** Color scheme for card themes */
 export interface CardThemeColors {
