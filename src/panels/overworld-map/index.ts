@@ -53,3 +53,16 @@ export type {
 // Export RepoCard wrapper component (accepts AlexandriaEntryWithMetrics)
 export { RepoCard } from './components/RepoCard';
 export type { RepoCardProps } from './components/RepoCard';
+
+// Export RepoCardStatic for contexts with many cards (carousels, grids)
+export { RepoCardStatic } from './components/RepoCardStatic';
+export type { RepoCardStaticProps } from './components/RepoCardStatic';
+
+// Export sprite renderer utilities
+export {
+  renderSpriteToDataUrl,
+  renderSpriteToDataUrlCached,
+  clearSpriteCache,
+  getSpriteCacheSize,
+} from './components/spriteRenderer';
+export type { SpriteRenderOptions } from './components/spriteRenderer';

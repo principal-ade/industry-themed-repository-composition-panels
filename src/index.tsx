@@ -236,6 +236,13 @@ export {
   RepoSprite,
   // RepoCard wrapper (accepts AlexandriaEntryWithMetrics)
   RepoCard,
+  // RepoCardStatic for carousels/grids (no WebGL limits)
+  RepoCardStatic,
+  // Sprite renderer utilities
+  renderSpriteToDataUrl,
+  renderSpriteToDataUrlCached,
+  clearSpriteCache,
+  getSpriteCacheSize,
 } from './panels/overworld-map';
 export type {
   OverworldMapPanelProps,
@@ -250,6 +257,8 @@ export type {
   RepoSpriteVariant,
   RepoSpritePackage,
   RepoCardProps,
+  RepoCardStaticProps,
+  SpriteRenderOptions,
 } from './panels/overworld-map';
 
 export {
