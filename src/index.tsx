@@ -243,6 +243,7 @@ export {
   renderSpriteToDataUrlCached,
   clearSpriteCache,
   getSpriteCacheSize,
+  destroySharedApp,
 } from './panels/overworld-map';
 export type {
   OverworldMapPanelProps,

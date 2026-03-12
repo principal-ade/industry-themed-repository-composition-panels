@@ -3,6 +3,9 @@
  *
  * Renders RepoSprite configurations to PNG data URLs for use in contexts
  * where multiple WebGL contexts would be problematic (e.g., carousels).
+ *
+ * Uses a single shared PixiJS Application and a render queue to avoid
+ * WebGL context limits.
  */
 
 import { Application, Container, Graphics } from 'pixi.js';
@@ -33,6 +36,21 @@ import type { RepoSpritePackage } from './RepoSprite';
 // Isometric tile dimensions (must match IsometricRenderer)
 const ISO_TILE_WIDTH = 64;
 const ISO_TILE_HEIGHT = 32;
+
+// Shared PixiJS application instance (singleton)
+let sharedApp: Application | null = null;
+let sharedAppPromise: Promise<Application> | null = null;
+let isAppDestroyed = false;
+
+// Render queue for serializing render operations
+interface RenderTask {
+  resolve: (dataUrl: string) => void;
+  reject: (error: Error) => void;
+  options: SpriteRenderOptions;
+}
+
+const renderQueue: RenderTask[] = [];
+let isProcessingQueue = false;
 
 export interface SpriteRenderOptions {
   /** Size multiplier (1.0 - 4.0) */
@@ -122,12 +140,55 @@ function getPackagePositions(
 }
 
 /**
- * Render a sprite configuration to a PNG data URL
- *
- * Creates a temporary PixiJS application, renders the sprite,
- * extracts the canvas as a data URL, then destroys the application.
+ * Get or create the shared PixiJS application
  */
-export async function renderSpriteToDataUrl(
+async function getSharedApp(
+  width: number,
+  height: number
+): Promise<Application> {
+  // If destroyed, reset
+  if (isAppDestroyed) {
+    sharedApp = null;
+    sharedAppPromise = null;
+    isAppDestroyed = false;
+  }
+
+  if (sharedApp) {
+    // Resize if needed
+    sharedApp.renderer.resize(width, height);
+    return sharedApp;
+  }
+
+  // If already initializing, wait for it
+  if (sharedAppPromise) {
+    const app = await sharedAppPromise;
+    app.renderer.resize(width, height);
+    return app;
+  }
+
+  // Create new shared app
+  sharedAppPromise = (async () => {
+    const app = new Application();
+    await app.init({
+      width,
+      height,
+      backgroundAlpha: 0,
+      backgroundColor: 0x000000,
+      antialias: true,
+      resolution: 2,
+      autoDensity: true,
+    });
+    sharedApp = app;
+    return app;
+  })();
+
+  return sharedAppPromise;
+}
+
+/**
+ * Render a single sprite using the shared app
+ */
+async function renderSpriteInternal(
   options: SpriteRenderOptions
 ): Promise<string> {
   const {
@@ -144,171 +205,198 @@ export async function renderSpriteToDataUrl(
     boundaryColor = 0xffff00,
   } = options;
 
-  // Create a temporary PixiJS application
-  const app = new Application();
-  await app.init({
-    width,
-    height,
-    backgroundAlpha: 0,
-    backgroundColor: 0x000000,
-    antialias: true,
-    resolution: 2,
-    autoDensity: true,
-  });
+  const app = await getSharedApp(width, height);
 
-  try {
-    // Calculate boundary dimensions
-    const boundarySize = 4 * size;
-    const boundaryWidth = boundarySize * ISO_TILE_WIDTH;
-    const boundaryHeight = boundarySize * ISO_TILE_HEIGHT;
+  // Clear previous content
+  app.stage.removeChildren();
 
-    // Calculate scale to fit
-    const padding = 0.9;
-    const scaleX = (width * padding) / boundaryWidth;
-    const scaleY = (height * padding) / boundaryHeight;
-    const scale = Math.min(scaleX, scaleY);
+  // Calculate boundary dimensions
+  const boundarySize = 4 * size;
+  const boundaryWidth = boundarySize * ISO_TILE_WIDTH;
+  const boundaryHeight = boundarySize * ISO_TILE_HEIGHT;
 
-    // Create main container
-    const mainContainer = new Container();
-    mainContainer.x = width / 2;
-    mainContainer.y = height / 2;
-    mainContainer.scale.set(scale);
-    app.stage.addChild(mainContainer);
+  // Calculate scale to fit
+  const padding = 0.9;
+  const scaleX = (width * padding) / boundaryWidth;
+  const scaleY = (height * padding) / boundaryHeight;
+  const scale = Math.min(scaleX, scaleY);
 
-    // Draw boundary if requested
-    if (showBoundary) {
-      const boundary = new Graphics();
-      boundary.strokeStyle = { width: 2, color: boundaryColor };
-      boundary.fillStyle = { color: boundaryColor, alpha: 0.1 };
-      boundary.beginPath();
-      boundary.moveTo(0, -boundaryHeight / 2);
-      boundary.lineTo(boundaryWidth / 2, 0);
-      boundary.lineTo(0, boundaryHeight / 2);
-      boundary.lineTo(-boundaryWidth / 2, 0);
-      boundary.closePath();
-      boundary.fill();
-      boundary.stroke();
-      mainContainer.addChild(boundary);
-    }
+  // Create main container
+  const mainContainer = new Container();
+  mainContainer.x = width / 2;
+  mainContainer.y = height / 2;
+  mainContainer.scale.set(scale);
+  app.stage.addChild(mainContainer);
 
-    // Add license ground
-    if (license) {
-      const licenseGround = generateLicenseGround(license as LicenseType, size);
-      mainContainer.addChild(licenseGround);
-    }
+  // Draw boundary if requested
+  if (showBoundary) {
+    const boundary = new Graphics();
+    boundary.strokeStyle = { width: 2, color: boundaryColor };
+    boundary.fillStyle = { color: boundaryColor, alpha: 0.1 };
+    boundary.beginPath();
+    boundary.moveTo(0, -boundaryHeight / 2);
+    boundary.lineTo(boundaryWidth / 2, 0);
+    boundary.lineTo(0, boundaryHeight / 2);
+    boundary.lineTo(-boundaryWidth / 2, 0);
+    boundary.closePath();
+    boundary.fill();
+    boundary.stroke();
+    mainContainer.addChild(boundary);
+  }
 
-    // Render building(s)
-    if (packages && packages.length > 1) {
-      const positions = getPackagePositions(
-        packages.length,
-        boundaryWidth / 2,
-        boundaryHeight / 2
-      );
+  // Add license ground
+  if (license) {
+    const licenseGround = generateLicenseGround(license as LicenseType, size);
+    mainContainer.addChild(licenseGround);
+  }
 
-      for (let i = 0; i < packages.length; i++) {
-        const pkg = packages[i];
-        const pos = positions[i] || { x: 0, y: 0 };
+  // Render building(s)
+  if (packages && packages.length > 1) {
+    const positions = getPackagePositions(
+      packages.length,
+      boundaryWidth / 2,
+      boundaryHeight / 2
+    );
 
-        const pkgColor = pkg.color ? parseColor(pkg.color) : parseColor(color);
-        const pkgSize = (pkg.size || 1.0) * size * 0.4;
+    for (let i = 0; i < packages.length; i++) {
+      const pkg = packages[i];
+      const pos = positions[i] || { x: 0, y: 0 };
 
-        const buildingGraphics = generateBuildingSprite({
-          size: pkgSize,
-          color: pkgColor,
-        });
+      const pkgColor = pkg.color ? parseColor(pkg.color) : parseColor(color);
+      const pkgSize = (pkg.size || 1.0) * size * 0.4;
 
-        buildingGraphics.x = pos.x;
-        buildingGraphics.y = pos.y;
-        mainContainer.addChild(buildingGraphics);
-      }
-    } else {
-      const parsedColor = parseColor(color);
       const buildingGraphics = generateBuildingSprite({
-        size,
-        color: parsedColor,
+        size: pkgSize,
+        color: pkgColor,
       });
+
+      buildingGraphics.x = pos.x;
+      buildingGraphics.y = pos.y;
       mainContainer.addChild(buildingGraphics);
     }
-
-    // Add license sign
-    if (license) {
-      const licenseSign = generateLicenseSign(license as LicenseType, {
-        name: label || '',
-        sizeMultiplier: size,
-      });
-      const footprintHeight = boundaryHeight / 2;
-      licenseSign.y = footprintHeight * 0.75;
-      mainContainer.addChild(licenseSign);
-    }
-
-    // Add star decoration
-    if (stars && stars > 0) {
-      const tier = getStarTier(stars);
-      const scaleFactor = getStarScaleFactor(stars);
-      let starDecoration: Container | null = null;
-
-      if (tier) {
-        const decorationColor = tier.color;
-        if (tier.decorationType === 'flag') {
-          starDecoration = generateFlagSprite(decorationColor);
-        } else if (tier.decorationType === 'trophy') {
-          starDecoration = generateTrophySprite(decorationColor);
-        } else if (tier.decorationType === 'statue') {
-          starDecoration = generateStatueSprite(decorationColor);
-        }
-      }
-
-      if (starDecoration) {
-        const dim = { w: 8, h: 12 };
-        starDecoration.pivot.set(dim.w, dim.h);
-        starDecoration.scale.set(1.5 * scaleFactor);
-        starDecoration.x = -boundaryWidth / 4;
-        starDecoration.y = 0;
-        mainContainer.addChild(starDecoration);
-      }
-    }
-
-    // Add collaborator decoration
-    if (collaborators && collaborators > 0) {
-      const tier = getCollaboratorTier(collaborators);
-      const scaleFactor = getCollaboratorScaleFactor(collaborators);
-      let collabDecoration: Container | null = null;
-
-      if (tier) {
-        const decorationColor = tier.color;
-        if (tier.decorationType === 'bench') {
-          collabDecoration = generateBenchSprite(decorationColor);
-        } else if (tier.decorationType === 'pavilion') {
-          collabDecoration = generatePavilionSprite(decorationColor);
-        } else if (tier.decorationType === 'gazebo') {
-          collabDecoration = generateGazeboSprite(decorationColor);
-        } else if (tier.decorationType === 'bandstand') {
-          collabDecoration = generateBandstandSprite(decorationColor);
-        }
-      }
-
-      if (collabDecoration) {
-        const dim = { w: 12, h: 12 };
-        collabDecoration.pivot.set(0, dim.h);
-        collabDecoration.scale.set(1.5 * scaleFactor);
-        collabDecoration.x = boundaryWidth / 4;
-        collabDecoration.y = 0;
-        mainContainer.addChild(collabDecoration);
-      }
-    }
-
-    // Render one frame to ensure everything is drawn
-    app.render();
-
-    // Extract canvas as data URL
-    const canvas = app.canvas as HTMLCanvasElement;
-    const dataUrl = canvas.toDataURL('image/png');
-
-    return dataUrl;
-  } finally {
-    // Always destroy the application to free resources
-    app.destroy(true, { children: true });
+  } else {
+    const parsedColor = parseColor(color);
+    const buildingGraphics = generateBuildingSprite({
+      size,
+      color: parsedColor,
+    });
+    mainContainer.addChild(buildingGraphics);
   }
+
+  // Add license sign
+  if (license) {
+    const licenseSign = generateLicenseSign(license as LicenseType, {
+      name: label || '',
+      sizeMultiplier: size,
+    });
+    const footprintHeight = boundaryHeight / 2;
+    licenseSign.y = footprintHeight * 0.75;
+    mainContainer.addChild(licenseSign);
+  }
+
+  // Add star decoration
+  if (stars && stars > 0) {
+    const tier = getStarTier(stars);
+    const scaleFactor = getStarScaleFactor(stars);
+    let starDecoration: Container | null = null;
+
+    if (tier) {
+      const decorationColor = tier.color;
+      if (tier.decorationType === 'flag') {
+        starDecoration = generateFlagSprite(decorationColor);
+      } else if (tier.decorationType === 'trophy') {
+        starDecoration = generateTrophySprite(decorationColor);
+      } else if (tier.decorationType === 'statue') {
+        starDecoration = generateStatueSprite(decorationColor);
+      }
+    }
+
+    if (starDecoration) {
+      const dim = { w: 8, h: 12 };
+      starDecoration.pivot.set(dim.w, dim.h);
+      starDecoration.scale.set(1.5 * scaleFactor);
+      starDecoration.x = -boundaryWidth / 4;
+      starDecoration.y = 0;
+      mainContainer.addChild(starDecoration);
+    }
+  }
+
+  // Add collaborator decoration
+  if (collaborators && collaborators > 0) {
+    const tier = getCollaboratorTier(collaborators);
+    const scaleFactor = getCollaboratorScaleFactor(collaborators);
+    let collabDecoration: Container | null = null;
+
+    if (tier) {
+      const decorationColor = tier.color;
+      if (tier.decorationType === 'bench') {
+        collabDecoration = generateBenchSprite(decorationColor);
+      } else if (tier.decorationType === 'pavilion') {
+        collabDecoration = generatePavilionSprite(decorationColor);
+      } else if (tier.decorationType === 'gazebo') {
+        collabDecoration = generateGazeboSprite(decorationColor);
+      } else if (tier.decorationType === 'bandstand') {
+        collabDecoration = generateBandstandSprite(decorationColor);
+      }
+    }
+
+    if (collabDecoration) {
+      const dim = { w: 12, h: 12 };
+      collabDecoration.pivot.set(0, dim.h);
+      collabDecoration.scale.set(1.5 * scaleFactor);
+      collabDecoration.x = boundaryWidth / 4;
+      collabDecoration.y = 0;
+      mainContainer.addChild(collabDecoration);
+    }
+  }
+
+  // Render one frame
+  app.render();
+
+  // Extract canvas as data URL
+  const canvas = app.canvas as HTMLCanvasElement;
+  const dataUrl = canvas.toDataURL('image/png');
+
+  return dataUrl;
+}
+
+/**
+ * Process the render queue sequentially
+ */
+async function processRenderQueue(): Promise<void> {
+  if (isProcessingQueue) return;
+  isProcessingQueue = true;
+
+  while (renderQueue.length > 0) {
+    const task = renderQueue.shift();
+    if (task) {
+      try {
+        const dataUrl = await renderSpriteInternal(task.options);
+        task.resolve(dataUrl);
+      } catch (error) {
+        task.reject(error instanceof Error ? error : new Error(String(error)));
+      }
+    }
+    // Small delay between renders to let browser breathe
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+
+  isProcessingQueue = false;
+}
+
+/**
+ * Render a sprite configuration to a PNG data URL
+ *
+ * Uses a shared PixiJS application and queues renders to avoid
+ * WebGL context limits.
+ */
+export async function renderSpriteToDataUrl(
+  options: SpriteRenderOptions
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    renderQueue.push({ resolve, reject, options });
+    processRenderQueue();
+  });
 }
 
 // Cache for rendered sprites
@@ -364,4 +452,17 @@ export function clearSpriteCache(): void {
  */
 export function getSpriteCacheSize(): number {
   return spriteCache.size;
+}
+
+/**
+ * Destroy the shared PixiJS application
+ * Call this when you're done with sprite rendering to free resources
+ */
+export function destroySharedApp(): void {
+  if (sharedApp) {
+    sharedApp.destroy(true, { children: true });
+    sharedApp = null;
+    sharedAppPromise = null;
+    isAppDestroyed = true;
+  }
 }

@@ -64,5 +64,6 @@ export {
   renderSpriteToDataUrlCached,
   clearSpriteCache,
   getSpriteCacheSize,
+  destroySharedApp,
 } from './components/spriteRenderer';
 export type { SpriteRenderOptions } from './components/spriteRenderer';
