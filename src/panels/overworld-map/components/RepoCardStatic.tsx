@@ -139,6 +139,7 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
         owner={repository.github?.owner}
         stars={repository.github?.stars}
         label={repository.name}
+        description={repository.github?.description}
         files={repository.metrics?.fileCount}
         language={repository.github?.primaryLanguage}
         license={repository.github?.license}
