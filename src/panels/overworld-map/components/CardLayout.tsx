@@ -124,11 +124,12 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '8px',
-            marginLeft: '-4px',
+            alignItems: 'flex-start',
+            marginBottom: '0',
+            marginLeft: '-12px',
             marginRight: '-4px',
-            minHeight: '40px',
+            marginTop: '-8px',
+            minHeight: '32px',
             flexShrink: 0,
           }}
         >
@@ -144,14 +145,19 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
               }}
             >
               <img
-                src={`https://github.com/${owner}.png?size=40`}
+                src={`https://github.com/${owner}.png?size=80`}
                 alt={owner}
                 style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(255,255,255,0.3)',
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '0',
+                  border: 'none',
+                  borderRight: '1px solid rgba(255,255,255,0.3)',
+                  borderBottom: '1px solid rgba(255,255,255,0.3)',
                   flexShrink: 0,
+                  marginBottom: '-16px',
+                  position: 'relative',
+                  zIndex: 1,
                 }}
               />
               <span
@@ -164,6 +170,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  alignSelf: 'flex-end',
                 }}
               >
                 {owner}
@@ -181,12 +188,13 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                 alignItems: 'center',
                 gap: '4px',
                 flexShrink: 0,
+                alignSelf: 'flex-end',
               }}
             >
               <span
                 style={{
                   fontSize: theme.fontSizes[1],
-                  fontWeight: theme.fontWeights.bold,
+                  fontWeight: theme.fontWeights.medium,
                   color: '#ffffff',
                   textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                   fontFamily: theme.fonts.body,
@@ -197,7 +205,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
               <span
                 style={{
                   fontSize: theme.fontSizes[1],
-                  fontWeight: theme.fontWeights.bold,
+                  fontWeight: theme.fontWeights.medium,
                   color: '#fbbf24',
                   textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                 }}
