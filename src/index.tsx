@@ -234,6 +234,8 @@ export {
   MAX_NODES_PER_MAP,
   // Standalone sprite component
   RepoSprite,
+  // RepoCard wrapper (accepts AlexandriaEntryWithMetrics)
+  RepoCard,
 } from './panels/overworld-map';
 export type {
   OverworldMapPanelProps,
@@ -247,6 +249,7 @@ export type {
   RepoSpriteProps,
   RepoSpriteVariant,
   RepoSpritePackage,
+  RepoCardProps,
 } from './panels/overworld-map';
 
 export {

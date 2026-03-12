@@ -49,3 +49,7 @@ export type {
   RepoSpriteVariant,
   RepoSpritePackage,
 } from './components/RepoSprite';
+
+// Export RepoCard wrapper component (accepts AlexandriaEntryWithMetrics)
+export { RepoCard } from './components/RepoCard';
+export type { RepoCardProps } from './components/RepoCard';
