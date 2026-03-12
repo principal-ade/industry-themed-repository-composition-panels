@@ -34,6 +34,9 @@ export interface CardLayoutProps {
   /** Repository/package name */
   label?: string;
 
+  /** Repository description */
+  description?: string;
+
   /** File count */
   files?: number;
 
@@ -81,6 +84,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
   owner,
   stars,
   label,
+  description,
   files,
   language,
   license,
@@ -94,6 +98,8 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
   const colors: GeneratedCardColors = generateCardColors(baseColor);
   const licenseBorder = license ? licenseBorderColors[license] : null;
 
+  const showHeader = owner || (stars !== undefined && stars > 0);
+
   return (
     <div
       style={{
@@ -101,7 +107,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: colors.cardBg,
-        padding: '36px 12px 28px 12px',
+        padding: '8px 12px 28px 12px',
         border: `${licenseBorder ? '5px' : '3px'} solid ${licenseBorder || colors.cardBorder}`,
         width: '100%',
         height: '100%',
@@ -112,81 +118,94 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
           : `inset 0 0 0 2px ${colors.cardHighlight}`,
       }}
     >
-      {/* Owner avatar and name - top left */}
-      {owner && (
+      {/* Header row - owner and stars */}
+      {showHeader && (
         <div
           style={{
-            position: 'absolute',
-            top: '10px',
-            left: '10px',
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '6px',
-            zIndex: 10,
+            marginBottom: '8px',
+            marginLeft: '-4px',
+            marginRight: '-4px',
+            minHeight: '40px',
+            flexShrink: 0,
           }}
         >
-          <img
-            src={`https://github.com/${owner}.png?size=40`}
-            alt={owner}
-            style={{
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              border: '1px solid rgba(255,255,255,0.3)',
-            }}
-          />
-          <span
-            style={{
-              fontSize: '12px',
-              fontWeight: theme.fontWeights.medium,
-              color: '#e0e0e0',
-              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              fontFamily: theme.fonts.body,
-              maxWidth: '80px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {owner}
-          </span>
-        </div>
-      )}
+          {/* Owner avatar and name */}
+          {owner ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                minWidth: 0,
+                flex: 1,
+              }}
+            >
+              <img
+                src={`https://github.com/${owner}.png?size=40`}
+                alt={owner}
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  fontSize: theme.fontSizes[1],
+                  fontWeight: theme.fontWeights.medium,
+                  color: '#e0e0e0',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                  fontFamily: theme.fonts.body,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {owner}
+              </span>
+            </div>
+          ) : (
+            <div />
+          )}
 
-      {/* Stars badge - top right, Pokemon HP style */}
-      {stars !== undefined && stars > 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            zIndex: 10,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '10px',
-              fontWeight: theme.fontWeights.bold,
-              color: '#fbbf24',
-              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-            }}
-          >
-            ★
-          </span>
-          <span
-            style={{
-              fontSize: '16px',
-              fontWeight: theme.fontWeights.bold,
-              color: '#ffffff',
-              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              fontFamily: theme.fonts.body,
-            }}
-          >
-            {formatCount(stars)}
-          </span>
+          {/* Stars badge */}
+          {stars !== undefined && stars > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: theme.fontSizes[1],
+                  fontWeight: theme.fontWeights.bold,
+                  color: '#ffffff',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                  fontFamily: theme.fonts.body,
+                }}
+              >
+                {formatCount(stars)}
+              </span>
+              <span
+                style={{
+                  fontSize: theme.fontSizes[1],
+                  fontWeight: theme.fontWeights.bold,
+                  color: '#fbbf24',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                }}
+              >
+                ★
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -217,6 +236,31 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
         />
         {/* Sprite content */}
         {children}
+        {/* Repository name overlay at bottom of sprite */}
+        {label && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              padding: '6px 8px',
+              background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+              fontSize: theme.fontSizes[2],
+              fontWeight: theme.fontWeights.bold,
+              color: '#ffffff',
+              fontFamily: theme.fonts.body,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+              textAlign: 'center',
+            }}
+            title={label}
+          >
+            {label}
+          </div>
+        )}
       </div>
 
       {/* Card content panel */}
@@ -229,24 +273,25 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
           flexShrink: 0,
         }}
       >
-        {/* Repository name */}
-        {label && (
+        {/* Repository description */}
+        {description && (
           <div
             style={{
-              fontSize: theme.fontSizes[2],
-              fontWeight: theme.fontWeights.bold,
-              color: '#ffffff',
+              fontSize: theme.fontSizes[1],
+              color: '#e0e0e0',
               marginBottom: '6px',
               fontFamily: theme.fonts.body,
-              whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
               textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-              textAlign: 'center',
+              lineHeight: 1.4,
             }}
-            title={label}
+            title={description}
           >
-            {label}
+            {description}
           </div>
         )}
 
