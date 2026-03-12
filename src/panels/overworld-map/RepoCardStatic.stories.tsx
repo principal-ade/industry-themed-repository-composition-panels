@@ -39,9 +39,6 @@ const meta = {
     spriteSize: {
       control: { type: 'number', min: 100, max: 300 },
     },
-    showMetadata: {
-      control: 'boolean',
-    },
   },
 } satisfies Meta<typeof RepoCardStatic>;
 
@@ -183,18 +180,6 @@ export const SmallRepo: Story = {
     cardTheme: 'green',
     width: 180,
     height: 250,
-  },
-};
-
-/**
- * Without metadata
- */
-export const WithoutMetadata: Story = {
-  args: {
-    repository: createMockRepo(),
-    showMetadata: false,
-    width: 180,
-    height: 180,
   },
 };
 

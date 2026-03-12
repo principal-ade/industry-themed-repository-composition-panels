@@ -4,15 +4,22 @@
  * Renders the repository sprite as a static PNG image instead of a live
  * WebGL canvas. Use this for contexts where multiple cards are displayed
  * (carousels, grids) to avoid WebGL context limits.
+ *
+ * Uses the same card styling as RepoSprite's card variant for consistency.
  */
 
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { Star, Users, FileCode } from 'lucide-react';
 import { renderSpriteToDataUrlCached } from './spriteRenderer';
 import type { AlexandriaEntryWithMetrics } from '../../CollectionMapPanel';
 import { calculateRepositorySize } from '../../../utils/repositoryScaling';
-import type { CardTheme } from './RepoSprite';
+import {
+  cardThemes,
+  licenseBorderColors,
+  formatCount,
+  type CardTheme,
+} from './cardThemes';
+import type { RepoSpritePackage } from './RepoSprite';
 
 /**
  * Language to color mapping
@@ -81,33 +88,12 @@ function getRepositoryColor(repository: AlexandriaEntryWithMetrics): number {
   return hashStringToColor(repository.name);
 }
 
-/**
- * Format number with k/M suffix
- */
-function formatNumber(num: number): string {
-  if (num < 1000) return num.toString();
-  if (num < 1000000) return `${(num / 1000).toFixed(1)}k`;
-  return `${(num / 1000000).toFixed(1)}M`;
-}
-
-/**
- * Card theme colors
- */
-const cardThemes: Record<
-  CardTheme,
-  { bg: string; border: string; text: string }
-> = {
-  blue: { bg: '#1e3a5f', border: '#3b82f6', text: '#93c5fd' },
-  red: { bg: '#5f1e1e', border: '#ef4444', text: '#fca5a5' },
-  green: { bg: '#1e5f3a', border: '#22c55e', text: '#86efac' },
-  purple: { bg: '#3b1e5f', border: '#8b5cf6', text: '#c4b5fd' },
-  gold: { bg: '#5f4a1e', border: '#f59e0b', text: '#fcd34d' },
-  dark: { bg: '#1a1a2e', border: '#4a4a6a', text: '#a0a0c0' },
-};
-
 export interface RepoCardStaticProps {
   /** The Alexandria repository entry with metrics */
   repository: AlexandriaEntryWithMetrics;
+
+  /** Packages for monorepo display */
+  packages?: RepoSpritePackage[];
 
   /** Card color theme */
   cardTheme?: CardTheme;
@@ -120,27 +106,29 @@ export interface RepoCardStaticProps {
 
   /** Size of the sprite area */
   spriteSize?: number;
-
-  /** Show metadata below sprite */
-  showMetadata?: boolean;
 }
 
 /**
  * RepoCardStatic renders a repository as a static image card
+ * with the same styling as RepoSprite's card variant
  */
 export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
   repository,
-  cardTheme = 'dark',
+  packages,
+  cardTheme = 'blue',
   width = 200,
   height = 280,
   spriteSize = 160,
-  showMetadata = true,
 }) => {
   const { theme } = useTheme();
   const [spriteDataUrl, setSpriteDataUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const themeColors = cardThemes[cardTheme];
+  const colors = cardThemes[cardTheme];
+  const license = repository.github?.license;
+  const licenseBorder = license ? licenseBorderColors[license] : null;
+  const stars = repository.github?.stars;
+  const files = repository.metrics?.fileCount;
 
   // Calculate sprite properties
   const size = calculateRepositorySize(repository.metrics);
@@ -155,6 +143,7 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
         const dataUrl = await renderSpriteToDataUrlCached({
           size,
           color,
+          packages,
           stars: repository.github?.stars,
           collaborators: repository.metrics?.contributors,
           license: repository.github?.license,
@@ -180,39 +169,154 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
     return () => {
       mounted = false;
     };
-  }, [size, color, repository, spriteSize]);
+  }, [size, color, packages, repository, spriteSize]);
 
   return (
     <div
       style={{
-        width,
-        height,
+        position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: themeColors.bg,
-        border: `2px solid ${themeColors.border}`,
-        borderRadius: '12px',
+        backgroundColor: colors.cardBg,
+        padding: '28px 12px 12px 12px',
+        border: `${licenseBorder ? '5px' : '3px'} solid ${licenseBorder || colors.cardBorder}`,
+        width,
+        height,
+        boxSizing: 'border-box',
         overflow: 'hidden',
-        fontFamily: theme.fonts.body,
+        boxShadow: licenseBorder
+          ? `inset 0 0 0 2px ${licenseBorder}40, 0 0 8px ${licenseBorder}60`
+          : `inset 0 0 0 2px ${colors.cardHighlight}`,
       }}
     >
-      {/* Sprite area */}
+      {/* Package count badge - top left (for monorepos) */}
+      {packages && packages.length > 1 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '6px',
+            left: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            zIndex: 10,
+          }}
+        >
+          <span
+            style={{
+              fontSize: '14px',
+              fontWeight: theme.fontWeights.bold,
+              color: '#a78bfa',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+              fontFamily: theme.fonts.body,
+            }}
+          >
+            Monorepo
+          </span>
+          <span
+            style={{
+              fontSize: '14px',
+              fontWeight: theme.fontWeights.bold,
+              color: '#ffffff',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+              fontFamily: theme.fonts.body,
+            }}
+          >
+            {packages.length}
+          </span>
+        </div>
+      )}
+
+      {/* Stars badge - top right, Pokemon HP style */}
+      {stars !== undefined && stars > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '6px',
+            right: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            zIndex: 10,
+          }}
+        >
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: theme.fontWeights.bold,
+              color: '#fbbf24',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+            }}
+          >
+            ★
+          </span>
+          <span
+            style={{
+              fontSize: '16px',
+              fontWeight: theme.fontWeights.bold,
+              color: '#ffffff',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+              fontFamily: theme.fonts.body,
+            }}
+          >
+            {formatCount(stars)}
+          </span>
+        </div>
+      )}
+
+      {/* Sprite window frame */}
       <div
         style={{
           flex: 1,
+          minHeight: 0,
+          position: 'relative',
+          background: `linear-gradient(180deg, ${colors.windowGradient[0]} 0%, ${colors.windowGradient[1]} 100%)`,
+          border: `2px solid ${colors.cardHighlight}`,
+          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)',
+          overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '8px',
-          minHeight: spriteSize,
         }}
       >
+        {/* Starfield background */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            backgroundImage: `
+              radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.4) 50%, transparent 50%),
+              radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,0.3) 50%, transparent 50%),
+              radial-gradient(1px 1px at 40% 10%, rgba(255,255,255,0.35) 50%, transparent 50%),
+              radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,0.25) 50%, transparent 50%),
+              radial-gradient(1px 1px at 70% 20%, rgba(255,255,255,0.4) 50%, transparent 50%),
+              radial-gradient(1px 1px at 85% 40%, rgba(255,255,255,0.3) 50%, transparent 50%),
+              radial-gradient(1px 1px at 15% 55%, rgba(255,255,255,0.35) 50%, transparent 50%),
+              radial-gradient(1px 1px at 35% 70%, rgba(255,255,255,0.25) 50%, transparent 50%),
+              radial-gradient(1px 1px at 50% 85%, rgba(255,255,255,0.4) 50%, transparent 50%),
+              radial-gradient(1px 1px at 65% 60%, rgba(255,255,255,0.3) 50%, transparent 50%),
+              radial-gradient(1px 1px at 80% 75%, rgba(255,255,255,0.35) 50%, transparent 50%),
+              radial-gradient(1px 1px at 95% 90%, rgba(255,255,255,0.25) 50%, transparent 50%),
+              radial-gradient(1.5px 1.5px at 20% 25%, rgba(255,255,255,0.5) 50%, transparent 50%),
+              radial-gradient(1.5px 1.5px at 60% 30%, rgba(200,220,255,0.45) 50%, transparent 50%),
+              radial-gradient(1.5px 1.5px at 45% 65%, rgba(255,255,255,0.5) 50%, transparent 50%),
+              radial-gradient(1.5px 1.5px at 75% 80%, rgba(220,200,255,0.45) 50%, transparent 50%),
+              radial-gradient(2px 2px at 30% 50%, rgba(255,255,255,0.6) 50%, transparent 50%),
+              radial-gradient(2px 2px at 70% 55%, rgba(200,220,255,0.55) 50%, transparent 50%),
+              radial-gradient(2px 2px at 90% 15%, rgba(255,255,255,0.6) 50%, transparent 50%)
+            `,
+            backgroundSize: '100% 100%',
+          }}
+        />
+
+        {/* Sprite content */}
         {isLoading ? (
           <div
             style={{
               width: spriteSize * 0.5,
               height: spriteSize * 0.5,
-              backgroundColor: `${themeColors.border}40`,
+              backgroundColor: `${colors.cardHighlight}40`,
               borderRadius: '8px',
               animation: 'pulse 1.5s ease-in-out infinite',
             }}
@@ -240,65 +344,121 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
         )}
       </div>
 
-      {/* Metadata area */}
-      {showMetadata && (
+      {/* Card content panel */}
+      <div
+        style={{
+          marginTop: '8px',
+          padding: '8px',
+          background: `linear-gradient(180deg, ${colors.panelGradient[0]} 0%, ${colors.panelGradient[1]} 100%)`,
+          border: `1px solid ${colors.panelBorder}`,
+          flexShrink: 0,
+        }}
+      >
+        {/* Repository name */}
         <div
           style={{
-            padding: '12px',
-            borderTop: `1px solid ${themeColors.border}40`,
-            backgroundColor: `${themeColors.bg}cc`,
+            fontSize: theme.fontSizes[2],
+            fontWeight: theme.fontWeights.bold,
+            color: '#ffffff',
+            marginBottom: '6px',
+            fontFamily: theme.fonts.body,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+            textAlign: 'center',
+          }}
+          title={repository.name}
+        >
+          {repository.name}
+        </div>
+
+        {/* Stats row */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: '10px',
+            fontSize: theme.fontSizes[1],
+            color: '#e0e0e0',
+            fontFamily: theme.fonts.body,
           }}
         >
-          {/* Repository name */}
-          <div
-            style={{
-              fontSize: '14px',
-              fontWeight: 600,
-              color: themeColors.text,
-              marginBottom: '8px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-            title={repository.name}
-          >
-            {repository.name}
-          </div>
+          {files !== undefined && files > 0 && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="#94a3b8">
+                <path
+                  d="M3 1h7l3 3v11H3V1zm7 0v3h3M5 8h6M5 11h6"
+                  stroke="#94a3b8"
+                  strokeWidth="1"
+                  fill="none"
+                />
+              </svg>
+              {formatCount(files)}
+            </span>
+          )}
+        </div>
 
-          {/* Stats row */}
+        {/* Package list for monorepos */}
+        {packages && packages.length > 1 && (
           <div
             style={{
+              marginTop: '6px',
               display: 'flex',
-              gap: '12px',
-              fontSize: '12px',
-              color: `${themeColors.text}99`,
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: '4px',
             }}
           >
-            {repository.github?.stars !== undefined && (
+            {packages.slice(0, 6).map((pkg, i) => (
               <span
-                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                key={i}
+                style={{
+                  fontSize: theme.fontSizes[0],
+                  color: '#e0e0e0',
+                  backgroundColor: 'rgba(0,0,0,0.2)',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  fontFamily: theme.fonts.body,
+                  borderLeft: `2px solid ${typeof pkg.color === 'string' ? pkg.color : `#${(pkg.color || 0x888888).toString(16).padStart(6, '0')}`}`,
+                }}
               >
-                <Star size={12} />
-                {formatNumber(repository.github.stars)}
+                {pkg.name}
               </span>
-            )}
-            {repository.metrics?.contributors !== undefined && (
+            ))}
+            {packages.length > 6 && (
               <span
-                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                style={{
+                  fontSize: theme.fontSizes[0],
+                  color: '#a0a0a0',
+                  fontFamily: theme.fonts.body,
+                }}
               >
-                <Users size={12} />
-                {formatNumber(repository.metrics.contributors)}
-              </span>
-            )}
-            {repository.github?.primaryLanguage && (
-              <span
-                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                <FileCode size={12} />
-                {repository.github.primaryLanguage}
+                +{packages.length - 6} more
               </span>
             )}
           </div>
+        )}
+      </div>
+
+      {/* License badge - bottom right corner */}
+      {license && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '-3px',
+            right: '-3px',
+            backgroundColor: licenseBorder || colors.cardHighlight,
+            padding: '3px 10px',
+            borderRadius: '3px 0 0 0',
+            fontSize: theme.fontSizes[0],
+            fontWeight: theme.fontWeights.bold,
+            color: '#ffffff',
+            textShadow: '0 1px 1px rgba(0,0,0,0.3)',
+          }}
+        >
+          {license}
         </div>
       )}
     </div>
