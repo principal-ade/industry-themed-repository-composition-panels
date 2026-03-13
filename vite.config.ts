@@ -9,6 +9,18 @@ export default defineConfig(() => ({
       jsxRuntime: 'automatic',
       jsxImportSource: 'react',
     }),
+    {
+      name: 'resolve-file-city-builder',
+      resolveId(id) {
+        if (id === '@principal-ai/file-city-builder') {
+          return path.resolve(
+            __dirname,
+            'node_modules/@principal-ai/file-city-builder/dist/index.js'
+          );
+        }
+        return null;
+      },
+    },
   ],
   define: {
     // Ensure NODE_ENV is production for React
@@ -17,7 +29,12 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@principal-ai/file-city-builder': path.resolve(
+        __dirname,
+        './node_modules/@principal-ai/file-city-builder/dist/index.js'
+      ),
     },
+    conditions: ['import', 'module', 'browser', 'default'],
   },
   build: {
     lib: {
