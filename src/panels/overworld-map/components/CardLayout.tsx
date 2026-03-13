@@ -332,7 +332,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
       <div
         style={{
           width: '100%',
-          aspectRatio: '1 / 1',
+          height: '50%',
           position: 'relative',
           background: `linear-gradient(180deg, ${colors.windowGradient[0]} 0%, ${colors.windowGradient[1]} 100%)`,
           border: `2px solid ${colors.cardHighlight}`,
