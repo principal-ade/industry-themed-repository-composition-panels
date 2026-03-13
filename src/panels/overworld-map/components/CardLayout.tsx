@@ -108,14 +108,12 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
         flexDirection: 'column',
         backgroundColor: colors.cardBg,
         padding: '8px 12px 28px 12px',
-        border: `${licenseBorder ? '5px' : '3px'} solid ${licenseBorder || colors.cardBorder}`,
+        border: `4px solid ${colors.cardBorder}`,
+        borderRadius: '12px',
         width: '100%',
         height: '100%',
         boxSizing: 'border-box',
         overflow: 'hidden',
-        boxShadow: licenseBorder
-          ? `inset 0 0 0 2px ${licenseBorder}40, 0 0 8px ${licenseBorder}60`
-          : `inset 0 0 0 2px ${colors.cardHighlight}`,
       }}
     >
       {/* Header row - owner and stars */}
@@ -129,7 +127,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
             marginLeft: '-12px',
             marginRight: '-4px',
             marginTop: '-8px',
-            minHeight: '32px',
+            minHeight: '24px',
             flexShrink: 0,
           }}
         >
@@ -148,21 +146,21 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                 src={`https://github.com/${owner}.png?size=80`}
                 alt={owner}
                 style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '0',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '0 0 8px 0',
                   border: 'none',
                   borderRight: '1px solid rgba(255,255,255,0.3)',
                   borderBottom: '1px solid rgba(255,255,255,0.3)',
                   flexShrink: 0,
-                  marginBottom: '-16px',
+                  marginBottom: '-12px',
                   position: 'relative',
                   zIndex: 1,
                 }}
               />
               <span
                 style={{
-                  fontSize: theme.fontSizes[1],
+                  fontSize: theme.fontSizes[2],
                   fontWeight: theme.fontWeights.medium,
                   color: '#e0e0e0',
                   textShadow: '0 1px 2px rgba(0,0,0,0.5)',
@@ -193,7 +191,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
             >
               <span
                 style={{
-                  fontSize: theme.fontSizes[1],
+                  fontSize: theme.fontSizes[2],
                   fontWeight: theme.fontWeights.medium,
                   color: '#ffffff',
                   textShadow: '0 1px 2px rgba(0,0,0,0.5)',
@@ -204,7 +202,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
               </span>
               <span
                 style={{
-                  fontSize: theme.fontSizes[1],
+                  fontSize: theme.fontSizes[2],
                   fontWeight: theme.fontWeights.medium,
                   color: '#fbbf24',
                   textShadow: '0 1px 2px rgba(0,0,0,0.5)',
@@ -254,13 +252,12 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
               right: 0,
               padding: '6px 8px',
               background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-              fontSize: theme.fontSizes[2],
+              fontSize: `clamp(10px, ${18 - label.length * 0.3}px, ${theme.fontSizes[2]})`,
               fontWeight: theme.fontWeights.bold,
               color: '#ffffff',
               fontFamily: theme.fonts.body,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
-              textOverflow: 'ellipsis',
               textShadow: '0 1px 2px rgba(0,0,0,0.5)',
               textAlign: 'center',
             }}
@@ -395,11 +392,11 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
         <div
           style={{
             position: 'absolute',
-            bottom: '-3px',
-            right: '-3px',
+            bottom: '0',
+            right: '0',
             backgroundColor: licenseBorder || colors.cardHighlight,
             padding: '3px 10px',
-            borderRadius: 0,
+            borderRadius: '10px 0 10px 0',
             fontFamily: theme.fonts.body,
             fontSize: theme.fontSizes[0],
             fontWeight: theme.fontWeights.bold,
