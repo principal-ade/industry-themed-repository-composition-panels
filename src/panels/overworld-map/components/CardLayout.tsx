@@ -23,6 +23,57 @@ const getStarColor = (count: number): string => {
   return '#f97316'; // Orange
 };
 
+/** Get badge colors based on repository age (prestige tiers) */
+const getAgeBadgeColors = (isoDate: string): { bg: string; text: string } => {
+  const date = new Date(isoDate);
+  const now = new Date();
+  const diffYears =
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24 * 365);
+
+  if (diffYears < 1) return { bg: '#22c55e', text: '#ffffff' }; // Green - fresh
+  if (diffYears < 5) return { bg: '#cd7f32', text: '#ffffff' }; // Bronze
+  if (diffYears < 10) return { bg: '#a8a9ad', text: '#1a1a1a' }; // Silver
+  return { bg: '#ffd700', text: '#1a1a1a' }; // Gold - legendary
+};
+
+/** Format ISO date - relative if < 1 year, otherwise "Mon YYYY" */
+const formatCreatedDate = (isoDate: string): string => {
+  const date = new Date(isoDate);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  // Less than a year old - show relative time
+  if (diffDays < 365) {
+    if (diffDays < 7) {
+      return `Est. ${diffDays}d ago`;
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return `Est. ${weeks}w ago`;
+    } else {
+      const months = Math.floor(diffDays / 30);
+      return `Est. ${months}mo ago`;
+    }
+  }
+
+  // Older than a year - show "Est. Month Year"
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return `Est. ${months[date.getMonth()]} ${date.getFullYear()}`;
+};
+
 /** Package definition for display in card */
 export interface CardPackage {
   name: string;
@@ -67,6 +118,9 @@ export interface CardLayoutProps {
 
   /** Style variant for the name plate banner */
   namePlateStyle?: NamePlateStyle;
+
+  /** ISO timestamp when repo was created on GitHub */
+  createdAt?: string;
 
   /** The sprite content (canvas container or img element) */
   children: React.ReactNode;
@@ -209,6 +263,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
   license,
   packages,
   namePlateStyle = 'beveled',
+  createdAt,
   children,
 }) => {
   const { theme } = useTheme();
@@ -565,8 +620,34 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
         )}
       </div>
 
-      {/* Language - bottom left corner */}
-      {language && (
+      {/* Bottom left corner - created date badge (preferred) or language */}
+      {createdAt ? (
+        (() => {
+          const badgeColors = getAgeBadgeColors(createdAt);
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '0',
+                left: '0',
+                backgroundColor: badgeColors.bg,
+                padding: '3px 10px',
+                borderRadius: '0 10px 0 10px',
+                fontFamily: theme.fonts.body,
+                fontSize: theme.fontSizes[0],
+                fontWeight: theme.fontWeights.bold,
+                color: badgeColors.text,
+                textShadow:
+                  badgeColors.text === '#ffffff'
+                    ? '0 1px 1px rgba(0,0,0,0.3)'
+                    : 'none',
+              }}
+            >
+              {formatCreatedDate(createdAt)}
+            </div>
+          );
+        })()
+      ) : language ? (
         <div
           style={{
             position: 'absolute',
@@ -581,7 +662,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
         >
           {language}
         </div>
-      )}
+      ) : null}
 
       {/* License badge - bottom right corner, integrated with border */}
       {license && (

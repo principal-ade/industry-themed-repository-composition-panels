@@ -70,6 +70,8 @@ export interface RepoSpriteProps {
   owner?: string;
   /** Primary language (shown on card) */
   language?: string;
+  /** ISO timestamp when repo was created on GitHub */
+  createdAt?: string;
   /** Display variant: 'default' | 'card' */
   variant?: RepoSpriteVariant;
   /** Card color theme (only applies to card variant) */
@@ -158,6 +160,7 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
   label,
   owner,
   language,
+  createdAt,
   variant = 'default',
   cardTheme = 'blue',
   width = 200,
@@ -412,6 +415,7 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
         language={language}
         license={license}
         packages={packages}
+        createdAt={createdAt}
       >
         <div
           ref={containerRef}

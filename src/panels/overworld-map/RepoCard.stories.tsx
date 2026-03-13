@@ -66,6 +66,7 @@ const createMockRepo = (
     stars: 1500,
     license: 'MIT',
     primaryLanguage: 'TypeScript',
+    createdAt: '2019-03-15T00:00:00Z',
     lastUpdated: new Date().toISOString(),
   },
   metrics: {
@@ -91,6 +92,7 @@ export const TypeScriptRepo: Story = {
         stars: 2500,
         license: 'MIT',
         primaryLanguage: 'TypeScript',
+        createdAt: '2020-06-15T00:00:00Z',
         lastUpdated: new Date().toISOString(),
       },
     }),
@@ -114,6 +116,7 @@ export const PythonRepo: Story = {
         stars: 8900,
         license: 'Apache-2.0',
         primaryLanguage: 'Python',
+        createdAt: '2018-09-01T00:00:00Z',
         lastUpdated: new Date().toISOString(),
       },
       metrics: {
@@ -467,4 +470,66 @@ export const SizeComparison: Story = {
       ))}
     </div>
   ),
+};
+
+/**
+ * Created date badge showcase
+ */
+export const CreatedDateShowcase: Story = {
+  args: {
+    repository: createMockRepo(),
+  },
+  render: () => {
+    // Generate dynamic recent dates for relative time display
+    const now = new Date();
+    const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+        {[
+          { date: '2008-04-01T00:00:00Z', label: 'Legendary (10+ yrs) - Gold' },
+          {
+            date: '2018-06-01T00:00:00Z',
+            label: 'Veteran (5-10 yrs) - Silver',
+          },
+          {
+            date: '2022-03-15T00:00:00Z',
+            label: 'Established (1-5 yrs) - Bronze',
+          },
+          {
+            date: threeMonthsAgo.toISOString(),
+            label: 'Fresh (<1 yr) - Green',
+          },
+          { date: undefined, label: 'No date (shows language)' },
+        ].map(({ date, label }) => (
+          <div key={label} style={{ textAlign: 'center' }}>
+            <div style={{ width: '200px', height: '280px' }}>
+              <RepoCard
+                repository={createMockRepo({
+                  name: label.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                  github: {
+                    id: 'owner/repo',
+                    owner: 'owner',
+                    name: 'repo',
+                    stars: 1500,
+                    license: 'MIT',
+                    primaryLanguage: 'TypeScript',
+                    createdAt: date,
+                    lastUpdated: new Date().toISOString(),
+                  },
+                })}
+                variant="card"
+                width={200}
+                height={280}
+              />
+            </div>
+            <div style={{ color: '#666', fontSize: '12px', marginTop: '8px' }}>
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  },
 };
