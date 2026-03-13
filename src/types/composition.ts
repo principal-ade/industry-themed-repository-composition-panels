@@ -31,6 +31,9 @@ export type {
   MonorepoOrchestrator,
   MonorepoMetadata,
   MonorepoRootRole,
+
+  // Framework types
+  FrameworkLayer,
 } from '@principal-ai/codebase-composition';
 
 /**

@@ -4,6 +4,7 @@ import { SearchPanel } from './panels/SearchPanel';
 import { DependencyGraphPanel } from './panels/dependency-graph';
 import { CollectionMapPanel } from './panels/CollectionMapPanel';
 import { TelemetryCoveragePanel } from './panels/TelemetryCoveragePanel';
+import { LocalProjectGridPanel } from './panels/local-project-grid';
 import type { PanelDefinition, PanelContextValue } from './types';
 
 /**
@@ -166,6 +167,28 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       console.log('Telemetry Coverage Panel unmounting');
     },
   },
+  {
+    metadata: {
+      id: 'industry-theme.local-project-grid',
+      name: 'Local Projects Grid',
+      icon: 'Grid3X3',
+      version: '0.1.0',
+      author: 'Industry Theme',
+      description: 'Display local Alexandria projects in a card grid',
+      slices: ['localProjects'],
+    },
+    component: LocalProjectGridPanel,
+
+    onMount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Local Projects Grid Panel mounted');
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Local Projects Grid Panel unmounting');
+    },
+  },
 ];
 
 /**
@@ -297,6 +320,20 @@ export type {
   CollectionMembershipMetadata,
   RepositoryLayoutData,
 } from '@principal-ai/alexandria-collections';
+
+// Local Projects Grid Panel
+export {
+  LocalProjectGridPanel,
+  LocalProjectGridPanelContent,
+  LocalProjectGridPanelPreview,
+  LocalProjectCard,
+} from './panels/local-project-grid';
+export type {
+  LocalProjectGridPanelProps,
+  LocalProjectGridPanelActions,
+  LocalProjectGridPanelContext,
+  LocalProjectCardProps,
+} from './panels/local-project-grid';
 
 // Re-export types
 export type {

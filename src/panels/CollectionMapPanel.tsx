@@ -26,7 +26,7 @@ import { getCollaboratorDecorationSizeBonus } from './overworld-map/collaborator
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library/types';
 import { calculateRepositorySize } from '../utils/repositoryScaling';
 import { calculateAgingMetrics } from '../utils/repositoryAging';
-import type { PackageLayer } from '../types/composition';
+import type { PackageLayer, FrameworkLayer } from '../types/composition';
 import type {
   CustomRegion,
   RepositoryLayoutData,
@@ -88,6 +88,9 @@ export interface AlexandriaEntryWithMetrics extends AlexandriaEntry {
 
   /** Optional array of packages for monorepos */
   packages?: PackageLayer[];
+
+  /** Detected frameworks (React, Storybook, Jest, etc.) */
+  frameworks?: FrameworkLayer[];
 
   /** Extended github fields (supplement to AlexandriaEntry.github) */
   github?: AlexandriaEntry['github'] & {
