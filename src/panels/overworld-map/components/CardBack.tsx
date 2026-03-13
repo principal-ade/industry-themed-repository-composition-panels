@@ -61,7 +61,8 @@ const Speck: React.FC<{
   y: number;
   size: number;
   delay: number;
-}> = ({ x, y, size, delay }) => (
+  duration: number;
+}> = ({ x, y, size, delay, duration }) => (
   <div
     style={{
       position: 'absolute',
@@ -71,8 +72,7 @@ const Speck: React.FC<{
       height: size,
       borderRadius: '50%',
       backgroundColor: 'rgba(255,255,255,0.5)',
-      animation: `twinkle ${2 + Math.random() * 2}s ease-in-out infinite`,
-      animationDelay: `${delay}s`,
+      animation: `twinkle ${duration}s ease-in-out ${delay}s infinite`,
     }}
   />
 );
@@ -98,6 +98,7 @@ const generateSpecks = (cols: number, rows: number) => {
         y: baseY + jitterY,
         size: 1 + Math.random() * 1.5,
         delay: Math.random() * 3,
+        duration: 2 + Math.random() * 2,
       });
     }
   }

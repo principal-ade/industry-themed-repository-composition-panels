@@ -237,8 +237,7 @@ export const PackageLoadingGraph: React.FC = () => {
                 backgroundColor: color,
                 opacity: 0.2,
                 transform: 'translateX(-50%)',
-                animation: `shadowPulse ${totalCycleDuration}s ease-in-out infinite`,
-                animationDelay: `${box.delay}s`,
+                animation: `shadowPulse ${totalCycleDuration}s ease-in-out ${box.delay}s infinite`,
               }}
             />
           );
