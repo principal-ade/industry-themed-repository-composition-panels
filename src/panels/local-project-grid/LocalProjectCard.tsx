@@ -44,6 +44,7 @@ export const LocalProjectCard: React.FC<LocalProjectCardProps> = ({
   width = 220,
   height = 300,
   isSelected = false,
+  namePlateStyle,
   onClick,
   onOpen,
   onRemove,
@@ -161,6 +162,7 @@ export const LocalProjectCard: React.FC<LocalProjectCardProps> = ({
         files={entry.viewCount || undefined}
         language={entry.github?.primaryLanguage}
         license={entry.github?.license}
+        namePlateStyle={namePlateStyle}
       >
         {spriteContent}
       </CardLayout>

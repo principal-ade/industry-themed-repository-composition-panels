@@ -12,6 +12,7 @@ import type { DataSlice } from '@principal-ade/panel-framework-core';
 import { LocalProjectGridPanelContent } from './LocalProjectGridPanel';
 import { LocalProjectCard } from './LocalProjectCard';
 import type { LocalProjectGridPanelProps } from './types';
+import type { NamePlateStyle } from '../overworld-map/components/CardLayout';
 
 // ============================================================================
 // Mock Data Helpers
@@ -235,6 +236,119 @@ export const RecentlyOpened: CardStory = {
       name: 'active-project',
       lastOpenedAt: new Date(Date.now() - 60000).toISOString(), // 1 minute ago
     }),
+  },
+};
+
+/**
+ * Long name showcase - testing text overflow behavior
+ */
+export const LongNames: CardStory = {
+  args: {
+    entry: createMockProject(),
+  },
+  render: () => {
+    const longNameVariants = [
+      { name: 'short', label: 'Short' },
+      { name: 'medium-length-name', label: 'Medium' },
+      { name: 'this-is-a-very-long-project-name', label: 'Long' },
+      {
+        name: 'enterprise-microservices-architecture-framework',
+        label: 'Very Long',
+      },
+      {
+        name: 'my-super-duper-extremely-long-repository-name-that-keeps-going',
+        label: 'Extra Long',
+      },
+      {
+        name: 'NoSpacesOrDashesJustOneVeryLongCamelCaseProjectName',
+        label: 'CamelCase',
+      },
+    ];
+
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+        {longNameVariants.map(({ name, label }) => (
+          <div
+            key={name}
+            style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}
+          >
+            <span
+              style={{ fontSize: '12px', color: '#888', textAlign: 'center' }}
+            >
+              {label}
+            </span>
+            <LocalProjectCard
+              entry={createMockProject({
+                name,
+                github: {
+                  id: `org/${name}`,
+                  owner: 'organization-name',
+                  name,
+                  stars: 1234,
+                  license: 'MIT',
+                  primaryLanguage: 'TypeScript',
+                  lastUpdated: new Date().toISOString(),
+                },
+              })}
+              width={220}
+              height={300}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  },
+};
+
+/**
+ * Name plate style variants
+ */
+export const NamePlateStyles: CardStory = {
+  args: {
+    entry: createMockProject(),
+  },
+  render: () => {
+    const styles: { style: NamePlateStyle; label: string }[] = [
+      { style: 'flat', label: 'Flat' },
+      { style: 'ribbon', label: 'Ribbon' },
+      { style: 'rounded', label: 'Rounded' },
+      { style: 'notched', label: 'Notched' },
+      { style: 'beveled', label: 'Beveled' },
+    ];
+
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+        {styles.map(({ style, label }) => (
+          <div
+            key={style}
+            style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}
+          >
+            <span
+              style={{ fontSize: '12px', color: '#888', textAlign: 'center' }}
+            >
+              {label}
+            </span>
+            <LocalProjectCard
+              entry={createMockProject({
+                name: 'example-project',
+                github: {
+                  id: 'org/example-project',
+                  owner: 'organization',
+                  name: 'example-project',
+                  stars: 1234,
+                  license: 'MIT',
+                  primaryLanguage: 'TypeScript',
+                  lastUpdated: new Date().toISOString(),
+                },
+              })}
+              namePlateStyle={style}
+              width={220}
+              height={300}
+            />
+          </div>
+        ))}
+      </div>
+    );
   },
 };
 

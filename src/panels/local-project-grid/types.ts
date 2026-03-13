@@ -8,6 +8,7 @@ import type {
   DataSlice,
 } from '@principal-ade/panel-framework-core';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library';
+import type { NamePlateStyle } from '../overworld-map/components/CardLayout';
 
 /**
  * Actions available to LocalProjectGridPanel
@@ -49,6 +50,8 @@ export interface LocalProjectCardProps {
   height?: number;
   /** Whether this card is selected */
   isSelected?: boolean;
+  /** Style variant for the name plate banner */
+  namePlateStyle?: NamePlateStyle;
   /** Callback when card is clicked */
   onClick?: (entry: AlexandriaEntry) => void;
   /** Callback when open button is clicked */

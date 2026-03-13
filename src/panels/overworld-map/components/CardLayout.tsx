@@ -21,6 +21,14 @@ export interface CardPackage {
   color?: number | string;
 }
 
+/** Name plate style variants */
+export type NamePlateStyle =
+  | 'flat'
+  | 'ribbon'
+  | 'rounded'
+  | 'notched'
+  | 'beveled';
+
 export interface CardLayoutProps {
   /** Base color for the card theme (derived from language/repo) */
   color: number | string;
@@ -48,6 +56,9 @@ export interface CardLayoutProps {
 
   /** Package list for monorepos */
   packages?: CardPackage[];
+
+  /** Style variant for the name plate banner */
+  namePlateStyle?: NamePlateStyle;
 
   /** The sprite content (canvas container or img element) */
   children: React.ReactNode;
@@ -79,6 +90,106 @@ const STARFIELD_BACKGROUND = `
 /**
  * CardLayout renders the shared card chrome around sprite content.
  */
+/** Style config for name plate variants */
+interface NamePlateStyleConfig {
+  /** Whether this style uses clip-path (needs wrapper for border) */
+  usesClipPath: boolean;
+  /** Clip-path value if applicable */
+  clipPath?: string;
+  /** Border radius for non-clip-path styles */
+  borderRadius?: string | number;
+  /** Extra padding needed for the shape */
+  extraPadding?: { left?: number; right?: number };
+}
+
+const NAME_PLATE_CONFIGS: Record<NamePlateStyle, NamePlateStyleConfig> = {
+  flat: {
+    usesClipPath: false,
+    borderRadius: 0,
+  },
+  ribbon: {
+    usesClipPath: true,
+    clipPath:
+      'polygon(12px 0%, calc(100% - 12px) 0%, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0% 50%)',
+    extraPadding: { left: 12, right: 12 },
+  },
+  rounded: {
+    usesClipPath: false,
+    borderRadius: '14px',
+  },
+  notched: {
+    usesClipPath: true,
+    clipPath:
+      'polygon(0% 6px, 6px 6px, 6px 0%, calc(100% - 6px) 0%, calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 6px), 0% calc(100% - 6px))',
+  },
+  beveled: {
+    usesClipPath: true,
+    clipPath:
+      'polygon(10px 0%, calc(100% - 10px) 0%, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0% calc(100% - 10px), 0% 10px)',
+  },
+};
+
+/** Get styles for name plate - returns outer wrapper and inner content styles */
+const getNamePlateStyles = (
+  style: NamePlateStyle,
+  highlightColor: string,
+  bgGradient: string
+): { outer: React.CSSProperties; inner: React.CSSProperties } => {
+  const config = NAME_PLATE_CONFIGS[style];
+
+  if (config.usesClipPath) {
+    // Clip-path styles: outer has border color bg, inner has content bg
+    return {
+      outer: {
+        clipPath: config.clipPath,
+        background: highlightColor,
+        padding: '2px', // This creates the "border" width
+        paddingLeft: config.extraPadding?.left
+          ? `${config.extraPadding.left + 2}px`
+          : '2px',
+        paddingRight: config.extraPadding?.right
+          ? `${config.extraPadding.right + 2}px`
+          : '2px',
+      },
+      inner: {
+        clipPath: config.clipPath,
+        background: bgGradient,
+        padding: '6px 8px',
+        paddingLeft: config.extraPadding?.left
+          ? `${config.extraPadding.left + 8}px`
+          : '8px',
+        paddingRight: config.extraPadding?.right
+          ? `${config.extraPadding.right + 8}px`
+          : '8px',
+      },
+    };
+  }
+
+  // Non-clip-path styles: single element with border
+  const borderStyle =
+    style === 'flat'
+      ? {
+          borderTop: `2px solid ${highlightColor}`,
+          borderBottom: `2px solid ${highlightColor}`,
+        }
+      : { border: `2px solid ${highlightColor}` };
+
+  return {
+    outer: {
+      borderRadius: config.borderRadius,
+      background: bgGradient,
+      padding: '6px 8px',
+      ...borderStyle,
+    },
+    inner: {}, // No separate inner element needed
+  };
+};
+
+/** Check if style uses clip-path (needs wrapper) */
+const styleUsesClipPath = (style: NamePlateStyle): boolean => {
+  return NAME_PLATE_CONFIGS[style].usesClipPath;
+};
+
 export const CardLayout: React.FC<CardLayoutProps> = ({
   color,
   owner,
@@ -89,6 +200,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
   language,
   license,
   packages,
+  namePlateStyle = 'beveled',
   children,
 }) => {
   const { theme } = useTheme();
@@ -156,6 +268,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                   marginBottom: '-12px',
                   position: 'relative',
                   zIndex: 1,
+                  backgroundColor: colors.cardBorder,
                 }}
               />
               <span
@@ -218,8 +331,8 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
       {/* Sprite window frame */}
       <div
         style={{
-          flex: 1,
-          minHeight: 0,
+          width: '100%',
+          aspectRatio: '1 / 1',
           position: 'relative',
           background: `linear-gradient(180deg, ${colors.windowGradient[0]} 0%, ${colors.windowGradient[1]} 100%)`,
           border: `2px solid ${colors.cardHighlight}`,
@@ -228,6 +341,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          flexShrink: 0,
         }}
       >
         {/* Starfield background */}
@@ -242,31 +356,99 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
         />
         {/* Sprite content */}
         {children}
-        {/* Repository name overlay at bottom of sprite */}
-        {label && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: '6px 8px',
-              background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-              fontSize: `clamp(10px, ${18 - label.length * 0.3}px, ${theme.fontSizes[2]})`,
-              fontWeight: theme.fontWeights.bold,
-              color: '#ffffff',
-              fontFamily: theme.fonts.body,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              textAlign: 'center',
-            }}
-            title={label}
-          >
-            {label}
-          </div>
-        )}
       </div>
+
+      {/* Name plate - spans full card width */}
+      {label &&
+        (() => {
+          // Calculate font size to fit label in container
+          // Base size 14px fits ~24 chars, shrink proportionally for longer names
+          const baseFontSize = 14;
+          const minFontSize = 8;
+          const charsAtBase = 24;
+          const fontSize = Math.max(
+            minFontSize,
+            Math.min(
+              baseFontSize,
+              (baseFontSize * charsAtBase) / Math.max(label.length, 1)
+            )
+          );
+          const bgGradient = `linear-gradient(180deg, ${colors.cardBorder} 0%, ${colors.cardBg} 100%)`;
+          const { outer, inner } = getNamePlateStyles(
+            namePlateStyle,
+            colors.cardHighlight,
+            bgGradient
+          );
+          const usesWrapper = styleUsesClipPath(namePlateStyle);
+
+          const textContent = (
+            <span
+              style={{
+                fontSize: `${fontSize}px`,
+                fontWeight: theme.fontWeights.bold,
+                color: '#ffffff',
+                fontFamily: theme.fonts.body,
+                whiteSpace: 'nowrap',
+                textShadow: `0 1px 2px rgba(0,0,0,0.5), 0 0 8px ${colors.cardHighlight}`,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+              }}
+            >
+              {label}
+            </span>
+          );
+
+          if (usesWrapper) {
+            // Clip-path styles need wrapper for border effect
+            return (
+              <div
+                style={{
+                  position: 'relative',
+                  marginLeft: '-10px',
+                  marginRight: '-10px',
+                  marginTop: '-14px',
+                  zIndex: 2,
+                  ...outer,
+                }}
+                title={label}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    overflow: 'hidden',
+                    ...inner,
+                  }}
+                >
+                  {textContent}
+                </div>
+              </div>
+            );
+          }
+
+          // Simple styles without clip-path
+          return (
+            <div
+              style={{
+                position: 'relative',
+                marginLeft: '-10px',
+                marginRight: '-10px',
+                marginTop: '-14px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 2,
+                overflow: 'hidden',
+                ...outer,
+              }}
+              title={label}
+            >
+              {textContent}
+            </div>
+          );
+        })()}
 
       {/* Card content panel */}
       <div
