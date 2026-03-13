@@ -238,6 +238,8 @@ export {
   RepoCard,
   // RepoCardStatic for carousels/grids (no WebGL limits)
   RepoCardStatic,
+  // CardBack for card flip animations and loading states
+  CardBack,
   // Sprite renderer utilities
   renderSpriteToDataUrl,
   renderSpriteToDataUrlCached,
@@ -259,6 +261,7 @@ export type {
   RepoSpritePackage,
   RepoCardProps,
   RepoCardStaticProps,
+  CardBackProps,
   SpriteRenderOptions,
 } from './panels/overworld-map';
 

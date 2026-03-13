@@ -58,6 +58,10 @@ export type { RepoCardProps } from './components/RepoCard';
 export { RepoCardStatic } from './components/RepoCardStatic';
 export type { RepoCardStaticProps } from './components/RepoCardStatic';
 
+// Export CardBack for card flip animations and loading states
+export { CardBack } from './components/CardBack';
+export type { CardBackProps } from './components/CardBack';
+
 // Export sprite renderer utilities
 export {
   renderSpriteToDataUrl,
