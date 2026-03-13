@@ -15,6 +15,14 @@ import {
   type GeneratedCardColors,
 } from './cardThemes';
 
+/** Get star color based on quantity */
+const getStarColor = (count: number): string => {
+  if (count >= 100000) return '#ffd700'; // Gold
+  if (count >= 10000) return '#c0c0c0'; // Silver
+  if (count >= 5000) return '#cd7f32'; // Bronze
+  return '#9ca3af'; // Gray
+};
+
 /** Package definition for display in card */
 export interface CardPackage {
   name: string;
@@ -237,7 +245,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
             alignItems: 'flex-start',
             marginBottom: '0',
             marginLeft: '-12px',
-            marginRight: '-4px',
+            marginRight: '-12px',
             marginTop: '-8px',
             minHeight: '24px',
             flexShrink: 0,
@@ -300,13 +308,14 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                 gap: '4px',
                 flexShrink: 0,
                 alignSelf: 'flex-end',
+                marginRight: '12px',
               }}
             >
               <span
                 style={{
                   fontSize: theme.fontSizes[2],
                   fontWeight: theme.fontWeights.medium,
-                  color: '#ffffff',
+                  color: getStarColor(stars),
                   textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                   fontFamily: theme.fonts.body,
                 }}
@@ -317,7 +326,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                 style={{
                   fontSize: theme.fontSizes[2],
                   fontWeight: theme.fontWeights.medium,
-                  color: '#fbbf24',
+                  color: getStarColor(stars),
                   textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                 }}
               >
@@ -336,6 +345,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
           position: 'relative',
           background: `linear-gradient(180deg, ${colors.windowGradient[0]} 0%, ${colors.windowGradient[1]} 100%)`,
           border: `2px solid ${colors.cardHighlight}`,
+          boxSizing: 'border-box',
           boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)',
           overflow: 'hidden',
           display: 'flex',
@@ -453,11 +463,15 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
       {/* Card content panel */}
       <div
         style={{
-          marginTop: '12px',
+          marginTop: '0',
           padding: '8px',
           background: `linear-gradient(180deg, ${colors.panelGradient[0]} 0%, ${colors.panelGradient[1]} 100%)`,
-          border: `1px solid ${colors.panelBorder}`,
-          flexShrink: 0,
+          borderLeft: `1px solid ${colors.panelBorder}`,
+          borderRight: `1px solid ${colors.panelBorder}`,
+          borderBottom: `1px solid ${colors.panelBorder}`,
+          flex: 1,
+          minHeight: 0,
+          overflow: 'hidden',
         }}
       >
         {/* Repository description */}
