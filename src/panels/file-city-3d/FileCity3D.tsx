@@ -485,9 +485,9 @@ interface AnimatedCameraProps {
 function AnimatedCamera({
   citySize,
   isFlat,
-  animationConfig,
-}: AnimatedCameraProps) {
+}: Omit<AnimatedCameraProps, 'animationConfig'>) {
   const { camera } = useThree();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
 
   // Simple tilt: camera stays on the Z axis, just changes height and z position
@@ -689,11 +689,7 @@ function CityScene({
   return (
     <>
       {/* Animated Camera */}
-      <AnimatedCamera
-        citySize={citySize}
-        isFlat={growProgress === 0}
-        animationConfig={animationConfig}
-      />
+      <AnimatedCamera citySize={citySize} isFlat={growProgress === 0} />
 
       {/* Lighting */}
       <ambientLight intensity={0.4} />
@@ -814,6 +810,7 @@ export function FileCity3D({
     } else if (!animationConfig.startFlat) {
       setIsGrown(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animationConfig.startFlat, animationConfig.autoStartDelay]);
 
   const growProgress = isGrown ? 1 : 0;

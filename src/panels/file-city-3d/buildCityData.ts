@@ -2,13 +2,9 @@
  * Utilities for building CityData from FileTree for use with FileCity3D
  */
 
-import {
-  CodeCityBuilderWithGrid,
-  type CityData as BuilderCityData,
-  type CityBuilding as BuilderCityBuilding,
-} from '@principal-ai/file-city-builder';
+import { CodeCityBuilderWithGrid } from '@principal-ai/file-city-builder';
 import type { FileTree } from '@principal-ai/repository-abstraction';
-import type { CityData, CityBuilding } from './FileCity3D';
+import type { CityData } from './FileCity3D';
 
 /**
  * Line count data for enriching buildings
