@@ -20,7 +20,7 @@ const getStarColor = (count: number): string => {
   if (count >= 100000) return '#ffd700'; // Gold
   if (count >= 10000) return '#c0c0c0'; // Silver
   if (count >= 5000) return '#cd7f32'; // Bronze
-  return '#9ca3af'; // Gray
+  return '#f97316'; // Orange
 };
 
 /** Package definition for display in card */
