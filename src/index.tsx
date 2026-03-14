@@ -263,6 +263,8 @@ export {
   RepoCardStatic,
   // CardBack for card flip animations and loading states
   CardBack,
+  // CardBackCodeCity for Code City themed card backs
+  CardBackCodeCity,
   // Sprite renderer utilities
   renderSpriteToDataUrl,
   renderSpriteToDataUrlCached,
@@ -285,6 +287,7 @@ export type {
   RepoCardProps,
   RepoCardStaticProps,
   CardBackProps,
+  CardBackCodeCityProps,
   SpriteRenderOptions,
 } from './panels/overworld-map';
 
