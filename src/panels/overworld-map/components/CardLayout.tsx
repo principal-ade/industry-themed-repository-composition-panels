@@ -284,7 +284,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
         backgroundColor: colors.cardBg,
         padding: '8px 12px 28px 12px',
         border: `4px solid ${colors.cardBorder}`,
-        borderRadius: '12px',
+        borderRadius: 0,
         width: '100%',
         height: '100%',
         boxSizing: 'border-box',
@@ -323,7 +323,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                 style={{
                   width: '40px',
                   height: '40px',
-                  borderRadius: '0 0 8px 0',
+                  borderRadius: 0,
                   border: 'none',
                   borderRight: '1px solid rgba(255,255,255,0.3)',
                   borderBottom: '1px solid rgba(255,255,255,0.3)',
@@ -421,6 +421,35 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
         />
         {/* Sprite content */}
         {children}
+        {/* File count badge */}
+        {files !== undefined && files > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '4px',
+              right: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              padding: '2px 6px',
+              borderRadius: 0,
+              fontFamily: theme.fonts.body,
+              fontSize: theme.fontSizes[1],
+              color: '#e0e0e0',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="#94a3b8">
+              <path
+                d="M3 1h7l3 3v11H3V1zm7 0v3h3M5 8h6M5 11h6"
+                stroke="#94a3b8"
+                strokeWidth="1"
+                fill="none"
+              />
+            </svg>
+            {formatCount(files)}
+          </div>
+        )}
       </div>
 
       {/* Name plate - spans full card width */}
@@ -472,7 +501,8 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                   position: 'relative',
                   marginLeft: '-10px',
                   marginRight: '-10px',
-                  marginTop: '-14px',
+                  marginTop: '8px',
+                  marginBottom: '-14px',
                   zIndex: 2,
                   ...outer,
                 }}
@@ -500,7 +530,8 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                 position: 'relative',
                 marginLeft: '-10px',
                 marginRight: '-10px',
-                marginTop: '-14px',
+                marginTop: '8px',
+                marginBottom: '-14px',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -519,7 +550,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
       <div
         style={{
           marginTop: '0',
-          padding: '8px',
+          padding: '20px 8px 8px 8px',
           background: `linear-gradient(180deg, ${colors.panelGradient[0]} 0%, ${colors.panelGradient[1]} 100%)`,
           borderLeft: `1px solid ${colors.panelBorder}`,
           borderRight: `1px solid ${colors.panelBorder}`,
@@ -537,46 +568,13 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
               color: '#e0e0e0',
               marginBottom: '6px',
               fontFamily: theme.fonts.body,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
               textShadow: '0 1px 2px rgba(0,0,0,0.3)',
               lineHeight: 1.4,
             }}
-            title={description}
           >
             {description}
           </div>
         )}
-
-        {/* Stats row */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: '10px',
-            fontSize: theme.fontSizes[1],
-            color: '#e0e0e0',
-            fontFamily: theme.fonts.body,
-          }}
-        >
-          {files !== undefined && files > 0 && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="#94a3b8">
-                <path
-                  d="M3 1h7l3 3v11H3V1zm7 0v3h3M5 8h6M5 11h6"
-                  stroke="#94a3b8"
-                  strokeWidth="1"
-                  fill="none"
-                />
-              </svg>
-              {formatCount(files)}
-            </span>
-          )}
-        </div>
 
         {/* Package list for monorepos */}
         {packages && packages.length > 1 && (
@@ -632,7 +630,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                 left: '0',
                 backgroundColor: badgeColors.bg,
                 padding: '3px 10px',
-                borderRadius: '0 10px 0 10px',
+                borderRadius: 0,
                 fontFamily: theme.fonts.body,
                 fontSize: theme.fontSizes[0],
                 fontWeight: theme.fontWeights.bold,
@@ -673,7 +671,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
             right: '0',
             backgroundColor: licenseBorder || colors.cardHighlight,
             padding: '3px 10px',
-            borderRadius: '10px 0 10px 0',
+            borderRadius: 0,
             fontFamily: theme.fonts.body,
             fontSize: theme.fontSizes[0],
             fontWeight: theme.fontWeights.bold,
