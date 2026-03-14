@@ -2,13 +2,14 @@ import type { StorybookConfig } from '@storybook/react-vite';
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
+  staticDirs: ['../assets'],
 
   addons: [
     '@storybook/addon-onboarding',
     '@storybook/addon-links',
     '@chromatic-com/storybook',
     '@storybook/addon-docs',
-    '@principal-ai/storybook-addon-otel'
+    '@principal-ai/storybook-addon-otel',
   ],
 
   framework: {
@@ -24,7 +25,7 @@ const config: StorybookConfig = {
       propFilter: (prop) =>
         prop.parent ? !/node_modules/.test(prop.parent.fileName) : true,
     },
-  }
+  },
 };
 
 export default config;

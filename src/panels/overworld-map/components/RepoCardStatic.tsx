@@ -38,6 +38,9 @@ export interface RepoCardStaticProps {
 
   /** Size of the sprite area */
   spriteSize?: number;
+
+  /** Optional custom image URL to display instead of procedural sprite */
+  customImage?: string;
 }
 
 /**
@@ -51,9 +54,10 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
   width = 200,
   height = 280,
   spriteSize = 160,
+  customImage,
 }) => {
   const [spriteDataUrl, setSpriteDataUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!customImage); // Skip loading if custom image provided
 
   // Calculate sprite properties
   const size = calculateRepositorySize(repository.metrics);
@@ -62,8 +66,10 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
   // Generate card colors for loading state fallback
   const colors = generateCardColors(color);
 
-  // Render sprite to image on mount
+  // Render sprite to image on mount (skip if customImage provided)
   useEffect(() => {
+    if (customImage) return; // Skip sprite rendering if custom image provided
+
     let mounted = true;
 
     async function renderSprite() {
@@ -97,10 +103,20 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
     return () => {
       mounted = false;
     };
-  }, [size, color, packages, repository, spriteSize]);
+  }, [size, color, packages, repository, spriteSize, customImage]);
 
-  // Sprite content based on loading state
-  const spriteContent = isLoading ? (
+  // Sprite content based on loading state or custom image
+  const spriteContent = customImage ? (
+    <img
+      src={customImage}
+      alt={repository.name}
+      style={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain',
+      }}
+    />
+  ) : isLoading ? (
     <div
       style={{
         width: spriteSize * 0.5,

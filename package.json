@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/repository-composition-panels",
-  "version": "0.7.40",
+  "version": "0.7.42",
   "description": "Repository composition panels including Git Changes panel for the panel framework",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -73,6 +73,7 @@
     "clsx": "^2.1.1",
     "d3-dag": "^1.1.0",
     "d3-force": "^3.0.0",
+    "devicons-react": "^1.5.0",
     "lucide-react": "^0.552.0",
     "pixi-viewport": "^6.0.3",
     "pixi.js": "^8.16.0",
