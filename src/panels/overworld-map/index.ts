@@ -62,6 +62,10 @@ export type { RepoCardStaticProps } from './components/RepoCardStatic';
 export { CardBack } from './components/CardBack';
 export type { CardBackProps } from './components/CardBack';
 
+// Export CardBackCodeCity for Code City themed card backs
+export { CardBackCodeCity } from './components/CardBackCodeCity';
+export type { CardBackCodeCityProps } from './components/CardBackCodeCity';
+
 // Export sprite renderer utilities
 export {
   renderSpriteToDataUrl,
