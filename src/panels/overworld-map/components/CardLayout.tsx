@@ -144,11 +144,19 @@ export interface CardLayoutProps {
   children: React.ReactNode;
 }
 
-/** CSS keyframes for foil shimmer effect */
+/** CSS keyframes for foil effects */
 const FOIL_KEYFRAMES = `
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}
+@keyframes shimmer-vertical {
+  0% { background-position: 0 200%; }
+  100% { background-position: 0 -200%; }
+}
+@keyframes holo {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
 }
 `;
 
@@ -498,28 +506,31 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
             };
 
             if (foilEffect === 'silver') {
+              // Static silver border
               return (
-                <div style={containerStyle}>
-                  <div
-                    style={{
-                      ...shimmerStyle,
-                      background:
-                        'linear-gradient(90deg, transparent 0%, rgba(192,192,192,0.25) 25%, rgba(255,255,255,0.4) 50%, rgba(192,192,192,0.25) 75%, transparent 100%)',
-                    }}
-                  />
-                </div>
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    pointerEvents: 'none',
+                    border: '3px solid #c0c0c0',
+                    boxShadow: 'inset 0 0 4px rgba(255,255,255,0.5)',
+                  }}
+                />
               );
             }
 
             if (foilEffect === 'gold') {
+              // Holographic rainbow shift effect
               return (
                 <div style={containerStyle}>
                   <div
                     style={{
-                      ...shimmerStyle,
+                      position: 'absolute',
+                      inset: 0,
                       background:
-                        'linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.25) 25%, rgba(255,255,200,0.45) 50%, rgba(255,215,0,0.25) 75%, transparent 100%)',
-                      animationDuration: '2s',
+                        'conic-gradient(from 0deg at 50% 50%, rgba(255,0,0,0.4), rgba(255,255,0,0.4), rgba(0,255,0,0.4), rgba(0,255,255,0.4), rgba(0,0,255,0.4), rgba(255,0,255,0.4), rgba(255,0,0,0.4))',
+                      animation: 'holo 6s linear infinite',
                     }}
                   />
                 </div>
