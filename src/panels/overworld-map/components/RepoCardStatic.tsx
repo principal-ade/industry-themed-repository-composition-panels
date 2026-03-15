@@ -153,6 +153,7 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
       <CardLayout
         color={color}
         owner={repository.github?.owner}
+        ownerDisplayName={repository.github?.ownerDisplayName}
         stars={repository.github?.stars}
         label={repository.name}
         description={repository.github?.description}

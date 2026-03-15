@@ -9,6 +9,7 @@ import type {
 } from '@principal-ade/panel-framework-core';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library';
 import type { NamePlateStyle } from '../overworld-map/components/CardLayout';
+import type { AlexandriaEntryWithMetrics } from '../CollectionMapPanel';
 
 /**
  * Actions available to LocalProjectGridPanel
@@ -42,8 +43,8 @@ export type LocalProjectGridPanelProps = CorePanelComponentProps<
  * Props for LocalProjectCard component
  */
 export interface LocalProjectCardProps {
-  /** The Alexandria entry to display */
-  entry: AlexandriaEntry;
+  /** The Alexandria entry to display (supports extended metrics for display name) */
+  entry: AlexandriaEntry | AlexandriaEntryWithMetrics;
   /** Card width */
   width?: number;
   /** Card height */

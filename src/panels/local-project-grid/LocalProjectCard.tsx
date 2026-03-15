@@ -156,6 +156,10 @@ export const LocalProjectCard: React.FC<LocalProjectCardProps> = ({
       <CardLayout
         color={color}
         owner={entry.github?.owner}
+        ownerDisplayName={
+          (entry.github as { ownerDisplayName?: string | null })
+            ?.ownerDisplayName
+        }
         stars={entry.github?.stars}
         label={entry.name}
         description={description}

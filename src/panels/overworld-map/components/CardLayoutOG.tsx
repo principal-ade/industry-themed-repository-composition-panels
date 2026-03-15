@@ -110,8 +110,11 @@ export interface CardLayoutOGProps {
   /** Base color for the card theme (derived from language/repo) */
   color: number | string;
 
-  /** Owner/organization name */
+  /** Owner/organization login/username (used for avatar URL) */
   owner?: string;
+
+  /** Owner display name (shown in UI, falls back to owner if not provided) */
+  ownerDisplayName?: string | null;
 
   /** Star count */
   stars?: number;
@@ -150,6 +153,7 @@ export interface CardLayoutOGProps {
 export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
   color,
   owner,
+  ownerDisplayName,
   stars,
   label,
   description,
@@ -237,7 +241,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
                   alignSelf: 'flex-end',
                 }}
               >
-                {owner}
+                {ownerDisplayName ?? owner}
               </span>
             </div>
           ) : (

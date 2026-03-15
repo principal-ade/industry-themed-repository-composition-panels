@@ -66,8 +66,10 @@ export interface RepoSpriteProps {
   license?: string;
   /** Repository/package name (shown on license sign and card) */
   label?: string;
-  /** Repository owner (GitHub username/org, shown on card) */
+  /** Repository owner (GitHub username/org, used for avatar URL) */
   owner?: string;
+  /** Owner display name (shown in UI, falls back to owner if not provided) */
+  ownerDisplayName?: string | null;
   /** Primary language (shown on card) */
   language?: string;
   /** ISO timestamp when repo was created on GitHub */
@@ -159,6 +161,7 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
   license,
   label,
   owner,
+  ownerDisplayName,
   language,
   createdAt,
   variant = 'default',
@@ -409,6 +412,7 @@ export const RepoSprite: React.FC<RepoSpriteProps> = ({
       <CardLayout
         color={color}
         owner={owner}
+        ownerDisplayName={ownerDisplayName}
         stars={stars}
         label={label}
         files={files}

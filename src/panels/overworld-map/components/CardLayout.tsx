@@ -110,8 +110,11 @@ export interface CardLayoutProps {
   /** Base color for the card theme (derived from language/repo) */
   color: number | string;
 
-  /** Owner/organization name (shown top-left with avatar) */
+  /** Owner/organization login/username (used for avatar URL) */
   owner?: string;
+
+  /** Owner display name (shown in UI, falls back to owner if not provided) */
+  ownerDisplayName?: string | null;
 
   /** Star count (shown top-right) */
   stars?: number;
@@ -300,6 +303,7 @@ const styleUsesClipPath = (style: NamePlateStyle): boolean => {
 export const CardLayout: React.FC<CardLayoutProps> = ({
   color,
   owner,
+  ownerDisplayName,
   stars,
   label,
   description,
@@ -411,7 +415,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                   alignSelf: 'flex-end',
                 }}
               >
-                {owner}
+                {ownerDisplayName ?? owner}
               </span>
             </div>
           ) : (

@@ -95,6 +95,7 @@ export interface AlexandriaEntryWithMetrics extends AlexandriaEntry {
   /** Extended github fields (supplement to AlexandriaEntry.github) */
   github?: AlexandriaEntry['github'] & {
     ownerAvatar?: string; // URL to owner's avatar image
+    ownerDisplayName?: string | null; // Display name of the owner (user or org)
   };
 }
 
