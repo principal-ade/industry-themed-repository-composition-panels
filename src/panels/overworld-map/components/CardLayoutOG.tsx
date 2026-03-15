@@ -113,6 +113,9 @@ export interface CardLayoutOGProps {
   /** Owner/organization login/username (used for avatar URL) */
   owner?: string;
 
+  /** Custom avatar URL (overrides default GitHub avatar) */
+  avatarUrl?: string;
+
   /** Owner display name (shown in UI, falls back to owner if not provided) */
   ownerDisplayName?: string | null;
 
@@ -153,6 +156,7 @@ export interface CardLayoutOGProps {
 export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
   color,
   owner,
+  avatarUrl,
   ownerDisplayName,
   stars,
   label,
@@ -188,17 +192,62 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
         overflow: 'hidden',
       }}
     >
-      {/* Header row - owner and stars */}
+      {/* Sprite window frame - rendered first so header stacks on top */}
+      <div
+        style={{
+          width: '100%',
+          height: '50%',
+          position: 'relative',
+          marginTop: showHeader ? 20 : 0,
+          background: `linear-gradient(180deg, ${colors.windowGradient[0]} 0%, ${colors.windowGradient[1]} 100%)`,
+          border: `2px solid ${colors.cardHighlight}`,
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {children}
+        {/* File count badge */}
+        {files !== undefined && files > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              padding: '2px 6px',
+            }}
+          >
+            <span
+              style={{
+                fontSize: theme.fontSizes[2],
+                fontWeight: theme.fontWeights.medium,
+                color: '#e0e0e0',
+                fontFamily: theme.fonts.body,
+              }}
+            >
+              {formatCount(files)} files
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Header row - owner and stars (rendered after sprite window to stack on top) */}
       {showHeader && (
         <div
           style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            marginBottom: 0,
-            marginLeft: -12,
-            marginRight: -12,
-            marginTop: -8,
             minHeight: 24,
           }}
         >
@@ -214,7 +263,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
             {owner && (
               <>
                 <img
-                  src={`https://github.com/${owner}.png?size=80`}
+                  src={avatarUrl || `https://github.com/${owner}.png?size=80`}
                   alt={owner}
                   width={40}
                   height={40}
@@ -222,21 +271,21 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
                     borderRadius: 0,
                     borderRight: '1px solid rgba(255,255,255,0.3)',
                     borderBottom: '1px solid rgba(255,255,255,0.3)',
-                    marginBottom: -12,
                     backgroundColor: colors.cardBorder,
                   }}
                 />
                 <span
                   style={{
                     display: 'flex',
-                    fontSize: theme.fontSizes[2],
+                    fontSize: theme.fontSizes[4],
                     fontWeight: theme.fontWeights.medium,
                     color: '#e0e0e0',
                     fontFamily: theme.fonts.body,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    alignSelf: 'flex-end',
+                    marginTop: 4,
+                    marginLeft: 6,
                   }}
                 >
                   {ownerDisplayName ?? owner}
@@ -252,13 +301,13 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
-                alignSelf: 'flex-end',
+                marginTop: 4,
                 marginRight: 12,
               }}
             >
               <span
                 style={{
-                  fontSize: theme.fontSizes[2],
+                  fontSize: theme.fontSizes[4],
                   fontWeight: theme.fontWeights.medium,
                   color: getStarColor(stars),
                   fontFamily: theme.fonts.body,
@@ -267,11 +316,11 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
                 {formatCount(stars)}
               </span>
               <svg
-                width={theme.fontSizes[2]}
-                height={theme.fontSizes[2]}
+                width={theme.fontSizes[4]}
+                height={theme.fontSizes[4]}
                 viewBox="0 0 24 24"
                 fill={getStarColor(stars)}
-                style={{ marginTop: -1 }}
+                style={{ marginTop: 2, marginLeft: -2 }}
               >
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
@@ -280,30 +329,12 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
         </div>
       )}
 
-      {/* Sprite window frame */}
-      <div
-        style={{
-          width: '100%',
-          height: '50%',
-          position: 'relative',
-          background: `linear-gradient(180deg, ${colors.windowGradient[0]} 0%, ${colors.windowGradient[1]} 100%)`,
-          border: `2px solid ${colors.cardHighlight}`,
-          boxSizing: 'border-box',
-          overflow: 'hidden',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {children}
-      </div>
-
       {/* Name plate */}
       {label &&
         (() => {
-          const baseFontSize = 14;
-          const minFontSize = 8;
-          const charsAtBase = 24;
+          const baseFontSize = 24;
+          const minFontSize = 12;
+          const charsAtBase = 16;
           const fontSize = Math.max(
             minFontSize,
             Math.min(
@@ -333,12 +364,12 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
           return (
             <div
               style={{
-                marginTop: 8,
+                marginTop: 4,
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
                 background: bgGradient,
-                padding: '6px 8px',
+                padding: '8px 8px 10px 8px',
                 overflow: 'hidden',
                 ...borderStyle,
               }}
@@ -380,8 +411,8 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
         {/* Description */}
         {description &&
           (() => {
-            const baseFontSize = 14;
-            const minFontSize = 9;
+            const baseFontSize = 26;
+            const minFontSize = 16;
             const shrinkThreshold = 100;
             const maxChars = 250;
 
@@ -470,7 +501,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
             backgroundColor: getAgeBadgeColors(createdAt).bg,
             padding: '3px 10px',
             fontFamily: theme.fonts.body,
-            fontSize: theme.fontSizes[0],
+            fontSize: theme.fontSizes[2],
             fontWeight: theme.fontWeights.bold,
             color: getAgeBadgeColors(createdAt).text,
           }}
@@ -505,7 +536,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
             backgroundColor: licenseBorder || colors.cardHighlight,
             padding: '3px 10px',
             fontFamily: theme.fonts.body,
-            fontSize: theme.fontSizes[0],
+            fontSize: theme.fontSizes[2],
             fontWeight: theme.fontWeights.bold,
             color: '#ffffff',
           }}

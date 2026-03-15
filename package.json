@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/repository-composition-panels",
-  "version": "0.7.55",
+  "version": "0.7.56",
   "description": "Repository composition panels including Git Changes panel for the panel framework",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -127,6 +127,7 @@
     "prettier": "^3.8.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "satori": "^0.25.0",
     "storybook": "10.1.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.55.0",
