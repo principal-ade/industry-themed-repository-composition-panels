@@ -212,6 +212,8 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
                 alignItems: 'center',
                 gap: '6px',
                 flex: 1,
+                position: 'relative',
+                zIndex: 10,
               }}
             >
               <img
@@ -226,7 +228,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
                   marginBottom: '-12px',
                   backgroundColor: colors.cardBorder,
                   position: 'relative',
-                  zIndex: 2,
+                  zIndex: 10,
                 }}
               />
               <span
@@ -269,15 +271,15 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
               >
                 {formatCount(stars)}
               </span>
-              <span
-                style={{
-                  fontSize: theme.fontSizes[2],
-                  fontWeight: theme.fontWeights.medium,
-                  color: getStarColor(stars),
-                }}
+              <svg
+                width={theme.fontSizes[2]}
+                height={theme.fontSizes[2]}
+                viewBox="0 0 24 24"
+                fill={getStarColor(stars)}
+                style={{ marginTop: -1 }}
               >
-                ★
-              </span>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
             </div>
           )}
         </div>
@@ -296,6 +298,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          zIndex: 1,
         }}
       >
         {/* Sprite content */}
