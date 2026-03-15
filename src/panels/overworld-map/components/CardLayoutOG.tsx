@@ -298,41 +298,6 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
         {children}
       </div>
 
-      {/* File count badge - positioned absolutely within card */}
-      {files !== undefined && files > 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 'calc(50% + 24px)',
-            right: 16,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            padding: '2px 6px',
-            fontFamily: theme.fonts.body,
-            fontSize: theme.fontSizes[1],
-            color: '#e0e0e0',
-          }}
-        >
-          <svg width={12} height={12} viewBox="0 0 16 16">
-            <path
-              d="M3 1h7l3 3v11H3V1z"
-              stroke="#94a3b8"
-              strokeWidth={1.5}
-              fill="none"
-            />
-            <path
-              d="M10 1v3h3"
-              stroke="#94a3b8"
-              strokeWidth={1.5}
-              fill="none"
-            />
-          </svg>
-          <span style={{ display: 'flex' }}>{formatCount(files)}</span>
-        </div>
-      )}
-
       {/* Name plate */}
       {label &&
         (() => {
