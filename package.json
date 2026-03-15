@@ -18,6 +18,12 @@
       "import": "./dist/tools.bundle.js",
       "require": "./dist/tools.bundle.js",
       "default": "./dist/tools.bundle.js"
+    },
+    "./og": {
+      "types": "./dist/og.d.ts",
+      "import": "./dist/og.bundle.js",
+      "require": "./dist/og.bundle.js",
+      "default": "./dist/og.bundle.js"
     }
   },
   "keywords": [
@@ -26,9 +32,10 @@
   "author": "Your Name",
   "license": "MIT",
   "scripts": {
-    "build": "bun run clean && bun run build:panel && bun run build:tools && bun run build:types",
-    "build:panel": "vite build",
+    "build": "bun run clean && bun run build:panel && bun run build:tools && bun run build:og && bun run build:types",
+    "build:panel": "NODE_ENV=production vite build",
     "build:tools": "bun build ./src/tools/index.ts --outfile ./dist/tools.bundle.js --format esm --target browser",
+    "build:og": "bun build ./src/og.ts --outfile ./dist/og.bundle.js --format esm --target node --external react --external react/jsx-runtime --external react/jsx-dev-runtime --external react-dom",
     "build:types": "tsc --project tsconfig.build.json --emitDeclarationOnly --declaration --declarationMap",
     "dev": "vite build --watch",
     "clean": "rm -rf dist",

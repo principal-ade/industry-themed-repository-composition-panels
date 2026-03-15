@@ -8,6 +8,7 @@ export default defineConfig(() => ({
       // Force production JSX runtime to avoid jsxDEV in output
       jsxRuntime: 'automatic',
       jsxImportSource: 'react',
+      development: false,
     }),
     {
       name: 'resolve-file-city-builder',
