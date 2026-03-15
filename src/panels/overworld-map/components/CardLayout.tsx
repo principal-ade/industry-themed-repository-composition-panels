@@ -5,7 +5,7 @@
  * RepoSprite (live WebGL) and RepoCardStatic (static PNG) for visual consistency.
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import {
   licenseBorderColors,
@@ -21,6 +21,22 @@ const getStarColor = (count: number): string => {
   if (count >= 10000) return '#c0c0c0'; // Silver
   if (count >= 5000) return '#cd7f32'; // Bronze
   return '#f97316'; // Orange
+};
+
+/** Get name plate style based on star count (complexity increases with stars) */
+const getStarNamePlateStyle = (count: number): NamePlateStyle => {
+  if (count >= 100000) return 'ribbon'; // Gold - most ornate
+  if (count >= 10000) return 'tag'; // Silver - subtle pointed ends
+  if (count >= 5000) return 'box'; // Bronze - full border rectangle
+  return 'flat'; // Orange - top/bottom borders only
+};
+
+/** Get foil effect type based on star count */
+type FoilEffect = 'none' | 'silver' | 'gold';
+const getStarFoilEffect = (count: number): FoilEffect => {
+  if (count >= 100000) return 'gold';
+  if (count >= 10000) return 'silver';
+  return 'none';
 };
 
 /** Get badge colors based on repository age (prestige tiers) */
@@ -83,6 +99,8 @@ export interface CardPackage {
 /** Name plate style variants */
 export type NamePlateStyle =
   | 'flat'
+  | 'box'
+  | 'tag'
   | 'ribbon'
   | 'rounded'
   | 'notched'
@@ -126,6 +144,14 @@ export interface CardLayoutProps {
   children: React.ReactNode;
 }
 
+/** CSS keyframes for foil shimmer effect */
+const FOIL_KEYFRAMES = `
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+`;
+
 /** Starfield background CSS for the sprite window */
 const STARFIELD_BACKGROUND = `
   radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.4) 50%, transparent 50%),
@@ -168,6 +194,16 @@ const NAME_PLATE_CONFIGS: Record<NamePlateStyle, NamePlateStyleConfig> = {
   flat: {
     usesClipPath: false,
     borderRadius: 0,
+  },
+  box: {
+    usesClipPath: false,
+    borderRadius: 0,
+  },
+  tag: {
+    usesClipPath: true,
+    clipPath:
+      'polygon(6px 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 6px 100%, 0% 50%)',
+    extraPadding: { left: 6, right: 6 },
   },
   ribbon: {
     usesClipPath: true,
@@ -228,6 +264,7 @@ const getNamePlateStyles = (
   }
 
   // Non-clip-path styles: single element with border
+  // 'flat' has top/bottom only, others have all 4 borders
   const borderStyle =
     style === 'flat'
       ? {
@@ -274,6 +311,25 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
   const licenseBorder = license ? licenseBorderColors[license] : null;
 
   const showHeader = owner || (stars !== undefined && stars > 0);
+  const hasFoilEffect =
+    stars !== undefined && getStarFoilEffect(stars) !== 'none';
+
+  // Inject keyframes for foil effect
+  useEffect(() => {
+    if (!hasFoilEffect) return;
+
+    const styleId = 'card-layout-foil-keyframes';
+    if (document.getElementById(styleId)) return;
+
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = FOIL_KEYFRAMES;
+    document.head.appendChild(style);
+
+    return () => {
+      // Don't remove - other cards might need it
+    };
+  }, [hasFoilEffect]);
 
   return (
     <div
@@ -419,8 +475,73 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
             backgroundSize: '100% 100%',
           }}
         />
-        {/* Sprite content */}
-        {children}
+        {/* Foil effect - behind sprite so it shows through transparent areas */}
+        {stars !== undefined &&
+          (() => {
+            const foilEffect = getStarFoilEffect(stars);
+            if (foilEffect === 'none') return null;
+
+            const containerStyle: React.CSSProperties = {
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              overflow: 'hidden',
+            };
+
+            const shimmerStyle: React.CSSProperties = {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              animation: 'shimmer 2.5s ease-in-out infinite',
+            };
+
+            if (foilEffect === 'silver') {
+              return (
+                <div style={containerStyle}>
+                  <div
+                    style={{
+                      ...shimmerStyle,
+                      background:
+                        'linear-gradient(90deg, transparent 0%, rgba(192,192,192,0.25) 25%, rgba(255,255,255,0.4) 50%, rgba(192,192,192,0.25) 75%, transparent 100%)',
+                    }}
+                  />
+                </div>
+              );
+            }
+
+            if (foilEffect === 'gold') {
+              return (
+                <div style={containerStyle}>
+                  <div
+                    style={{
+                      ...shimmerStyle,
+                      background:
+                        'linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.25) 25%, rgba(255,255,200,0.45) 50%, rgba(255,215,0,0.25) 75%, transparent 100%)',
+                      animationDuration: '2s',
+                    }}
+                  />
+                </div>
+              );
+            }
+
+            return null;
+          })()}
+        {/* Sprite content - z-index ensures it's above the foil effect */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {children}
+        </div>
         {/* File count badge */}
         {files !== undefined && files > 0 && (
           <div
@@ -467,23 +588,31 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
               (baseFontSize * charsAtBase) / Math.max(label.length, 1)
             )
           );
+          // Use star-based color and style when stars are available
+          const hasStars = stars !== undefined && stars > 0;
+          const namePlateColor = hasStars
+            ? getStarColor(stars)
+            : colors.cardHighlight;
+          const effectiveStyle = hasStars
+            ? getStarNamePlateStyle(stars)
+            : namePlateStyle;
           const bgGradient = `linear-gradient(180deg, ${colors.cardBorder} 0%, ${colors.cardBg} 100%)`;
           const { outer, inner } = getNamePlateStyles(
-            namePlateStyle,
-            colors.cardHighlight,
+            effectiveStyle,
+            namePlateColor,
             bgGradient
           );
-          const usesWrapper = styleUsesClipPath(namePlateStyle);
+          const usesWrapper = styleUsesClipPath(effectiveStyle);
 
           const textContent = (
             <span
               style={{
                 fontSize: `${fontSize}px`,
                 fontWeight: theme.fontWeights.bold,
-                color: '#ffffff',
+                color: namePlateColor,
                 fontFamily: theme.fonts.body,
                 whiteSpace: 'nowrap',
-                textShadow: `0 1px 2px rgba(0,0,0,0.5), 0 0 8px ${colors.cardHighlight}`,
+                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 maxWidth: '100%',
@@ -502,7 +631,6 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
                   marginLeft: '-10px',
                   marginRight: '-10px',
                   marginTop: '8px',
-                  marginBottom: '-14px',
                   zIndex: 2,
                   ...outer,
                 }}
@@ -524,14 +652,18 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
           }
 
           // Simple styles without clip-path
+          // Flat and box styles have no overhang for a simpler look
+          const sideMargin =
+            effectiveStyle === 'flat' || effectiveStyle === 'box'
+              ? '0px'
+              : '-10px';
           return (
             <div
               style={{
                 position: 'relative',
-                marginLeft: '-10px',
-                marginRight: '-10px',
+                marginLeft: sideMargin,
+                marginRight: sideMargin,
                 marginTop: '8px',
-                marginBottom: '-14px',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -550,7 +682,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
       <div
         style={{
           marginTop: '0',
-          padding: '20px 8px 8px 8px',
+          padding: '8px',
           background: `linear-gradient(180deg, ${colors.panelGradient[0]} 0%, ${colors.panelGradient[1]} 100%)`,
           borderLeft: `1px solid ${colors.panelBorder}`,
           borderRight: `1px solid ${colors.panelBorder}`,
@@ -561,20 +693,43 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
         }}
       >
         {/* Repository description */}
-        {description && (
-          <div
-            style={{
-              fontSize: theme.fontSizes[1],
-              color: '#e0e0e0',
-              marginBottom: '6px',
-              fontFamily: theme.fonts.body,
-              textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-              lineHeight: 1.4,
-            }}
-          >
-            {description}
-          </div>
-        )}
+        {description &&
+          (() => {
+            // Only shrink font size when description exceeds threshold
+            const baseFontSize = 14;
+            const minFontSize = 9;
+            const shrinkThreshold = 100; // Start shrinking after this many chars
+            const maxChars = 250; // At this length, use minimum font size
+
+            let descFontSize = baseFontSize;
+            if (description.length > shrinkThreshold) {
+              const excess = description.length - shrinkThreshold;
+              const range = maxChars - shrinkThreshold;
+              const shrinkRatio = Math.min(1, excess / range);
+              descFontSize =
+                baseFontSize - shrinkRatio * (baseFontSize - minFontSize);
+            }
+
+            return (
+              <div
+                style={{
+                  fontSize: `${descFontSize}px`,
+                  color: '#e0e0e0',
+                  fontFamily: theme.fonts.body,
+                  textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                  lineHeight: 1.4,
+                  textAlign: 'left',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 8,
+                  WebkitBoxOrient: 'vertical',
+                }}
+              >
+                {description}
+              </div>
+            );
+          })()}
 
         {/* Package list for monorepos */}
         {packages && packages.length > 1 && (
