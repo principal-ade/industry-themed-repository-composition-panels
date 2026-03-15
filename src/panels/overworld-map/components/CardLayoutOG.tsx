@@ -195,60 +195,55 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            marginBottom: '0',
-            marginLeft: '-12px',
-            marginRight: '-12px',
-            marginTop: '-8px',
-            minHeight: '24px',
-            position: 'relative',
-            zIndex: 2,
+            marginBottom: 0,
+            marginLeft: -12,
+            marginRight: -12,
+            marginTop: -8,
+            minHeight: 24,
           }}
         >
           {/* Owner avatar and name */}
-          {owner ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                flex: 1,
-                position: 'relative',
-                zIndex: 10,
-              }}
-            >
-              <img
-                src={`https://github.com/${owner}.png?size=80`}
-                alt={owner}
-                width={40}
-                height={40}
-                style={{
-                  borderRadius: 0,
-                  borderRight: '1px solid rgba(255,255,255,0.3)',
-                  borderBottom: '1px solid rgba(255,255,255,0.3)',
-                  marginBottom: '-12px',
-                  backgroundColor: colors.cardBorder,
-                  position: 'relative',
-                  zIndex: 10,
-                }}
-              />
-              <span
-                style={{
-                  fontSize: theme.fontSizes[2],
-                  fontWeight: theme.fontWeights.medium,
-                  color: '#e0e0e0',
-                  fontFamily: theme.fonts.body,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  alignSelf: 'flex-end',
-                }}
-              >
-                {ownerDisplayName ?? owner}
-              </span>
-            </div>
-          ) : (
-            <div />
-          )}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              flex: 1,
+            }}
+          >
+            {owner && (
+              <>
+                <img
+                  src={`https://github.com/${owner}.png?size=80`}
+                  alt={owner}
+                  width={40}
+                  height={40}
+                  style={{
+                    borderRadius: 0,
+                    borderRight: '1px solid rgba(255,255,255,0.3)',
+                    borderBottom: '1px solid rgba(255,255,255,0.3)',
+                    marginBottom: -12,
+                    backgroundColor: colors.cardBorder,
+                  }}
+                />
+                <span
+                  style={{
+                    display: 'flex',
+                    fontSize: theme.fontSizes[2],
+                    fontWeight: theme.fontWeights.medium,
+                    color: '#e0e0e0',
+                    fontFamily: theme.fonts.body,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    alignSelf: 'flex-end',
+                  }}
+                >
+                  {ownerDisplayName ?? owner}
+                </span>
+              </>
+            )}
+          </div>
 
           {/* Stars badge */}
           {stars !== undefined && stars > 0 && (
@@ -256,9 +251,9 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: 4,
                 alignSelf: 'flex-end',
-                marginRight: '12px',
+                marginRight: 12,
               }}
             >
               <span
@@ -298,53 +293,45 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1,
         }}
       >
-        {/* Sprite content */}
+        {children}
+      </div>
+
+      {/* File count badge - positioned absolutely within card */}
+      {files !== undefined && files > 0 && (
         <div
           style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
+            position: 'absolute',
+            top: 'calc(50% + 24px)',
+            right: 16,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            gap: 4,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            padding: '2px 6px',
+            fontFamily: theme.fonts.body,
+            fontSize: theme.fontSizes[1],
+            color: '#e0e0e0',
           }}
         >
-          {children}
+          <svg width={12} height={12} viewBox="0 0 16 16">
+            <path
+              d="M3 1h7l3 3v11H3V1z"
+              stroke="#94a3b8"
+              strokeWidth={1.5}
+              fill="none"
+            />
+            <path
+              d="M10 1v3h3"
+              stroke="#94a3b8"
+              strokeWidth={1.5}
+              fill="none"
+            />
+          </svg>
+          <span style={{ display: 'flex' }}>{formatCount(files)}</span>
         </div>
-
-        {/* File count badge */}
-        {files !== undefined && files > 0 && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '4px',
-              right: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-              padding: '2px 6px',
-              borderRadius: 0,
-              fontFamily: theme.fonts.body,
-              fontSize: theme.fontSizes[1],
-              color: '#e0e0e0',
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="#94a3b8">
-              <path
-                d="M3 1h7l3 3v11H3V1zm7 0v3h3M5 8h6M5 11h6"
-                stroke="#94a3b8"
-                strokeWidth="1"
-                fill="none"
-              />
-            </svg>
-            {formatCount(files)}
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Name plate */}
       {label &&
@@ -381,8 +368,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
           return (
             <div
               style={{
-                position: 'relative',
-                marginTop: '8px',
+                marginTop: 8,
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -413,8 +399,8 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
       {/* Card content panel */}
       <div
         style={{
-          marginTop: '0',
-          padding: '8px',
+          marginTop: 0,
+          padding: 8,
           background: `linear-gradient(180deg, ${colors.panelGradient[0]} 0%, ${colors.panelGradient[1]} 100%)`,
           borderLeft: `1px solid ${colors.panelBorder}`,
           borderRight: `1px solid ${colors.panelBorder}`,
@@ -422,6 +408,8 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
           flex: 1,
           minHeight: 0,
           overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {/* Description */}
@@ -464,11 +452,11 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
         {packages && packages.length > 1 && (
           <div
             style={{
-              marginTop: '6px',
+              marginTop: 6,
               display: 'flex',
               flexWrap: 'wrap',
               justifyContent: 'center',
-              gap: '4px',
+              gap: 4,
             }}
           >
             {packages.slice(0, 6).map((pkg, i) => (
@@ -508,33 +496,29 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
 
       {/* Bottom left - created date or language */}
       {createdAt ? (
-        (() => {
-          const badgeColors = getAgeBadgeColors(createdAt);
-          return (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '0',
-                left: '0',
-                backgroundColor: badgeColors.bg,
-                padding: '3px 10px',
-                borderRadius: 0,
-                fontFamily: theme.fonts.body,
-                fontSize: theme.fontSizes[0],
-                fontWeight: theme.fontWeights.bold,
-                color: badgeColors.text,
-              }}
-            >
-              {formatCreatedDate(createdAt)}
-            </div>
-          );
-        })()
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            display: 'flex',
+            backgroundColor: getAgeBadgeColors(createdAt).bg,
+            padding: '3px 10px',
+            fontFamily: theme.fonts.body,
+            fontSize: theme.fontSizes[0],
+            fontWeight: theme.fontWeights.bold,
+            color: getAgeBadgeColors(createdAt).text,
+          }}
+        >
+          {formatCreatedDate(createdAt)}
+        </div>
       ) : language ? (
         <div
           style={{
             position: 'absolute',
-            bottom: '4px',
-            left: '8px',
+            bottom: 4,
+            left: 8,
+            display: 'flex',
             fontSize: theme.fontSizes[0],
             fontWeight: theme.fontWeights.medium,
             color: '#e0e0e0',
@@ -550,11 +534,11 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
         <div
           style={{
             position: 'absolute',
-            bottom: '0',
-            right: '0',
+            bottom: 0,
+            right: 0,
+            display: 'flex',
             backgroundColor: licenseBorder || colors.cardHighlight,
             padding: '3px 10px',
-            borderRadius: 0,
             fontFamily: theme.fonts.body,
             fontSize: theme.fontSizes[0],
             fontWeight: theme.fontWeights.bold,
