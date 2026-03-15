@@ -75,3 +75,11 @@ export {
   destroySharedApp,
 } from './components/spriteRenderer';
 export type { SpriteRenderOptions } from './components/spriteRenderer';
+
+// Export CardLayoutOG for Satori-based OG image generation
+export { CardLayoutOG, DEFAULT_OG_THEME } from './components/CardLayoutOG';
+export type {
+  CardLayoutOGProps,
+  CardPackageOG,
+  OGTheme,
+} from './components/CardLayoutOG';

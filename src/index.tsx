@@ -265,6 +265,9 @@ export {
   CardBack,
   // CardBackCodeCity for Code City themed card backs
   CardBackCodeCity,
+  // CardLayoutOG for Satori-based OG image generation
+  CardLayoutOG,
+  DEFAULT_OG_THEME,
   // Sprite renderer utilities
   renderSpriteToDataUrl,
   renderSpriteToDataUrlCached,
@@ -288,6 +291,9 @@ export type {
   RepoCardStaticProps,
   CardBackProps,
   CardBackCodeCityProps,
+  CardLayoutOGProps,
+  CardPackageOG,
+  OGTheme,
   SpriteRenderOptions,
 } from './panels/overworld-map';
 
