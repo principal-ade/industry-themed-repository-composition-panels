@@ -330,3 +330,112 @@ export const NoOwner: Story = {
     license: 'MIT',
   },
 };
+
+/**
+ * Long owner name - tests truncation to respect star count
+ */
+export const LongOwner: Story = {
+  args: {
+    color: languageColors.TypeScript,
+    owner: 'verylongorganizationname',
+    ownerDisplayName: 'Very Long Organization Name Inc.',
+    stars: 42500,
+    label: 'project',
+    description:
+      'Testing that long owner names truncate properly without overlapping the star count.',
+    files: 1234,
+    license: 'MIT',
+    language: 'TypeScript',
+    createdAt: '2020-01-15T00:00:00Z',
+  },
+};
+
+/**
+ * 100 character description - at shrink threshold
+ */
+export const Description100: Story = {
+  args: {
+    color: languageColors.Go,
+    owner: 'golang',
+    stars: 120000,
+    label: 'go',
+    description:
+      'An open source programming language that makes it simple to build secure and scalable systems.',
+    files: 11200,
+    license: 'BSD-3-Clause',
+    language: 'Go',
+    createdAt: '2009-11-10T00:00:00Z',
+  },
+};
+
+/**
+ * 150 character description
+ */
+export const Description150: Story = {
+  args: {
+    color: languageColors.Swift,
+    owner: 'apple',
+    stars: 67000,
+    label: 'swift',
+    description:
+      'The Swift Programming Language. Swift is a general-purpose programming language built using a modern approach to safety, performance, and design.',
+    files: 8900,
+    license: 'Apache-2.0',
+    language: 'Swift',
+    createdAt: '2014-06-02T00:00:00Z',
+  },
+};
+
+/**
+ * 200 character description
+ */
+export const Description200: Story = {
+  args: {
+    color: languageColors.JavaScript,
+    owner: 'nodejs',
+    stars: 105000,
+    label: 'node',
+    description:
+      'Node.js is a JavaScript runtime built on Chrome V8 engine. It uses an event-driven, non-blocking I/O model that makes it lightweight and efficient for building scalable network applications easily.',
+    files: 4500,
+    license: 'MIT',
+    language: 'JavaScript',
+    createdAt: '2009-05-27T00:00:00Z',
+  },
+};
+
+/**
+ * 250 character description
+ */
+export const Description250: Story = {
+  args: {
+    color: languageColors.Java,
+    owner: 'spring-projects',
+    stars: 74000,
+    label: 'spring-framework',
+    description:
+      'Spring Framework provides a comprehensive programming and configuration model for modern Java-based enterprise applications. It offers dependency injection, aspect-oriented programming, and supports reactive programming patterns for cloud deployment.',
+    files: 15200,
+    license: 'Apache-2.0',
+    language: 'Java',
+    createdAt: '2004-03-24T00:00:00Z',
+  },
+};
+
+/**
+ * 350 character description - GitHub max
+ */
+export const Description350: Story = {
+  args: {
+    color: languageColors.Rust,
+    owner: 'rust-lang',
+    stars: 95000,
+    label: 'rust',
+    description:
+      'A language empowering everyone to build reliable and efficient software. Rust is blazingly fast and memory-efficient with no runtime or garbage collector. It can power performance-critical services, run on embedded devices, and easily integrate with other languages. Rust rich type system and ownership model guarantee memory-safety and thread-safety at compile time.',
+    files: 28500,
+    license: 'Apache-2.0',
+    language: 'Rust',
+    createdAt: '2010-06-16T00:00:00Z',
+  },
+};

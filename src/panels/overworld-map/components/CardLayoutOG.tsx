@@ -258,6 +258,8 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
               alignItems: 'center',
               gap: 6,
               flex: 1,
+              minWidth: 0,
+              overflow: 'hidden',
             }}
           >
             {owner && (
@@ -272,6 +274,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
                     borderRight: '1px solid rgba(255,255,255,0.3)',
                     borderBottom: '1px solid rgba(255,255,255,0.3)',
                     backgroundColor: colors.cardBorder,
+                    flexShrink: 0,
                   }}
                 />
                 <span
@@ -281,11 +284,12 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
                     fontWeight: theme.fontWeights.medium,
                     color: '#e0e0e0',
                     fontFamily: theme.fonts.body,
+                    marginTop: 4,
+                    marginLeft: 6,
+                    maxWidth: 200,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    marginTop: 4,
-                    marginLeft: 6,
                   }}
                 >
                   {ownerDisplayName ?? owner}
@@ -303,6 +307,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
                 gap: 4,
                 marginTop: 4,
                 marginRight: 12,
+                flexShrink: 0,
               }}
             >
               <span
@@ -411,10 +416,10 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
         {/* Description */}
         {description &&
           (() => {
-            const baseFontSize = 26;
-            const minFontSize = 16;
+            const baseFontSize = 22;
+            const minFontSize = 14;
             const shrinkThreshold = 100;
-            const maxChars = 250;
+            const maxChars = 350;
 
             let descFontSize = baseFontSize;
             if (description.length > shrinkThreshold) {
