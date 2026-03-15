@@ -560,6 +560,7 @@ export const CardLayout: React.FC<CardLayoutProps> = ({
               position: 'absolute',
               bottom: '4px',
               right: '4px',
+              zIndex: 2,
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
