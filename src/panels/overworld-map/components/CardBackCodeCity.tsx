@@ -56,7 +56,7 @@ export interface CardBackCodeCityProps {
 
 // Grid configuration constants
 const COLS = 6;
-const ROWS = 9;
+const ROWS = 10;
 const PADDING = 8;
 const GAP = 3;
 
@@ -221,11 +221,11 @@ export const CardBackCodeCity: React.FC<CardBackCodeCityProps> = ({
   const availableWidth = width - PADDING * 2;
   const blockSize = (availableWidth - GAP * (COLS - 1)) / COLS;
 
-  // Text configuration: "FILE" on row 3, "CITY" on row 4 (centered vertically)
+  // Text configuration: "FILE" and "CITY" in center, icons above and below
   const text1 = 'FILE';
   const text2 = 'CITY';
-  const textRow1 = 2;
-  const textRow2 = 6;
+  const textRow1 = 4; // FILE center
+  const textRow2 = 5; // CITY center
   const textStartCol4 = Math.floor((COLS - 4) / 2); // for 4-letter words
 
   // Colors
@@ -284,7 +284,11 @@ export const CardBackCodeCity: React.FC<CardBackCodeCityProps> = ({
     const isLeftCol = col === 0;
     const isRightCol = col === COLS - 1;
     const isCorner = (isTopRow || isBottomRow) && (isLeftCol || isRightCol);
-    const isCenterRow = row === 4;
+    const isCenterRow =
+      (row === 2 && col !== 1 && col !== 4) ||
+      (row === 7 && col !== 1 && col !== 4) ||
+      (row === 1 && (col === 1 || col === 4)) ||
+      (row === 8 && (col === 1 || col === 4));
 
     // Corners always get icons
     if (isCorner) return true;
@@ -336,9 +340,18 @@ export const CardBackCodeCity: React.FC<CardBackCodeCityProps> = ({
           color = textColor2;
           letter = text2[col - textStartCol4];
           letterColor = textLetterColor;
-        } else if (row === 4) {
-          // Center row - use specific icons
-          const iconData = centerRowData[col % centerRowData.length];
+        } else if (
+          (row === 2 && col !== 1 && col !== 4) ||
+          (row === 7 && col !== 1 && col !== 4) ||
+          (row === 1 && (col === 1 || col === 4)) ||
+          (row === 8 && (col === 1 || col === 4))
+        ) {
+          // Center rows - use specific icons, reversed order on rows 7 and 8
+          const iconIndex =
+            row === 7 || row === 8
+              ? (COLS - 1 - col) % centerRowData.length
+              : col % centerRowData.length;
+          const iconData = centerRowData[iconIndex];
           color = iconData.color;
           suffix = iconData.suffix;
         } else if (
@@ -406,7 +419,7 @@ export const CardBackCodeCity: React.FC<CardBackCodeCityProps> = ({
         justifyContent: 'center',
         backgroundColor: '#0d1117',
         padding: PADDING,
-        border: 'none',
+        border: '1px solid #c0c0c0',
         borderRadius: 0,
         width,
         height,
