@@ -11,7 +11,7 @@ import { RepoCardStatic } from './components/RepoCardStatic';
 import type { AlexandriaEntryWithMetrics } from '../CollectionMapPanel';
 
 const meta = {
-  title: 'Panels/Overworld Map/RepoCardStatic',
+  title: 'Cards/RepoCardStatic',
   component: RepoCardStatic,
   parameters: {
     layout: 'centered',

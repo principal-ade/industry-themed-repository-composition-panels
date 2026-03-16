@@ -42,44 +42,41 @@ export {
 } from './genericMapper';
 export type { GenericNode, GenericMapperOptions } from './genericMapper';
 
-// Export standalone sprite component
-export { RepoSprite } from './components/RepoSprite';
+// Re-export card components from their new home (backward compatibility)
+export { RepoSprite } from '../cards/components/RepoSprite';
 export type {
   RepoSpriteProps,
   RepoSpriteVariant,
   RepoSpritePackage,
-} from './components/RepoSprite';
+} from '../cards/components/RepoSprite';
 
-// Export RepoCard wrapper component (accepts AlexandriaEntryWithMetrics)
-export { RepoCard } from './components/RepoCard';
-export type { RepoCardProps } from './components/RepoCard';
+export { RepoCard } from '../cards/components/RepoCard';
+export type { RepoCardProps } from '../cards/components/RepoCard';
 
-// Export RepoCardStatic for contexts with many cards (carousels, grids)
-export { RepoCardStatic } from './components/RepoCardStatic';
-export type { RepoCardStaticProps } from './components/RepoCardStatic';
+export { RepoCardStatic } from '../cards/components/RepoCardStatic';
+export type { RepoCardStaticProps } from '../cards/components/RepoCardStatic';
 
-// Export CardBack for card flip animations and loading states
-export { CardBack } from './components/CardBack';
-export type { CardBackProps } from './components/CardBack';
+export { CardBack } from '../cards/components/CardBack';
+export type { CardBackProps } from '../cards/components/CardBack';
 
-// Export CardBackCodeCity for Code City themed card backs
-export { CardBackCodeCity } from './components/CardBackCodeCity';
-export type { CardBackCodeCityProps } from './components/CardBackCodeCity';
+export { CardBackCodeCity } from '../cards/components/CardBackCodeCity';
+export type { CardBackCodeCityProps } from '../cards/components/CardBackCodeCity';
 
-// Export sprite renderer utilities
 export {
   renderSpriteToDataUrl,
   renderSpriteToDataUrlCached,
   clearSpriteCache,
   getSpriteCacheSize,
   destroySharedApp,
-} from './components/spriteRenderer';
-export type { SpriteRenderOptions } from './components/spriteRenderer';
+} from '../cards/components/spriteRenderer';
+export type { SpriteRenderOptions } from '../cards/components/spriteRenderer';
 
-// Export CardLayoutOG for Satori-based OG image generation
-export { CardLayoutOG, DEFAULT_OG_THEME } from './components/CardLayoutOG';
+export {
+  CardLayoutOG,
+  DEFAULT_OG_THEME,
+} from '../cards/components/CardLayoutOG';
 export type {
   CardLayoutOGProps,
   CardPackageOG,
   OGTheme,
-} from './components/CardLayoutOG';
+} from '../cards/components/CardLayoutOG';

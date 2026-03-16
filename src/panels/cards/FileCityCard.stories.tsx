@@ -30,7 +30,7 @@ const foilStyles = `
 `;
 
 const meta = {
-  title: 'Panels/Overworld Map/FileCityCard',
+  title: 'Cards/FileCityCard',
   component: RepoCardStatic,
   parameters: {
     layout: 'centered',

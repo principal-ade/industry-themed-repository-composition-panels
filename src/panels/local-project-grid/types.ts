@@ -8,7 +8,7 @@ import type {
   DataSlice,
 } from '@principal-ade/panel-framework-core';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library';
-import type { NamePlateStyle } from '../overworld-map/components/CardLayout';
+import type { NamePlateStyle } from '../cards/components/CardLayout';
 import type { AlexandriaEntryWithMetrics } from '../CollectionMapPanel';
 
 /**

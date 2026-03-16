@@ -9,7 +9,7 @@ import { RepoCard } from './components/RepoCard';
 import type { AlexandriaEntryWithMetrics } from '../CollectionMapPanel';
 
 const meta = {
-  title: 'Panels/Overworld Map/RepoCard',
+  title: 'Cards/RepoCard',
   component: RepoCard,
   parameters: {
     layout: 'centered',

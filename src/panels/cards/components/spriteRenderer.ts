@@ -9,29 +9,32 @@
  */
 
 import { Application, Container, Graphics } from 'pixi.js';
-import { generateBuildingSprite } from './buildingSpriteGenerator';
+import { generateBuildingSprite } from '../../overworld-map/components/buildingSpriteGenerator';
 import {
   generateFlagSprite,
   generateTrophySprite,
   generateStatueSprite,
-} from './starDecorationSprites';
+} from '../../overworld-map/components/starDecorationSprites';
 import {
   generateBenchSprite,
   generatePavilionSprite,
   generateGazeboSprite,
   generateBandstandSprite,
-} from './collaboratorDecorationSprites';
-import { getStarTier, getStarScaleFactor } from '../starDecoration';
+} from '../../overworld-map/components/collaboratorDecorationSprites';
+import {
+  getStarTier,
+  getStarScaleFactor,
+} from '../../overworld-map/starDecoration';
 import {
   getCollaboratorTier,
   getCollaboratorScaleFactor,
-} from '../collaboratorDecoration';
+} from '../../overworld-map/collaboratorDecoration';
 import {
   generateLicenseSign,
   generateLicenseGround,
   generateNeutralGround,
   type LicenseType,
-} from './licenseSignSprites';
+} from '../../overworld-map/components/licenseSignSprites';
 import type { RepoSpritePackage } from './RepoSprite';
 
 // Isometric tile dimensions (must match IsometricRenderer)

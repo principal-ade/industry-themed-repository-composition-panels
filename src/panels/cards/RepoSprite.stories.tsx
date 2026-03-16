@@ -7,7 +7,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
 import { RepoSprite } from './components/RepoSprite';
 
 const meta = {
-  title: 'Panels/Overworld Map/RepoSprite',
+  title: 'Cards/RepoSprite',
   component: RepoSprite,
   parameters: {
     layout: 'centered',

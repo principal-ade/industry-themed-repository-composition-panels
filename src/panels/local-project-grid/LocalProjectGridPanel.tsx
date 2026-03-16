@@ -9,7 +9,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import { Search } from 'lucide-react';
 import { LocalProjectCard } from './LocalProjectCard';
-import { CardBack } from '../overworld-map/components/CardBack';
+import { CardBack } from '../cards/components/CardBack';
 import type { LocalProjectGridPanelProps } from './types';
 import type { AlexandriaEntry } from '@principal-ai/alexandria-core-library';
 

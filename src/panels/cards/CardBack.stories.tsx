@@ -10,7 +10,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
 import { CardBack } from './components/CardBack';
 
 const meta = {
-  title: 'Panels/Overworld Map/CardBack',
+  title: 'Cards/CardBack',
   component: CardBack,
   parameters: {
     layout: 'centered',

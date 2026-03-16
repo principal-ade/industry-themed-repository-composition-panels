@@ -12,12 +12,12 @@
 export {
   CardLayoutOG,
   DEFAULT_OG_THEME,
-} from './panels/overworld-map/components/CardLayoutOG';
+} from './panels/cards/components/CardLayoutOG';
 export type {
   CardLayoutOGProps,
   CardPackageOG,
   OGTheme,
-} from './panels/overworld-map/components/CardLayoutOG';
+} from './panels/cards/components/CardLayoutOG';
 
 // Re-export card theme utilities needed for OG generation
 export {
@@ -25,5 +25,5 @@ export {
   formatCount,
   parseColor,
   generateCardColors,
-} from './panels/overworld-map/components/cardThemes';
-export type { GeneratedCardColors } from './panels/overworld-map/components/cardThemes';
+} from './panels/cards/components/cardThemes';
+export type { GeneratedCardColors } from './panels/cards/components/cardThemes';

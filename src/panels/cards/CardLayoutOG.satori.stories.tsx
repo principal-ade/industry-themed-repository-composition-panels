@@ -224,7 +224,7 @@ const SatoriPreview = ({
 };
 
 const meta = {
-  title: 'Panels/Overworld Map/Card Layout/Satori',
+  title: 'Cards/CardLayoutOG/Satori',
   component: SatoriPreview,
   parameters: {
     layout: 'centered',

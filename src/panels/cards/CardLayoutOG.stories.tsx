@@ -92,7 +92,7 @@ const CARD_WIDTH = 353;
 const CARD_WIDTH_SM = 180;
 
 const meta = {
-  title: 'Panels/Overworld Map/Card Layout/React',
+  title: 'Cards/CardLayoutOG/React',
   component: CardLayoutOG,
   parameters: {
     layout: 'centered',

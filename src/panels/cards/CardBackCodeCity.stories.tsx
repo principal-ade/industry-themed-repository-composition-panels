@@ -7,7 +7,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
 import { CardBackCodeCity } from './components/CardBackCodeCity';
 
 const meta = {
-  title: 'Panels/Overworld Map/CardBackCodeCity',
+  title: 'Cards/CardBackCodeCity',
   component: CardBackCodeCity,
   parameters: {
     layout: 'fullscreen',

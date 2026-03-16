@@ -7,12 +7,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { CardLayout } from '../overworld-map/components/CardLayout';
+import { CardLayout } from '../cards/components/CardLayout';
 import {
   getRepositoryColor,
   generateCardColors,
-} from '../overworld-map/components/cardThemes';
-import { renderSpriteToDataUrlCached } from '../overworld-map/components/spriteRenderer';
+} from '../cards/components/cardThemes';
+import { renderSpriteToDataUrlCached } from '../cards/components/spriteRenderer';
 import type { LocalProjectCardProps } from './types';
 
 /**

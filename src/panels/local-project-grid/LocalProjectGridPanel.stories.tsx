@@ -12,7 +12,7 @@ import type { DataSlice } from '@principal-ade/panel-framework-core';
 import { LocalProjectGridPanelContent } from './LocalProjectGridPanel';
 import { LocalProjectCard } from './LocalProjectCard';
 import type { LocalProjectGridPanelProps } from './types';
-import type { NamePlateStyle } from '../overworld-map/components/CardLayout';
+import type { NamePlateStyle } from '../cards/components/CardLayout';
 
 // ============================================================================
 // Mock Data Helpers
