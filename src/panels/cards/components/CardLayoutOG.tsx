@@ -303,54 +303,48 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            minHeight: 24,
           }}
         >
           {/* Owner avatar and name */}
-          <div
-            style={{
-              position: 'relative',
-              display: 'flex',
-              flex: 1,
-              minWidth: 0,
-              height: 40,
-            }}
-          >
-            {owner && (
-              <>
-                <img
-                  src={avatarUrl || `https://github.com/${owner}.png?size=80`}
-                  alt={owner}
-                  width={40}
-                  height={40}
-                  style={{
-                    borderRadius: 0,
-                    borderRight: '1px solid rgba(255,255,255,0.3)',
-                    borderBottom: '1px solid rgba(255,255,255,0.3)',
-                    backgroundColor: colors.cardBorder,
-                  }}
-                />
-                <span
-                  style={{
-                    position: 'absolute',
-                    left: 46,
-                    bottom: 12,
-                    fontSize: theme.fontSizes[4],
-                    fontWeight: theme.fontWeights.medium,
-                    color: '#e0e0e0',
-                    fontFamily: theme.fonts.body,
-                    lineHeight: 1.2,
-                    maxWidth: 200,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {ownerDisplayName ?? owner}
-                </span>
-              </>
-            )}
-          </div>
+          {owner && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                flex: 1,
+                minWidth: 0,
+              }}
+            >
+              <img
+                src={avatarUrl || `https://github.com/${owner}.png?size=80`}
+                alt={owner}
+                width={40}
+                height={40}
+                style={{
+                  borderRadius: 0,
+                  borderRight: '1px solid rgba(255,255,255,0.3)',
+                  borderBottom: '1px solid rgba(255,255,255,0.3)',
+                  backgroundColor: colors.cardBorder,
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  marginLeft: 6,
+                  marginTop: 4,
+                  fontSize: theme.fontSizes[4],
+                  fontWeight: theme.fontWeights.medium,
+                  color: '#e0e0e0',
+                  fontFamily: theme.fonts.body,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {ownerDisplayName ?? owner}
+              </span>
+            </div>
+          )}
 
           {/* Stars badge */}
           {stars !== undefined && stars > 0 && (
