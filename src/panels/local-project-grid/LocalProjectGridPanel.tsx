@@ -32,6 +32,9 @@ const injectBounceKeyframes = () => {
   document.head.appendChild(style);
 };
 
+/** Standard card dimensions - matches CardLayoutOG */
+const DEFAULT_CARD_WIDTH = 353;
+
 /** Loading card with random bounce animation */
 const LoadingCard: React.FC<{ index: number }> = ({ index }) => {
   // Generate random animation properties based on index
@@ -44,7 +47,7 @@ const LoadingCard: React.FC<{ index: number }> = ({ index }) => {
         animation: `cardBounce ${duration}s ease-in-out ${delay}s infinite`,
       }}
     >
-      <CardBack width={220} height={300} />
+      <CardBack />
     </div>
   );
 };
@@ -62,7 +65,7 @@ const LoadingGrid: React.FC = () => {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+        gridTemplateColumns: `repeat(auto-fill, minmax(${DEFAULT_CARD_WIDTH}px, 1fr))`,
         gap: '20px',
         justifyItems: 'center',
       }}
@@ -258,7 +261,7 @@ export const LocalProjectGridPanelContent: React.FC<
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+              gridTemplateColumns: `repeat(auto-fill, minmax(${DEFAULT_CARD_WIDTH}px, 1fr))`,
               gap: '20px',
               justifyItems: 'center',
             }}

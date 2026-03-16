@@ -110,9 +110,13 @@ const specks = generateSpecks(5, 6);
 /**
  * CardBack renders the back face of a repository card.
  */
+/** Standard card dimensions - matches CardLayoutOG */
+const DEFAULT_CARD_WIDTH = 353;
+const CARD_ASPECT_RATIO = 0.6;
+
 export const CardBack: React.FC<CardBackProps> = ({
-  width = 200,
-  height = 280,
+  width = DEFAULT_CARD_WIDTH,
+  height = Math.round(DEFAULT_CARD_WIDTH / CARD_ASPECT_RATIO),
 }) => {
   const { theme } = useTheme();
 
