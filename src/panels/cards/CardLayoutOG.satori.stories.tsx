@@ -11,11 +11,10 @@ import satori, { Font } from 'satori';
 import { CardLayoutOG, DEFAULT_OG_THEME } from './components/CardLayoutOG';
 import { languageColors } from './components/cardThemes';
 
-// Twitter card dimensions
-const WIDTH = 1200;
-const HEIGHT = 628;
-const CARD_HEIGHT = HEIGHT - 40;
-const CARD_WIDTH = Math.round(CARD_HEIGHT * 0.6);
+// Card dimensions (standard 353×588 at 0.6 aspect ratio)
+const CARD_WIDTH = 353;
+const CARD_HEIGHT = 588;
+const CARD_ASPECT_RATIO = 0.6;
 
 // Cache for loaded fonts
 let fontCache: Font[] | null = null;
@@ -92,50 +91,39 @@ const SatoriPreview = ({
         const result = await satori(
           <div
             style={{
-              width: WIDTH,
-              height: HEIGHT,
-              backgroundColor: '#0a0a0f',
+              width: CARD_WIDTH,
+              height: CARD_HEIGHT,
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
             }}
           >
-            <div
-              style={{
-                width: CARD_WIDTH,
-                height: CARD_HEIGHT,
-                display: 'flex',
-              }}
+            <CardLayoutOG
+              color={color}
+              owner={owner}
+              avatarUrl={avatarUrl}
+              ownerDisplayName={ownerDisplayName}
+              stars={stars}
+              label={label}
+              description={description}
+              files={files}
+              language={language}
+              license={license}
+              createdAt={createdAt}
+              theme={DEFAULT_OG_THEME}
             >
-              <CardLayoutOG
-                color={color}
-                owner={owner}
-                avatarUrl={avatarUrl}
-                ownerDisplayName={ownerDisplayName}
-                stars={stars}
-                label={label}
-                description={description}
-                files={files}
-                language={language}
-                license={license}
-                createdAt={createdAt}
-                theme={DEFAULT_OG_THEME}
-              >
-                <img
-                  src={fileCityUrl}
-                  alt="File City"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
-                  }}
-                />
-              </CardLayoutOG>
-            </div>
+              <img
+                src={fileCityUrl}
+                alt="File City"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                }}
+              />
+            </CardLayoutOG>
           </div>,
           {
-            width: WIDTH,
-            height: HEIGHT,
+            width: CARD_WIDTH,
+            height: CARD_HEIGHT,
             fonts,
           }
         );
@@ -168,17 +156,17 @@ const SatoriPreview = ({
     return (
       <div
         style={{
-          width: WIDTH,
-          height: HEIGHT,
+          width: CARD_WIDTH,
+          height: CARD_HEIGHT,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: '#1a1a1a',
           color: '#888',
-          fontSize: 24,
+          fontSize: 14,
         }}
       >
-        Rendering with Satori...
+        Rendering...
       </div>
     );
   }
@@ -187,17 +175,17 @@ const SatoriPreview = ({
     return (
       <div
         style={{
-          width: WIDTH,
-          height: HEIGHT,
-          padding: 40,
+          width: CARD_WIDTH,
+          height: CARD_HEIGHT,
+          padding: 16,
           backgroundColor: '#2a1a1a',
           color: '#ff6b6b',
           fontFamily: 'monospace',
-          fontSize: 14,
+          fontSize: 10,
           overflow: 'auto',
         }}
       >
-        <h2 style={{ color: '#ff4444', marginBottom: 16 }}>Satori Error</h2>
+        <h2 style={{ color: '#ff4444', marginBottom: 8 }}>Satori Error</h2>
         <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
           {error}
         </pre>
@@ -211,6 +199,171 @@ const SatoriPreview = ({
         style={{ marginBottom: 16, color: '#22c55e', fontFamily: 'monospace' }}
       >
         ✓ Satori rendered successfully
+      </div>
+      <div
+        dangerouslySetInnerHTML={{ __html: svg || '' }}
+        style={{
+          border: '1px solid #333',
+          borderRadius: 4,
+        }}
+      />
+    </div>
+  );
+};
+
+/**
+ * Component that renders CardLayoutOG at a specific size
+ */
+interface SatoriSizedPreviewProps extends SatoriPreviewProps {
+  cardWidth: number;
+}
+
+const SatoriSizedPreview = ({
+  cardWidth,
+  color,
+  owner,
+  avatarUrl = '/sample-avatar.png',
+  ownerDisplayName,
+  stars,
+  label,
+  description,
+  files,
+  language,
+  license,
+  createdAt,
+  fileCityUrl = '/openclaw-city-transparent.png',
+}: SatoriSizedPreviewProps) => {
+  const [svg, setSvg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const cardHeight = Math.round(cardWidth / CARD_ASPECT_RATIO);
+
+  useEffect(() => {
+    const renderSatori = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const fonts = await loadFonts();
+        const result = await satori(
+          <div
+            style={{
+              width: cardWidth,
+              height: cardHeight,
+              display: 'flex',
+            }}
+          >
+            <CardLayoutOG
+              color={color}
+              owner={owner}
+              avatarUrl={avatarUrl}
+              ownerDisplayName={ownerDisplayName}
+              stars={stars}
+              label={label}
+              description={description}
+              files={files}
+              language={language}
+              license={license}
+              createdAt={createdAt}
+              theme={DEFAULT_OG_THEME}
+            >
+              <img
+                src={fileCityUrl}
+                alt="File City"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                }}
+              />
+            </CardLayoutOG>
+          </div>,
+          {
+            width: cardWidth,
+            height: cardHeight,
+            fonts,
+          }
+        );
+        setSvg(result);
+      } catch (err) {
+        console.error('Satori error:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    renderSatori();
+  }, [
+    cardWidth,
+    cardHeight,
+    color,
+    owner,
+    avatarUrl,
+    ownerDisplayName,
+    stars,
+    label,
+    description,
+    files,
+    language,
+    license,
+    createdAt,
+    fileCityUrl,
+  ]);
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          width: cardWidth,
+          height: cardHeight,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#1a1a1a',
+          color: '#888',
+          fontSize: 14,
+        }}
+      >
+        Rendering...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        style={{
+          width: cardWidth,
+          height: cardHeight,
+          padding: 16,
+          backgroundColor: '#2a1a1a',
+          color: '#ff6b6b',
+          fontFamily: 'monospace',
+          fontSize: 10,
+          overflow: 'auto',
+        }}
+      >
+        <h2 style={{ color: '#ff4444', marginBottom: 8 }}>Satori Error</h2>
+        <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {error}
+        </pre>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div
+        style={{
+          marginBottom: 8,
+          color: '#888',
+          fontFamily: 'monospace',
+          fontSize: 12,
+        }}
+      >
+        {cardWidth}×{cardHeight}
       </div>
       <div
         dangerouslySetInnerHTML={{ __html: svg || '' }}
@@ -438,4 +591,58 @@ export const Description350: Story = {
     language: 'Rust',
     createdAt: '2010-06-16T00:00:00Z',
   },
+};
+
+// Shared args for size stories
+const sizeStoryArgs = {
+  color: languageColors.TypeScript,
+  owner: 'verylongorganizationname',
+  ownerDisplayName: 'Very Long Organization Name Inc.',
+  stars: 220000,
+  label: 'react',
+  description: 'The library for web and native user interfaces.',
+  files: 2847,
+  license: 'MIT',
+  language: 'TypeScript',
+  createdAt: '2013-05-24T00:00:00Z',
+};
+
+/**
+ * Size XS - 180×300
+ */
+export const SizeXS: StoryObj<typeof SatoriSizedPreview> = {
+  render: (args) => <SatoriSizedPreview {...args} />,
+  args: { ...sizeStoryArgs, cardWidth: 180 },
+};
+
+/**
+ * Size SM - 250×417
+ */
+export const SizeSM: StoryObj<typeof SatoriSizedPreview> = {
+  render: (args) => <SatoriSizedPreview {...args} />,
+  args: { ...sizeStoryArgs, cardWidth: 250 },
+};
+
+/**
+ * Size MD - 353×588 (standard)
+ */
+export const SizeMD: StoryObj<typeof SatoriSizedPreview> = {
+  render: (args) => <SatoriSizedPreview {...args} />,
+  args: { ...sizeStoryArgs, cardWidth: 353 },
+};
+
+/**
+ * Size LG - 450×750
+ */
+export const SizeLG: StoryObj<typeof SatoriSizedPreview> = {
+  render: (args) => <SatoriSizedPreview {...args} />,
+  args: { ...sizeStoryArgs, cardWidth: 450 },
+};
+
+/**
+ * Size XL - 530×883
+ */
+export const SizeXL: StoryObj<typeof SatoriSizedPreview> = {
+  render: (args) => <SatoriSizedPreview {...args} />,
+  args: { ...sizeStoryArgs, cardWidth: 530 },
 };
