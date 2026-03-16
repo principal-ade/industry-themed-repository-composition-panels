@@ -29,6 +29,8 @@ export interface LocalProjectGridPanelActions extends CorePanelActions {
 export interface LocalProjectGridPanelContext {
   /** List of registered local Alexandria repositories */
   localProjects: DataSlice<AlexandriaEntry[] | null>;
+  /** Optional callback to get custom image URL for an entry (e.g., File City visualization) */
+  getCustomImageUrl?: (entry: AlexandriaEntry) => string | undefined;
 }
 
 /**
@@ -53,6 +55,8 @@ export interface LocalProjectCardProps {
   isSelected?: boolean;
   /** Style variant for the name plate banner */
   namePlateStyle?: NamePlateStyle;
+  /** Custom image URL to display instead of generated sprite (e.g., File City visualization) */
+  customImageUrl?: string;
   /** Callback when card is clicked */
   onClick?: (entry: AlexandriaEntry) => void;
   /** Callback when open button is clicked */

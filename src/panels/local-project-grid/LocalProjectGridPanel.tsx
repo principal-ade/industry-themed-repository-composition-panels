@@ -124,6 +124,7 @@ export const LocalProjectGridPanelContent: React.FC<
   const projectsSlice = context.localProjects;
   const projects = projectsSlice?.data ?? [];
   const isLoading = projectsSlice?.loading ?? false;
+  const getCustomImageUrl = context.getCustomImageUrl;
 
   // Filter and sort projects
   const displayProjects = useMemo(() => {
@@ -271,6 +272,7 @@ export const LocalProjectGridPanelContent: React.FC<
                 key={project.path}
                 entry={project}
                 isSelected={selectedProject?.path === project.path}
+                customImageUrl={getCustomImageUrl?.(project)}
                 onClick={handleCardClick}
                 onOpen={actions.openProject ? handleOpen : undefined}
                 onRemove={actions.removeProject ? handleRemove : undefined}

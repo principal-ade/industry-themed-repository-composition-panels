@@ -49,6 +49,7 @@ export const LocalProjectCard: React.FC<LocalProjectCardProps> = ({
   height = Math.round(DEFAULT_CARD_WIDTH / CARD_ASPECT_RATIO),
   isSelected = false,
   namePlateStyle,
+  customImageUrl,
   onClick,
   onOpen,
   onRemove,
@@ -65,10 +66,18 @@ export const LocalProjectCard: React.FC<LocalProjectCardProps> = ({
   // Estimate size from viewCount or default
   const size = entry.viewCount ? Math.min(entry.viewCount + 1, 5) : 2;
 
-  // Render sprite on mount
+  // Render sprite on mount (or use custom image if provided)
   useEffect(() => {
     let mounted = true;
 
+    // If custom image URL is provided, use it directly
+    if (customImageUrl) {
+      setSpriteDataUrl(customImageUrl);
+      setIsLoading(false);
+      return;
+    }
+
+    // Otherwise generate the isometric sprite
     async function renderSprite() {
       try {
         const dataUrl = await renderSpriteToDataUrlCached({
@@ -99,7 +108,7 @@ export const LocalProjectCard: React.FC<LocalProjectCardProps> = ({
     return () => {
       mounted = false;
     };
-  }, [size, color, entry]);
+  }, [customImageUrl, size, color, entry]);
 
   // Sprite content based on loading state
   const spriteContent = isLoading ? (
