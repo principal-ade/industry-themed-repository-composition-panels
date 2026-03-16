@@ -504,6 +504,25 @@ export const LongOwner: Story = {
 };
 
 /**
+ * Long repo name - tests name plate font shrinking with fixed height
+ */
+export const LongRepoName: Story = {
+  args: {
+    color: languageColors.TypeScript,
+    owner: 'facebook',
+    ownerDisplayName: 'Meta',
+    stars: 45000,
+    label: 'react-native-async-storage-community-fork',
+    description:
+      'Testing that long repo names shrink font but maintain banner height.',
+    files: 2500,
+    license: 'MIT',
+    language: 'TypeScript',
+    createdAt: '2019-03-12T00:00:00Z',
+  },
+};
+
+/**
  * 100 character description - at shrink threshold
  */
 export const Description100: Story = {

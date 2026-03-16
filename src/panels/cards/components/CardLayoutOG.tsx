@@ -386,8 +386,8 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
       {label &&
         (() => {
           const baseFontSize = 24;
-          const minFontSize = 12;
-          const charsAtBase = 16;
+          const minFontSize = 14;
+          const charsAtBase = 24;
           const fontSize = Math.max(
             minFontSize,
             Math.min(
@@ -423,6 +423,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
                 alignItems: 'center',
                 background: bgGradient,
                 padding: '8px 8px 10px 8px',
+                height: 44,
                 overflow: 'hidden',
                 ...borderStyle,
               }}
