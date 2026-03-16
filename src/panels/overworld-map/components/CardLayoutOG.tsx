@@ -70,6 +70,29 @@ const getAgeBadgeColors = (isoDate: string): { bg: string; text: string } => {
   return { bg: '#ffd700', text: '#1a1a1a' };
 };
 
+/** Starfield background CSS for the sprite window */
+const STARFIELD_BACKGROUND = `
+  radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.4) 50%, transparent 50%),
+  radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,0.3) 50%, transparent 50%),
+  radial-gradient(1px 1px at 40% 10%, rgba(255,255,255,0.35) 50%, transparent 50%),
+  radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,0.25) 50%, transparent 50%),
+  radial-gradient(1px 1px at 70% 20%, rgba(255,255,255,0.4) 50%, transparent 50%),
+  radial-gradient(1px 1px at 85% 40%, rgba(255,255,255,0.3) 50%, transparent 50%),
+  radial-gradient(1px 1px at 15% 55%, rgba(255,255,255,0.35) 50%, transparent 50%),
+  radial-gradient(1px 1px at 35% 70%, rgba(255,255,255,0.25) 50%, transparent 50%),
+  radial-gradient(1px 1px at 50% 85%, rgba(255,255,255,0.4) 50%, transparent 50%),
+  radial-gradient(1px 1px at 65% 60%, rgba(255,255,255,0.3) 50%, transparent 50%),
+  radial-gradient(1px 1px at 80% 75%, rgba(255,255,255,0.35) 50%, transparent 50%),
+  radial-gradient(1px 1px at 95% 90%, rgba(255,255,255,0.25) 50%, transparent 50%),
+  radial-gradient(1.5px 1.5px at 20% 25%, rgba(255,255,255,0.5) 50%, transparent 50%),
+  radial-gradient(1.5px 1.5px at 60% 30%, rgba(200,220,255,0.45) 50%, transparent 50%),
+  radial-gradient(1.5px 1.5px at 45% 65%, rgba(255,255,255,0.5) 50%, transparent 50%),
+  radial-gradient(1.5px 1.5px at 75% 80%, rgba(220,200,255,0.45) 50%, transparent 50%),
+  radial-gradient(2px 2px at 30% 50%, rgba(255,255,255,0.6) 50%, transparent 50%),
+  radial-gradient(2px 2px at 70% 55%, rgba(200,220,255,0.55) 50%, transparent 50%),
+  radial-gradient(2px 2px at 90% 15%, rgba(255,255,255,0.6) 50%, transparent 50%)
+`;
+
 /** Format ISO date for display */
 const formatCreatedDate = (isoDate: string): string => {
   const date = new Date(isoDate);
@@ -146,6 +169,9 @@ export interface CardLayoutOGProps {
   /** Theme values (uses defaults if not provided) */
   theme?: OGTheme;
 
+  /** Optional overlay layer for sprite window (e.g., foil effects in React) */
+  spriteOverlay?: React.ReactNode;
+
   /** The content to display in the sprite window (typically an img) */
   children: React.ReactNode;
 }
@@ -167,6 +193,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
   packages,
   createdAt,
   theme = DEFAULT_OG_THEME,
+  spriteOverlay,
   children,
 }) => {
   // Generate card colors from the base color
@@ -208,7 +235,34 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
           justifyContent: 'center',
         }}
       >
-        {children}
+        {/* Starfield background */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: STARFIELD_BACKGROUND,
+            backgroundSize: '100% 100%',
+          }}
+        />
+        {/* Optional overlay (e.g., foil effects from React wrapper) */}
+        {spriteOverlay}
+        {/* Sprite content - z-index ensures it's above the background/overlay */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {children}
+        </div>
         {/* File count badge */}
         {files !== undefined && files > 0 && (
           <div
@@ -216,6 +270,7 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
               position: 'absolute',
               bottom: 0,
               left: 0,
+              zIndex: 2,
               display: 'flex',
               alignItems: 'center',
               gap: 4,
@@ -254,12 +309,11 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
           {/* Owner avatar and name */}
           <div
             style={{
+              position: 'relative',
               display: 'flex',
-              alignItems: 'center',
-              gap: 6,
               flex: 1,
               minWidth: 0,
-              overflow: 'hidden',
+              height: 40,
             }}
           >
             {owner && (
@@ -274,18 +328,18 @@ export const CardLayoutOG: React.FC<CardLayoutOGProps> = ({
                     borderRight: '1px solid rgba(255,255,255,0.3)',
                     borderBottom: '1px solid rgba(255,255,255,0.3)',
                     backgroundColor: colors.cardBorder,
-                    flexShrink: 0,
                   }}
                 />
                 <span
                   style={{
-                    display: 'flex',
+                    position: 'absolute',
+                    left: 46,
+                    bottom: 12,
                     fontSize: theme.fontSizes[4],
                     fontWeight: theme.fontWeights.medium,
                     color: '#e0e0e0',
                     fontFamily: theme.fonts.body,
-                    marginTop: 4,
-                    marginLeft: 6,
+                    lineHeight: 1.2,
                     maxWidth: 200,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',

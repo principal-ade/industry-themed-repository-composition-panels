@@ -6,11 +6,93 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
+import React from 'react';
 import { CardLayoutOG, DEFAULT_OG_THEME } from './components/CardLayoutOG';
 import { languageColors } from './components/cardThemes';
 
+/** Get foil effect type based on star count */
+const getStarFoilEffect = (count: number): 'none' | 'silver' | 'gold' => {
+  if (count >= 100000) return 'gold';
+  if (count >= 10000) return 'silver';
+  return 'none';
+};
+
+/** CSS keyframes for foil animation */
+const FoilKeyframes = () => (
+  <style>{`
+    @keyframes holo {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+  `}</style>
+);
+
+/** Foil overlay component for high-star repositories */
+const FoilOverlay: React.FC<{ stars: number }> = ({ stars }) => {
+  const foilEffect = getStarFoilEffect(stars);
+
+  if (foilEffect === 'none') return null;
+
+  if (foilEffect === 'silver') {
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          pointerEvents: 'none',
+          border: '3px solid #c0c0c0',
+          boxShadow: 'inset 0 0 4px rgba(255,255,255,0.5)',
+        }}
+      />
+    );
+  }
+
+  if (foilEffect === 'gold') {
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background:
+              'conic-gradient(from 0deg at 50% 50%, rgba(255,0,0,0.4), rgba(255,255,0,0.4), rgba(0,255,0,0.4), rgba(0,255,255,0.4), rgba(0,0,255,0.4), rgba(255,0,255,0.4), rgba(255,0,0,0.4))',
+            animation: 'holo 6s linear infinite',
+          }}
+        />
+      </div>
+    );
+  }
+
+  return null;
+};
+
+/** Card aspect ratio (width / height) */
+const CARD_ASPECT_RATIO = 0.6;
+
+/** Standard card width */
+const CARD_WIDTH = 353;
+
+/** Smaller card width for comparison views */
+const CARD_WIDTH_SM = 180;
+
 const meta = {
-  title: 'Panels/Overworld Map/CardLayoutOG',
+  title: 'Panels/Overworld Map/Card Layout/React',
   component: CardLayoutOG,
   parameters: {
     layout: 'centered',
@@ -99,9 +181,15 @@ export const Default: Story = {
     children: <FileCityImage />,
   },
   render: (args) => (
-    <div style={{ width: 320, height: 450 }}>
-      <CardLayoutOG {...args} />
-    </div>
+    <>
+      <FoilKeyframes />
+      <div style={{ width: CARD_WIDTH, aspectRatio: CARD_ASPECT_RATIO }}>
+        <CardLayoutOG
+          {...args}
+          spriteOverlay={<FoilOverlay stars={args.stars ?? 0} />}
+        />
+      </div>
+    </>
   ),
 };
 
@@ -135,7 +223,7 @@ export const TwitterCardSize: Story = {
         padding: 20,
       }}
     >
-      <div style={{ width: 353, height: 588 }}>
+      <div style={{ width: CARD_WIDTH, aspectRatio: CARD_ASPECT_RATIO }}>
         <CardLayoutOG {...args} />
       </div>
     </div>
@@ -143,7 +231,7 @@ export const TwitterCardSize: Story = {
 };
 
 /**
- * High star count - shows gold styling
+ * High star count - shows gold styling with holographic foil
  */
 export const GoldTier: Story = {
   args: {
@@ -158,14 +246,20 @@ export const GoldTier: Story = {
     children: <FileCityImage />,
   },
   render: (args) => (
-    <div style={{ width: 320, height: 450 }}>
-      <CardLayoutOG {...args} />
-    </div>
+    <>
+      <FoilKeyframes />
+      <div style={{ width: CARD_WIDTH, aspectRatio: CARD_ASPECT_RATIO }}>
+        <CardLayoutOG
+          {...args}
+          spriteOverlay={<FoilOverlay stars={args.stars ?? 0} />}
+        />
+      </div>
+    </>
   ),
 };
 
 /**
- * Silver tier (10k+ stars)
+ * Silver tier (10k+ stars) with silver foil border
  */
 export const SilverTier: Story = {
   args: {
@@ -181,9 +275,15 @@ export const SilverTier: Story = {
     children: <FileCityImage />,
   },
   render: (args) => (
-    <div style={{ width: 320, height: 450 }}>
-      <CardLayoutOG {...args} />
-    </div>
+    <>
+      <FoilKeyframes />
+      <div style={{ width: CARD_WIDTH, aspectRatio: CARD_ASPECT_RATIO }}>
+        <CardLayoutOG
+          {...args}
+          spriteOverlay={<FoilOverlay stars={args.stars ?? 0} />}
+        />
+      </div>
+    </>
   ),
 };
 
@@ -203,7 +303,7 @@ export const SmallRepo: Story = {
     children: <FileCityImage />,
   },
   render: (args) => (
-    <div style={{ width: 320, height: 450 }}>
+    <div style={{ width: CARD_WIDTH, aspectRatio: CARD_ASPECT_RATIO }}>
       <CardLayoutOG {...args} />
     </div>
   ),
@@ -231,7 +331,7 @@ export const WithPackages: Story = {
     children: <FileCityImage />,
   },
   render: (args) => (
-    <div style={{ width: 320, height: 450 }}>
+    <div style={{ width: CARD_WIDTH, aspectRatio: CARD_ASPECT_RATIO }}>
       <CardLayoutOG {...args} />
     </div>
   ),
@@ -250,7 +350,10 @@ export const LanguageShowcase: Story = {
       {Object.entries(languageColors)
         .slice(0, 8)
         .map(([lang, color]) => (
-          <div key={lang} style={{ width: 180, height: 260 }}>
+          <div
+            key={lang}
+            style={{ width: CARD_WIDTH_SM, aspectRatio: CARD_ASPECT_RATIO }}
+          >
             <CardLayoutOG
               color={color}
               owner="org"
@@ -286,7 +389,7 @@ export const LongDescription: Story = {
     children: <FileCityImage />,
   },
   render: (args) => (
-    <div style={{ width: 320, height: 450 }}>
+    <div style={{ width: CARD_WIDTH, aspectRatio: CARD_ASPECT_RATIO }}>
       <CardLayoutOG {...args} />
     </div>
   ),
@@ -302,7 +405,7 @@ export const Minimal: Story = {
     children: <FileCityImage />,
   },
   render: (args) => (
-    <div style={{ width: 320, height: 450 }}>
+    <div style={{ width: CARD_WIDTH, aspectRatio: CARD_ASPECT_RATIO }}>
       <CardLayoutOG {...args} />
     </div>
   ),
@@ -328,7 +431,9 @@ export const StarTierComparison: Story = {
       <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
         {tiers.map(({ stars, label }) => (
           <div key={label} style={{ textAlign: 'center' }}>
-            <div style={{ width: 180, height: 260 }}>
+            <div
+              style={{ width: CARD_WIDTH_SM, aspectRatio: CARD_ASPECT_RATIO }}
+            >
               <CardLayoutOG
                 color={languageColors.TypeScript}
                 owner="org"

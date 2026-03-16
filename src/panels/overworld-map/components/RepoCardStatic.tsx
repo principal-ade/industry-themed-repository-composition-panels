@@ -20,6 +20,10 @@ import {
 import { CardLayout } from './CardLayout';
 import type { RepoSpritePackage } from './RepoSprite';
 
+/** Standard card dimensions - matches CardLayoutOG */
+const DEFAULT_CARD_WIDTH = 353;
+const CARD_ASPECT_RATIO = 0.6;
+
 export interface RepoCardStaticProps {
   /** The Alexandria repository entry with metrics */
   repository: AlexandriaEntryWithMetrics;
@@ -51,8 +55,8 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
   repository,
   packages,
   cardTheme = 'blue',
-  width = 200,
-  height = 280,
+  width = DEFAULT_CARD_WIDTH,
+  height = Math.round(DEFAULT_CARD_WIDTH / CARD_ASPECT_RATIO),
   spriteSize = 160,
   customImage,
 }) => {

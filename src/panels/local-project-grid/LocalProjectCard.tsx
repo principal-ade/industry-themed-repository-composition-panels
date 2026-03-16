@@ -39,10 +39,14 @@ function formatRelativeTime(dateString?: string): string {
 /**
  * LocalProjectCard renders an AlexandriaEntry as a styled card
  */
+/** Standard card dimensions - matches CardLayoutOG */
+const DEFAULT_CARD_WIDTH = 353;
+const CARD_ASPECT_RATIO = 0.6;
+
 export const LocalProjectCard: React.FC<LocalProjectCardProps> = ({
   entry,
-  width = 220,
-  height = 300,
+  width = DEFAULT_CARD_WIDTH,
+  height = Math.round(DEFAULT_CARD_WIDTH / CARD_ASPECT_RATIO),
   isSelected = false,
   namePlateStyle,
   onClick,
