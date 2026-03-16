@@ -35,7 +35,7 @@
     "build": "bun run clean && bun run build:panel && bun run build:tools && bun run build:og && bun run build:types",
     "build:panel": "NODE_ENV=production vite build",
     "build:tools": "bun build ./src/tools/index.ts --outfile ./dist/tools.bundle.js --format esm --target browser",
-    "build:og": "bun build ./src/og.ts --outfile ./dist/og.bundle.js --format esm --target node --external react --external react/jsx-runtime --external react/jsx-dev-runtime --external react-dom",
+    "build:og": "NODE_ENV=production bun build ./src/og.ts --outfile ./dist/og.bundle.js --format esm --target node --external react --external react/jsx-runtime --external react/jsx-dev-runtime --external react-dom",
     "build:types": "tsc --project tsconfig.build.json --emitDeclarationOnly --declaration --declarationMap",
     "dev": "vite build --watch",
     "clean": "rm -rf dist",
