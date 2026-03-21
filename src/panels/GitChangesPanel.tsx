@@ -397,6 +397,7 @@ export const GitChangesPanelContent: React.FC<GitChangesPanelProps> = ({
         verticalPadding="16px"
         openByDefault={!!searchTerm}
         enableDragAndDrop={false}
+        enablePanelDrag={true}
       />
     );
   };
