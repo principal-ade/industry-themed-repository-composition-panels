@@ -71,7 +71,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             onChange={(e) => onSearchChange(e.target.value)}
             style={{
               width: '100%',
-              padding: `${theme.space[3]}px ${theme.space[5]}px`,
+              paddingTop: `${theme.space[3]}px`,
+              paddingBottom: `${theme.space[3]}px`,
+              paddingLeft: `${theme.space[3] + 14 + theme.space[2]}px`,
+              paddingRight: `${theme.space[3]}px`,
               borderRadius: 0,
               border: 'none',
               borderBottom: `1px solid ${theme.colors.border}`,
