@@ -1004,6 +1004,91 @@ export const WithEnvJson: Story = {
 };
 
 /**
+ * Expo app with expo.extra configuration
+ *
+ * Demonstrates environment variables detection from Expo's app.json expo.extra field.
+ * This is the fallback when no traditional .env.example or env.json is present.
+ */
+export const ExpoAppWithExtraConfig: Story = {
+  args: {
+    packages: [
+      createMockPackage({
+        packageData: {
+          name: 'my-expo-app',
+          version: '1.0.0',
+          path: '',
+          manifestPath: 'package.json',
+          packageManager: 'npm',
+          isMonorepoRoot: false,
+          isWorkspace: false,
+          dependencies: {
+            expo: '~52.0.0',
+            'expo-router': '~4.0.0',
+            react: '^19.0.0',
+            'react-native': '0.76.0',
+          },
+          devDependencies: {
+            typescript: '^5.0.0',
+            '@types/react': '^19.0.0',
+          },
+          peerDependencies: {},
+          availableCommands: [
+            { name: 'start', command: 'expo start', type: 'script' },
+            { name: 'ios', command: 'expo run:ios', type: 'script' },
+            { name: 'android', command: 'expo run:android', type: 'script' },
+          ],
+        },
+        configFiles: {
+          typescript: { path: 'tsconfig.json', exists: true, type: 'json' },
+          envvars: {
+            path: 'app.json',
+            exists: true,
+            type: 'json',
+            isInline: true,
+            inlineField: 'expo.extra',
+          },
+        },
+      }),
+    ],
+    readFile: async (filePath: string) => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      if (filePath.includes('app.json')) {
+        return JSON.stringify({
+          expo: {
+            name: 'MyExpoApp',
+            slug: 'my-expo-app',
+            version: '1.0.0',
+            scheme: 'myexpoapp',
+            extra: {
+              API_URL: 'https://api.example.com',
+              SENTRY_DSN: 'https://key@sentry.io/123',
+              FEATURE_FLAGS_ENABLED: true,
+              MAX_UPLOAD_SIZE: 10485760,
+              eas: {
+                projectId: 'f1206516-031c-4186-87a2-a4cbdbdb1e9a',
+              },
+            },
+          },
+        });
+      }
+      throw new Error('File not found');
+    },
+    onCommandClick: (_command: PackageCommand, _packagePath: string) => {},
+    onConfigClick: (_config: ConfigFile) => {},
+    onPackageClick: (_packagePath: string) => {},
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Shows environment variables from Expo app.json expo.extra field. This format is auto-detected when no .env.example or env.json exists.',
+      },
+    },
+  },
+};
+
+/**
  * Private GitHub Repository
  *
  * Demonstrates the panel header for a private GitHub repository.
