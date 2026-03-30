@@ -209,17 +209,40 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
     return { local, inherited, total: configFiles.length };
   }, [configFiles]);
 
-  // Check for environment variables documentation file
-  const envConfig = pkg.configFiles?.envvars;
+  // Check for environment variables documentation files
+  // Priority order: envJson (richest), envExample (most common), envSchema, envSample, envExpo (fallback)
+  const envConfig = useMemo(() => {
+    const configs = pkg.configFiles;
+    if (!configs) return undefined;
+
+    // Return the first existing env config in priority order
+    if (configs.envJson?.exists) return configs.envJson;
+    if (configs.envExample?.exists) return configs.envExample;
+    if (configs.envSchema?.exists) return configs.envSchema;
+    if (configs.envSample?.exists) return configs.envSample;
+    if (configs.envExpo?.exists) return configs.envExpo;
+
+    return undefined;
+  }, [pkg.configFiles]);
+
   const hasEnvConfig = envConfig?.exists ?? false;
 
-  console.log('[PackageDetailCard] Env tab debug:', {
-    packageName: pkg.packageData.name,
-    packagePath: pkg.packageData.path,
-    configFiles: pkg.configFiles,
-    envConfig,
-    hasEnvConfig,
-  });
+  // Collect all env configs for potential future multi-file display
+  const allEnvConfigs = useMemo(() => {
+    const configs = pkg.configFiles;
+    if (!configs) return [];
+
+    const envKeys = [
+      'envJson',
+      'envExample',
+      'envSchema',
+      'envSample',
+      'envExpo',
+    ] as const;
+    return envKeys
+      .filter((key) => configs[key]?.exists)
+      .map((key) => ({ key, config: configs[key]! }));
+  }, [pkg.configFiles]);
 
   // Fetch and parse env file when env tab is active
   useEffect(() => {
@@ -237,7 +260,11 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
           : envConfig.path;
 
         const content = await readFile(filePath);
-        const result = parseEnvFile(content, envConfig.type, envConfig.inlineField);
+        const result = parseEnvFile(
+          content,
+          envConfig.type,
+          envConfig.inlineField
+        );
         // Sort alphabetically by name
         const sorted = [...result.variables].sort((a, b) =>
           a.name.localeCompare(b.name)

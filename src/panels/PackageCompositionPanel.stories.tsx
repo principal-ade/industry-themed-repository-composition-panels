@@ -861,7 +861,7 @@ export const WithEnvVariables: Story = {
         },
         configFiles: {
           typescript: { path: 'tsconfig.json', exists: true, type: 'json' },
-          envvars: { path: '.env.example', exists: true, type: 'custom' },
+          envExample: { path: '.env.example', exists: true, type: 'custom' },
         },
       }),
     ],
@@ -938,7 +938,7 @@ export const WithEnvJson: Story = {
         },
         configFiles: {
           typescript: { path: 'tsconfig.json', exists: true, type: 'json' },
-          envvars: { path: 'env.json', exists: true, type: 'json' },
+          envJson: { path: 'env.json', exists: true, type: 'json' },
         },
       }),
     ],
@@ -1040,7 +1040,7 @@ export const ExpoAppWithExtraConfig: Story = {
         },
         configFiles: {
           typescript: { path: 'tsconfig.json', exists: true, type: 'json' },
-          envvars: {
+          envExpo: {
             path: 'app.json',
             exists: true,
             type: 'json',
