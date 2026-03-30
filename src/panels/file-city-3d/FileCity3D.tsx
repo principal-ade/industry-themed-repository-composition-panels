@@ -911,7 +911,13 @@ export function FileCity3DPanelContent({
         ...style,
       }}
     >
-      <Canvas shadows>
+      <Canvas
+        shadows
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+        onCreated={({ gl }) => {
+          console.info('[FileCity3D] Canvas created, WebGL renderer:', gl.info);
+        }}
+      >
         <CityScene
           cityData={cityData}
           onBuildingHover={setHoveredBuilding}
