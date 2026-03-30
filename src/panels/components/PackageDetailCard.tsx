@@ -237,7 +237,7 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
           : envConfig.path;
 
         const content = await readFile(filePath);
-        const result = parseEnvFile(content, envConfig.type);
+        const result = parseEnvFile(content, envConfig.type, envConfig.inlineField);
         // Sort alphabetically by name
         const sorted = [...result.variables].sort((a, b) =>
           a.name.localeCompare(b.name)

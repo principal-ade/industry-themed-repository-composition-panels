@@ -112,7 +112,7 @@
     "@principal-ade/utcp-panel-event": "^0.1.0",
     "@principal-ai/alexandria-collections": "^1.4.3",
     "@principal-ai/alexandria-core-library": "^0.3.2",
-    "@principal-ai/codebase-composition": "^0.2.48",
+    "@principal-ai/codebase-composition": "^0.2.50",
     "@principal-ai/file-city-builder": "^0.4.2",
     "@principal-ai/principal-view-core": "^0.24.10",
     "@principal-ai/principal-view-react": "^0.13.5",

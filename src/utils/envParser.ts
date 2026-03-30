@@ -169,17 +169,61 @@ function parseDotEnv(content: string): EnvVariable[] {
 }
 
 /**
+ * Parse inline JSON field (e.g., expo.extra from app.json)
+ * Converts a simple key-value object to EnvVariable array
+ */
+function parseInlineJson(content: string, inlineField: string): EnvVariable[] {
+  const parsed = JSON.parse(content);
+
+  // Navigate to the nested field (e.g., "expo.extra" -> parsed.expo.extra)
+  const fieldPath = inlineField.split('.');
+  let data: unknown = parsed;
+  for (const key of fieldPath) {
+    if (data && typeof data === 'object' && key in data) {
+      data = (data as Record<string, unknown>)[key];
+    } else {
+      return []; // Field not found
+    }
+  }
+
+  if (!data || typeof data !== 'object') {
+    return [];
+  }
+
+  // Convert key-value pairs to EnvVariable format
+  return Object.entries(data as Record<string, unknown>).map(
+    ([name, value]) => ({
+      name,
+      description: `Configuration value from ${inlineField}`,
+      required: false,
+      default:
+        typeof value === 'object' ? JSON.stringify(value) : String(value),
+      group: inlineField,
+    })
+  );
+}
+
+/**
  * Parse environment variable documentation file
  *
  * @param content - File content
  * @param fileType - File type ('json' for env.json, 'custom' for .env.example)
+ * @param inlineField - Optional field path for inline configs (e.g., 'expo.extra')
  * @returns Parsed environment variables
  */
 export function parseEnvFile(
   content: string,
-  fileType: 'json' | 'yaml' | 'toml' | 'js' | 'ts' | 'ini' | 'custom'
+  fileType: 'json' | 'yaml' | 'toml' | 'js' | 'ts' | 'ini' | 'custom',
+  inlineField?: string
 ): EnvParseResult {
   if (fileType === 'json') {
+    // If inlineField is specified, extract from nested path (e.g., expo.extra)
+    if (inlineField) {
+      return {
+        variables: parseInlineJson(content, inlineField),
+        format: 'json',
+      };
+    }
     return {
       variables: parseEnvJson(content),
       format: 'json',
