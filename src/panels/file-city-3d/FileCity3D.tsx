@@ -363,9 +363,13 @@ function Building({
   const staggerMs = (animationConfig.staggerDelay || 15) * staggerIndex;
 
   // Spring animation for height
+  // Minimum height of 0.3 with base offset of 0.2 ensures buildings sit above the grid (at y=0) even when flat
+  const minHeight = 0.3;
+  const baseOffset = 0.2; // Lift buildings above the ground/grid to avoid z-fighting
+  const animatedHeight = growProgress * targetHeight + minHeight;
   const { height, yPosition } = useSpring({
-    height: growProgress * targetHeight + 0.1,
-    yPosition: (growProgress * targetHeight + 0.1) / 2,
+    height: animatedHeight,
+    yPosition: animatedHeight / 2 + baseOffset,
     config: {
       tension: animationConfig.tension || 120,
       friction: animationConfig.friction || 14,
@@ -456,31 +460,24 @@ function DistrictFloor({
 
   const dirName = district.path.split('/').pop() || district.path;
 
-  const { floorOpacity } = useSpring({
-    floorOpacity: opacity * 0.3,
-    config: { duration: 500 },
-  });
+  // Offset floor based on path depth to avoid z-fighting between nested districts
+  // Using large negative Y to ensure districts are always below buildings
+  const pathDepth = district.path.split('/').length;
+  const floorY = -5 - pathDepth * 0.1;
 
   return (
     <group position={[centerX, 0, centerZ]}>
-      {/* Floor plate */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
-        <planeGeometry args={[width, depth]} />
-        <animated.meshStandardMaterial
-          color="#1e293b"
-          transparent
-          opacity={floorOpacity}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* Border */}
-      <lineSegments rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+      {/* Border only - floor plates removed to avoid z-fighting */}
+      <lineSegments
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, floorY, 0]}
+        renderOrder={-1}
+      >
         <edgesGeometry
           args={[new THREE.PlaneGeometry(width, depth)]}
           attach="geometry"
         />
-        <lineBasicMaterial color="#475569" />
+        <lineBasicMaterial color="#475569" depthWrite={false} />
       </lineSegments>
 
       {/* Label - positioned above ground, angled toward camera */}
@@ -498,22 +495,6 @@ function DistrictFloor({
           {dirName}
         </Text>
       )}
-    </group>
-  );
-}
-
-// Ground plane with grid
-function Ground({ size }: { size: number }) {
-  return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
-        <planeGeometry args={[size * 1.5, size * 1.5]} />
-        <meshStandardMaterial color="#0f172a" />
-      </mesh>
-      <gridHelper
-        args={[size * 1.2, Math.ceil(size / 10), '#334155', '#1e293b']}
-        position={[0, 0, 0]}
-      />
     </group>
   );
 }
@@ -755,9 +736,6 @@ function CityScene({
 
       {/* Environment for reflections */}
       <Environment preset="city" />
-
-      {/* Ground */}
-      <Ground size={citySize} />
 
       {/* Districts (floor plates) */}
       {cityData.districts.map((district) => (
