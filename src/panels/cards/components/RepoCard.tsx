@@ -115,7 +115,7 @@ export const RepoCard: React.FC<RepoCardProps> = ({
     label: repository.name,
     owner: repository.github?.owner,
     language: repository.github?.primaryLanguage,
-    createdAt: repository.github?.createdAt,
+    createdAt: (repository.github as { createdAt?: string } | undefined)?.createdAt,
     variant,
     cardTheme,
     width,

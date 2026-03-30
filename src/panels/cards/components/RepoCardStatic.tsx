@@ -165,7 +165,7 @@ export const RepoCardStatic: React.FC<RepoCardStaticProps> = ({
         language={repository.github?.primaryLanguage}
         license={repository.github?.license}
         packages={packages}
-        createdAt={repository.github?.createdAt}
+        createdAt={(repository.github as { createdAt?: string } | undefined)?.createdAt}
       >
         {spriteContent}
       </CardLayout>
