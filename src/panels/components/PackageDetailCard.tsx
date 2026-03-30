@@ -213,6 +213,14 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
   const envConfig = pkg.configFiles?.envvars;
   const hasEnvConfig = envConfig?.exists ?? false;
 
+  console.log('[PackageDetailCard] Env tab debug:', {
+    packageName: pkg.packageData.name,
+    packagePath: pkg.packageData.path,
+    configFiles: pkg.configFiles,
+    envConfig,
+    hasEnvConfig,
+  });
+
   // Fetch and parse env file when env tab is active
   useEffect(() => {
     if (activeTab !== 'env' || !envConfig?.exists || !readFile) {

@@ -1,14 +1,19 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { FileCity3D, CityData, CityBuilding, CityDistrict } from './FileCity3D';
+import {
+  FileCity3DPanelContent,
+  type CityData,
+  type CityBuilding,
+  type CityDistrict,
+} from './FileCity3D';
 import {
   buildCityDataFromFileTree,
   estimateLineCounts,
   createMockFileTree,
 } from './buildCityData';
 
-const meta: Meta<typeof FileCity3D> = {
-  title: 'Panels/FileCity3D',
-  component: FileCity3D,
+const meta: Meta<typeof FileCity3DPanelContent> = {
+  title: 'Panels/FileCity3DPanel',
+  component: FileCity3DPanelContent,
   parameters: {
     layout: 'fullscreen',
   },
@@ -20,7 +25,7 @@ const meta: Meta<typeof FileCity3D> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof FileCity3D>;
+type Story = StoryObj<typeof FileCity3DPanelContent>;
 
 // Code extensions use lineCount for height, others use size
 const CODE_EXTENSIONS = ['ts', 'tsx', 'js', 'jsx', 'py', 'rs', 'go', 'java'];

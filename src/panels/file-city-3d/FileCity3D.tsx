@@ -1,14 +1,28 @@
 /**
- * FileCity3D - 3D visualization of a codebase using React Three Fiber
+ * FileCity3DPanel - 3D visualization of a codebase using React Three Fiber
  *
  * Renders CityData from file-city-builder as actual 3D buildings with
  * camera controls, lighting, and interactivity.
  *
  * Supports animated transition from 2D (flat) to 3D (grown buildings).
+ *
+ * Panel Pattern:
+ * - FileCity3DPanelContent: Core component with direct props (for Storybook/direct usage)
+ * - FileCity3DPanelPreview: Small preview component for panel switcher
+ * - FileCity3DPanel: Framework wrapper that extracts data from panel context
  */
 
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, {
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 import { Canvas, useFrame, ThreeEvent, useThree } from '@react-three/fiber';
+import { useTheme } from '@principal-ade/industry-theme';
+import type { FileCity3DPanelPropsTyped } from '../../types';
+import { buildCityDataFromFileTree, estimateLineCounts } from './buildCityData';
 import { animated, useSpring, config } from '@react-spring/three';
 import {
   OrbitControls,
@@ -742,8 +756,8 @@ function CityScene({
   );
 }
 
-// Main exported component
-export interface FileCity3DProps {
+// Main content component props
+export interface FileCity3DPanelProps {
   cityData: CityData;
   width?: number | string;
   height?: number | string;
@@ -764,9 +778,19 @@ export interface FileCity3DProps {
   isolationMode?: IsolationMode;
   /** Opacity for dimmed buildings in transparent mode (0-1) */
   dimOpacity?: number;
+  /** Whether data is currently loading */
+  isLoading?: boolean;
+  /** Message to display while loading */
+  loadingMessage?: string;
+  /** Message to display when there's no data */
+  emptyMessage?: string;
 }
 
-export function FileCity3D({
+/**
+ * FileCity3DPanelContent - Core visualization component
+ * Can be used directly with props or via the framework wrapper
+ */
+export function FileCity3DPanelContent({
   cityData,
   width = '100%',
   height = 600,
@@ -780,7 +804,10 @@ export function FileCity3D({
   highlightLayers = [],
   isolationMode = 'transparent',
   dimOpacity = 0.15,
-}: FileCity3DProps) {
+  isLoading = false,
+  loadingMessage = 'Loading file city...',
+  emptyMessage = 'No file tree data available',
+}: FileCity3DPanelProps) {
   const [hoveredBuilding, setHoveredBuilding] = useState<CityBuilding | null>(
     null
   );
@@ -819,6 +846,58 @@ export function FileCity3D({
     setIsGrown(!isGrown);
   };
 
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div
+        className={className}
+        style={{
+          width,
+          height,
+          position: 'relative',
+          background: '#0f172a',
+          borderRadius: 8,
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#94a3b8',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 14,
+          ...style,
+        }}
+      >
+        {loadingMessage}
+      </div>
+    );
+  }
+
+  // Handle empty state
+  if (!cityData || cityData.buildings.length === 0) {
+    return (
+      <div
+        className={className}
+        style={{
+          width,
+          height,
+          position: 'relative',
+          background: '#0f172a',
+          borderRadius: 8,
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#64748b',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 14,
+          ...style,
+        }}
+      >
+        {emptyMessage}
+      </div>
+    );
+  }
+
   return (
     <div
       className={className}
@@ -853,4 +932,126 @@ export function FileCity3D({
   );
 }
 
-export default FileCity3D;
+/**
+ * FileCity3DPanelPreview - Small preview component for panel switcher
+ */
+export const FileCity3DPanelPreview: React.FC = () => {
+  const { theme } = useTheme();
+
+  return (
+    <div
+      style={{
+        padding: '12px',
+        fontSize: '12px',
+        color: theme.colors.text,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px',
+      }}
+    >
+      {/* Mini isometric building representation */}
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-end' }}>
+        <div
+          style={{
+            width: 8,
+            height: 20,
+            background: '#3178c6',
+            borderRadius: 2,
+          }}
+        />
+        <div
+          style={{
+            width: 8,
+            height: 32,
+            background: '#61dafb',
+            borderRadius: 2,
+          }}
+        />
+        <div
+          style={{
+            width: 8,
+            height: 14,
+            background: '#f7df1e',
+            borderRadius: 2,
+          }}
+        />
+        <div
+          style={{
+            width: 8,
+            height: 26,
+            background: '#3572A5',
+            borderRadius: 2,
+          }}
+        />
+        <div
+          style={{
+            width: 8,
+            height: 18,
+            background: '#dea584',
+            borderRadius: 2,
+          }}
+        />
+      </div>
+      <div style={{ color: theme.colors.textSecondary, fontSize: '10px' }}>
+        3D Code City
+      </div>
+    </div>
+  );
+};
+
+/**
+ * FileCity3DPanel - Panel Framework compatible component
+ * Extracts data from panel context and renders FileCity3DPanelContent
+ */
+export const FileCity3DPanel: React.FC<FileCity3DPanelPropsTyped> = ({
+  context,
+  events,
+}) => {
+  // Get data slice from typed context
+  const fileTreeSlice = context.fileTree;
+
+  // Extract data
+  const fileTree = fileTreeSlice?.data;
+  const isLoading = fileTreeSlice?.loading || false;
+
+  // Build city data from file tree
+  const cityData = useMemo(() => {
+    if (!fileTree) return null;
+
+    // Get root path from file tree metadata
+    const rootPath = fileTree.metadata?.id || '';
+
+    // Build and enrich city data
+    const rawCityData = buildCityDataFromFileTree(fileTree, rootPath);
+    return estimateLineCounts(rawCityData);
+  }, [fileTree]);
+
+  // Handle building click - emit file:open event
+  const handleBuildingClick = useCallback(
+    (building: CityBuilding) => {
+      events?.emit({
+        type: 'file:open',
+        source: 'file-city-3d-panel',
+        timestamp: Date.now(),
+        payload: { path: building.path },
+      });
+    },
+    [events]
+  );
+
+  return (
+    <FileCity3DPanelContent
+      cityData={cityData!}
+      width="100%"
+      height="100%"
+      isLoading={isLoading}
+      onBuildingClick={handleBuildingClick}
+      showControls={true}
+      animation={{ startFlat: true, autoStartDelay: 300 }}
+    />
+  );
+};
+
+// Legacy export for backwards compatibility
+export const FileCity3D = FileCity3DPanelContent;
+export default FileCity3DPanelContent;
