@@ -299,8 +299,271 @@ function hasActiveHighlights(layers: HighlightLayer[]): boolean {
   return layers.some((layer) => layer.enabled && layer.items.length > 0);
 }
 
-// Animated RoundedBox wrapper
+// Animated RoundedBox wrapper (kept for small scenes)
 const AnimatedRoundedBox = animated(RoundedBox);
+
+// ============================================================================
+// Instanced Buildings - High performance rendering for large scenes
+// ============================================================================
+
+interface InstancedBuildingsProps {
+  buildings: CityBuilding[];
+  centerOffset: { x: number; z: number };
+  onHover?: (building: CityBuilding | null) => void;
+  onClick?: (building: CityBuilding) => void;
+  hoveredIndex: number | null;
+  growProgress: number;
+  animationConfig: AnimationConfig;
+  highlightLayers: HighlightLayer[];
+  isolationMode: IsolationMode;
+  hasActiveHighlights: boolean;
+  dimOpacity: number;
+  heightScaling: HeightScaling;
+  linearScale: number;
+  staggerIndices: number[];
+}
+
+function InstancedBuildings({
+  buildings,
+  centerOffset,
+  onHover,
+  onClick,
+  hoveredIndex,
+  growProgress,
+  animationConfig,
+  highlightLayers,
+  isolationMode,
+  hasActiveHighlights,
+  dimOpacity,
+  heightScaling,
+  linearScale,
+  staggerIndices,
+}: InstancedBuildingsProps) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const startTimeRef = useRef<number | null>(null);
+  const tempObject = useMemo(() => new THREE.Object3D(), []);
+  const tempColor = useMemo(() => new THREE.Color(), []);
+
+  // Pre-compute building data
+  const buildingData = useMemo(() => {
+    return buildings.map((building, index) => {
+      const [width, , depth] = building.dimensions;
+      const highlight = getHighlightForPath(building.path, highlightLayers);
+      const isHighlighted = highlight !== null;
+      const shouldDim = hasActiveHighlights && !isHighlighted;
+      const shouldCollapse = shouldDim && isolationMode === 'collapse';
+      const shouldHide = shouldDim && isolationMode === 'hide';
+
+      const fullHeight = calculateBuildingHeight(
+        building,
+        heightScaling,
+        linearScale
+      );
+      const targetHeight = shouldCollapse ? 0.5 : fullHeight;
+
+      const baseColor = getColorForFile(building);
+      const color = isHighlighted ? highlight.color : baseColor;
+
+      const x = building.position.x - centerOffset.x;
+      const z = building.position.z - centerOffset.z;
+
+      const staggerIndex = staggerIndices[index] ?? index;
+      const staggerDelayMs =
+        (animationConfig.staggerDelay || 15) * staggerIndex;
+
+      return {
+        building,
+        index,
+        width,
+        depth,
+        targetHeight,
+        color,
+        x,
+        z,
+        shouldHide,
+        shouldDim,
+        staggerDelayMs,
+        isHighlighted,
+      };
+    });
+  }, [
+    buildings,
+    centerOffset,
+    highlightLayers,
+    hasActiveHighlights,
+    isolationMode,
+    heightScaling,
+    linearScale,
+    staggerIndices,
+    animationConfig.staggerDelay,
+  ]);
+
+  // Filter visible buildings
+  const visibleBuildings = useMemo(
+    () => buildingData.filter((b) => !b.shouldHide),
+    [buildingData]
+  );
+
+  // Animation constants
+  const minHeight = 0.3;
+  const baseOffset = 0.2;
+  const tension = animationConfig.tension || 120;
+  const friction = animationConfig.friction || 14;
+
+  // Spring physics approximation for animation
+  const springDuration = Math.sqrt(1 / (tension * 0.001)) * friction * 20;
+
+  // Initialize instance matrices and colors on mount and when data changes
+  useEffect(() => {
+    if (!meshRef.current) return;
+
+    visibleBuildings.forEach((data, instanceIndex) => {
+      const { width, depth, x, z, color, targetHeight } = data;
+
+      // Set initial position (flat state)
+      const height = growProgress * targetHeight + minHeight;
+      const yPosition = height / 2 + baseOffset;
+
+      tempObject.position.set(x, yPosition, z);
+      tempObject.scale.set(width, height, depth);
+      tempObject.updateMatrix();
+
+      meshRef.current!.setMatrixAt(instanceIndex, tempObject.matrix);
+
+      // Set color
+      tempColor.set(color);
+      meshRef.current!.setColorAt(instanceIndex, tempColor);
+    });
+
+    meshRef.current.instanceMatrix.needsUpdate = true;
+    if (meshRef.current.instanceColor) {
+      meshRef.current.instanceColor.needsUpdate = true;
+    }
+  }, [
+    visibleBuildings,
+    growProgress,
+    tempObject,
+    tempColor,
+    minHeight,
+    baseOffset,
+  ]);
+
+  // Update instance matrices every frame
+  useFrame(({ clock }) => {
+    if (!meshRef.current) return;
+
+    if (startTimeRef.current === null && growProgress > 0) {
+      startTimeRef.current = clock.elapsedTime * 1000;
+    }
+
+    const currentTime = clock.elapsedTime * 1000;
+    const animStartTime = startTimeRef.current ?? currentTime;
+
+    visibleBuildings.forEach((data, instanceIndex) => {
+      const { width, depth, targetHeight, x, z, staggerDelayMs, shouldDim } =
+        data;
+
+      // Calculate animation progress with stagger
+      const elapsed = currentTime - animStartTime - staggerDelayMs;
+      let animProgress = growProgress;
+
+      if (growProgress > 0 && elapsed >= 0) {
+        // Ease out cubic for spring-like feel
+        const t = Math.min(elapsed / springDuration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        animProgress = eased * growProgress;
+      } else if (growProgress > 0 && elapsed < 0) {
+        animProgress = 0;
+      }
+
+      const height = animProgress * targetHeight + minHeight;
+      const yPosition = height / 2 + baseOffset;
+
+      // Apply hover scale
+      const isHovered = hoveredIndex === data.index;
+      const scale = isHovered ? 1.05 : 1;
+
+      // Set position and scale
+      tempObject.position.set(x, yPosition, z);
+      tempObject.scale.set(width * scale, height, depth * scale);
+      tempObject.updateMatrix();
+
+      meshRef.current!.setMatrixAt(instanceIndex, tempObject.matrix);
+
+      // Set color (with dim for non-highlighted)
+      const opacity =
+        shouldDim && isolationMode === 'transparent' ? dimOpacity : 1;
+      tempColor.set(data.color);
+      if (opacity < 1) {
+        // Darken color to simulate transparency on opaque mesh
+        tempColor.multiplyScalar(opacity + 0.3);
+      }
+      if (isHovered) {
+        // Brighten on hover
+        tempColor.multiplyScalar(1.2);
+      }
+      meshRef.current!.setColorAt(instanceIndex, tempColor);
+    });
+
+    meshRef.current.instanceMatrix.needsUpdate = true;
+    if (meshRef.current.instanceColor) {
+      meshRef.current.instanceColor.needsUpdate = true;
+    }
+  });
+
+  // Handle pointer events
+  const handlePointerMove = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      e.stopPropagation();
+      if (
+        e.instanceId !== undefined &&
+        e.instanceId < visibleBuildings.length
+      ) {
+        const data = visibleBuildings[e.instanceId];
+        onHover?.(data.building);
+      }
+    },
+    [visibleBuildings, onHover]
+  );
+
+  const handlePointerOut = useCallback(() => {
+    onHover?.(null);
+  }, [onHover]);
+
+  const handleClick = useCallback(
+    (e: ThreeEvent<MouseEvent>) => {
+      e.stopPropagation();
+      if (
+        e.instanceId !== undefined &&
+        e.instanceId < visibleBuildings.length
+      ) {
+        const data = visibleBuildings[e.instanceId];
+        onClick?.(data.building);
+      }
+    },
+    [visibleBuildings, onClick]
+  );
+
+  if (visibleBuildings.length === 0) return null;
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[undefined, undefined, visibleBuildings.length]}
+      onPointerMove={handlePointerMove}
+      onPointerOut={handlePointerOut}
+      onClick={handleClick}
+      frustumCulled={false}
+    >
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial metalness={0.1} roughness={0.35} />
+    </instancedMesh>
+  );
+}
+
+// ============================================================================
+// Individual Building Component (for small scenes or when spring animation is needed)
+// ============================================================================
 
 // Individual building component with spring animation
 interface BuildingProps {
@@ -506,6 +769,13 @@ interface AnimatedCameraProps {
   animationConfig: AnimationConfig;
 }
 
+// Store reset function globally so it can be called from outside the canvas
+let cameraResetFn: (() => void) | null = null;
+
+export function resetCamera() {
+  cameraResetFn?.();
+}
+
 function AnimatedCamera({
   citySize,
   isFlat,
@@ -514,33 +784,35 @@ function AnimatedCamera({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
 
-  // Simple tilt: camera stays on the Z axis, just changes height and z position
-  // Flat: looking straight down from above
-  // Iso: tilted view from front
+  const resetToInitial = useCallback(() => {
+    const targetHeight = isFlat ? citySize * 1.5 : citySize * 1.1;
+    const targetZ = isFlat ? 0 : citySize * 1.3;
 
-  const { height, zPos } = useSpring({
-    height: isFlat ? citySize * 1.5 : citySize * 0.8,
-    zPos: isFlat ? 0 : citySize * 1.0,
-    config: {
-      tension: 25,
-      friction: 28,
-      mass: 1.5,
-    },
-    delay: isFlat ? 0 : 400,
-  });
-
-  useFrame(() => {
-    camera.position.set(0, height.get(), zPos.get());
+    camera.position.set(0, targetHeight, targetZ);
     camera.lookAt(0, 0, 0);
 
     if (controlsRef.current) {
+      controlsRef.current.target.set(0, 0, 0);
       controlsRef.current.update();
     }
-  });
+  }, [isFlat, citySize, camera]);
+
+  // Set camera position when isFlat changes
+  useEffect(() => {
+    resetToInitial();
+  }, [resetToInitial]);
+
+  // Expose reset function
+  useEffect(() => {
+    cameraResetFn = resetToInitial;
+    return () => {
+      cameraResetFn = null;
+    };
+  }, [resetToInitial]);
 
   return (
     <>
-      <PerspectiveCamera makeDefault fov={50} />
+      <PerspectiveCamera makeDefault fov={50} near={1} far={citySize * 10} />
       <OrbitControls
         ref={controlsRef}
         enableDamping
@@ -610,9 +882,27 @@ function InfoPanel({ building }: InfoPanelProps) {
 interface ControlsOverlayProps {
   isFlat: boolean;
   onToggle: () => void;
+  onResetCamera: () => void;
 }
 
-function ControlsOverlay({ isFlat, onToggle }: ControlsOverlayProps) {
+function ControlsOverlay({
+  isFlat,
+  onToggle,
+  onResetCamera,
+}: ControlsOverlayProps) {
+  const buttonStyle = {
+    background: 'rgba(15, 23, 42, 0.9)',
+    border: '1px solid #334155',
+    borderRadius: 6,
+    padding: '8px 16px',
+    color: '#e2e8f0',
+    fontSize: 13,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+  };
+
   return (
     <div
       style={{
@@ -623,21 +913,10 @@ function ControlsOverlay({ isFlat, onToggle }: ControlsOverlayProps) {
         gap: 8,
       }}
     >
-      <button
-        onClick={onToggle}
-        style={{
-          background: 'rgba(15, 23, 42, 0.9)',
-          border: '1px solid #334155',
-          borderRadius: 6,
-          padding: '8px 16px',
-          color: '#e2e8f0',
-          fontSize: 13,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-        }}
-      >
+      <button onClick={onResetCamera} style={buttonStyle}>
+        ↺ Reset View
+      </button>
+      <button onClick={onToggle} style={buttonStyle}>
         {isFlat ? '▲ Grow to 3D' : '▼ Flatten to 2D'}
       </button>
     </div>
@@ -695,26 +974,36 @@ function CityScene({
   );
 
   // Calculate stagger indices based on distance from center
-  const buildingsWithStagger = useMemo(() => {
+  // Returns an array where staggerIndices[originalIndex] = staggerOrder
+  const staggerIndices = useMemo(() => {
     const centerX = (cityData.bounds.minX + cityData.bounds.maxX) / 2;
     const centerZ = (cityData.bounds.minZ + cityData.bounds.maxZ) / 2;
 
-    const withDistance = cityData.buildings.map((b) => ({
-      building: b,
+    const withDistance = cityData.buildings.map((b, originalIndex) => ({
+      originalIndex,
       distance: Math.sqrt(
         Math.pow(b.position.x - centerX, 2) +
           Math.pow(b.position.z - centerZ, 2)
       ),
-      highlight: getHighlightForPath(b.path, highlightLayers),
     }));
 
-    // Sort by distance and assign stagger index
+    // Sort by distance and create mapping
     withDistance.sort((a, b) => a.distance - b.distance);
-    return withDistance.map((item, index) => ({
-      ...item,
-      staggerIndex: index,
-    }));
-  }, [cityData.buildings, cityData.bounds, highlightLayers]);
+
+    // Create array where index is original building index, value is stagger order
+    const indices: number[] = new Array(cityData.buildings.length);
+    withDistance.forEach((item, staggerOrder) => {
+      indices[item.originalIndex] = staggerOrder;
+    });
+
+    return indices;
+  }, [cityData.buildings, cityData.bounds]);
+
+  // Find hovered building index
+  const hoveredIndex = useMemo(() => {
+    if (!hoveredBuilding) return null;
+    return cityData.buildings.findIndex((b) => b.path === hoveredBuilding.path);
+  }, [hoveredBuilding, cityData.buildings]);
 
   return (
     <>
@@ -747,26 +1036,23 @@ function CityScene({
         />
       ))}
 
-      {/* Buildings */}
-      {buildingsWithStagger.map(({ building, staggerIndex, highlight }) => (
-        <Building
-          key={building.path}
-          building={building}
-          centerOffset={centerOffset}
-          onHover={onBuildingHover}
-          onClick={onBuildingClick}
-          isHovered={hoveredBuilding?.path === building.path}
-          growProgress={growProgress}
-          staggerIndex={staggerIndex}
-          animationConfig={animationConfig}
-          highlight={highlight}
-          isolationMode={isolationMode}
-          hasActiveHighlights={activeHighlights}
-          dimOpacity={dimOpacity}
-          heightScaling={heightScaling}
-          linearScale={linearScale}
-        />
-      ))}
+      {/* Buildings - using instanced mesh for performance */}
+      <InstancedBuildings
+        buildings={cityData.buildings}
+        centerOffset={centerOffset}
+        onHover={onBuildingHover}
+        onClick={onBuildingClick}
+        hoveredIndex={hoveredIndex}
+        growProgress={growProgress}
+        animationConfig={animationConfig}
+        highlightLayers={highlightLayers}
+        isolationMode={isolationMode}
+        hasActiveHighlights={activeHighlights}
+        dimOpacity={dimOpacity}
+        heightScaling={heightScaling}
+        linearScale={linearScale}
+        staggerIndices={staggerIndices}
+      />
     </>
   );
 }
@@ -877,7 +1163,6 @@ export function FileCity3DPanelContent({
           height,
           position: 'relative',
           background: '#0f172a',
-          borderRadius: 8,
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
@@ -903,7 +1188,6 @@ export function FileCity3DPanelContent({
           height,
           position: 'relative',
           background: '#0f172a',
-          borderRadius: 8,
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
@@ -927,7 +1211,6 @@ export function FileCity3DPanelContent({
         height,
         position: 'relative',
         background: '#0f172a',
-        borderRadius: 8,
         overflow: 'hidden',
         ...style,
       }}
@@ -961,7 +1244,11 @@ export function FileCity3DPanelContent({
       </Canvas>
       <InfoPanel building={hoveredBuilding} />
       {showControls && (
-        <ControlsOverlay isFlat={!isGrown} onToggle={handleToggle} />
+        <ControlsOverlay
+          isFlat={!isGrown}
+          onToggle={handleToggle}
+          onResetCamera={resetCamera}
+        />
       )}
     </div>
   );

@@ -285,7 +285,7 @@ function generateMonorepoCityData(): CityData {
 export const Default: Story = {
   args: {
     cityData: sampleCityData,
-    height: 700,
+    height: '100vh',
   },
 };
 
@@ -296,7 +296,7 @@ export const Default: Story = {
 export const AnimatedIntro: Story = {
   args: {
     cityData: sampleCityData,
-    height: 700,
+    height: '100vh',
     animation: {
       startFlat: true,
       autoStartDelay: 800,
@@ -321,7 +321,7 @@ export const AnimatedIntro: Story = {
 export const ManualControl: Story = {
   args: {
     cityData: sampleCityData,
-    height: 700,
+    height: '100vh',
     animation: {
       startFlat: true,
       autoStartDelay: null, // Don't auto-start
@@ -345,7 +345,7 @@ export const ManualControl: Story = {
 export const FastAnimation: Story = {
   args: {
     cityData: sampleCityData,
-    height: 700,
+    height: '100vh',
     animation: {
       startFlat: true,
       autoStartDelay: 500,
@@ -370,7 +370,7 @@ export const FastAnimation: Story = {
 export const SlowDramatic: Story = {
   args: {
     cityData: sampleCityData,
-    height: 700,
+    height: '100vh',
     animation: {
       startFlat: true,
       autoStartDelay: 1000,
@@ -395,7 +395,7 @@ export const SlowDramatic: Story = {
 export const LargeCityAnimated: Story = {
   args: {
     cityData: generateLargeCityData(),
-    height: 800,
+    height: '100vh',
     animation: {
       startFlat: true,
       autoStartDelay: 600,
@@ -420,7 +420,7 @@ export const LargeCityAnimated: Story = {
 export const MonorepoAnimated: Story = {
   args: {
     cityData: generateMonorepoCityData(),
-    height: 700,
+    height: '100vh',
     animation: {
       startFlat: true,
       autoStartDelay: 700,
@@ -444,7 +444,7 @@ export const MonorepoAnimated: Story = {
 export const Static3D: Story = {
   args: {
     cityData: sampleCityData,
-    height: 600,
+    height: '100vh',
     animation: {
       startFlat: false,
     },
@@ -465,7 +465,7 @@ export const Static3D: Story = {
 export const WithClickHandler: Story = {
   args: {
     cityData: sampleCityData,
-    height: 600,
+    height: '100vh',
     onBuildingClick: (building) => {
       // eslint-disable-next-line no-console
       console.log('Clicked building:', building.path);
@@ -489,7 +489,7 @@ export const WithClickHandler: Story = {
 export const IsolationTransparent: Story = {
   args: {
     cityData: sampleCityData,
-    height: 700,
+    height: '100vh',
     isolationMode: 'transparent',
     dimOpacity: 0.1,
     highlightLayers: [
@@ -519,7 +519,7 @@ export const IsolationTransparent: Story = {
 export const IsolationCollapse: Story = {
   args: {
     cityData: sampleCityData,
-    height: 700,
+    height: '100vh',
     isolationMode: 'collapse',
     highlightLayers: [
       {
@@ -548,7 +548,7 @@ export const IsolationCollapse: Story = {
 export const IsolationHide: Story = {
   args: {
     cityData: sampleCityData,
-    height: 700,
+    height: '100vh',
     isolationMode: 'hide',
     highlightLayers: [
       {
@@ -576,7 +576,7 @@ export const IsolationHide: Story = {
 export const MultipleHighlights: Story = {
   args: {
     cityData: sampleCityData,
-    height: 700,
+    height: '100vh',
     isolationMode: 'transparent',
     dimOpacity: 0.08,
     highlightLayers: [
@@ -612,7 +612,7 @@ export const MultipleHighlights: Story = {
 export const AnimatedWithHighlight: Story = {
   args: {
     cityData: sampleCityData,
-    height: 700,
+    height: '100vh',
     animation: {
       startFlat: true,
       autoStartDelay: 800,
@@ -660,7 +660,7 @@ function buildRealCityData(): CityData {
 export const RealFileTree: Story = {
   args: {
     cityData: buildRealCityData(),
-    height: 700,
+    height: '100vh',
   },
   parameters: {
     docs: {
@@ -678,7 +678,7 @@ export const RealFileTree: Story = {
 export const RealFileTreeAnimated: Story = {
   args: {
     cityData: buildRealCityData(),
-    height: 700,
+    height: '100vh',
     animation: {
       startFlat: true,
       autoStartDelay: 600,
@@ -702,7 +702,7 @@ export const RealFileTreeAnimated: Story = {
 export const RealFileTreeHighlighted: Story = {
   args: {
     cityData: buildRealCityData(),
-    height: 700,
+    height: '100vh',
     isolationMode: 'transparent',
     dimOpacity: 0.12,
     highlightLayers: [
@@ -730,7 +730,7 @@ export const RealFileTreeHighlighted: Story = {
 export const RealFileTreeCollapsed: Story = {
   args: {
     cityData: buildRealCityData(),
-    height: 700,
+    height: '100vh',
     isolationMode: 'collapse',
     highlightLayers: [
       {
@@ -759,7 +759,9 @@ export const RealFileTreeCollapsed: Story = {
 export const ElectronApp: Story = {
   args: {
     cityData: electronAppCityData as CityData,
-    height: 700,
+    height: '100vh',
+    heightScaling: 'linear',
+    linearScale: 0.5,
     animation: {
       startFlat: true,
       autoStartDelay: 500,
@@ -784,7 +786,7 @@ export const ElectronApp: Story = {
 export const ElectronAppStatic: Story = {
   args: {
     cityData: electronAppCityData as CityData,
-    height: 700,
+    height: '100vh',
   },
   parameters: {
     docs: {
@@ -802,7 +804,7 @@ export const ElectronAppStatic: Story = {
 export const AuthServer: Story = {
   args: {
     cityData: authServerCityData as CityData,
-    height: 700,
+    height: '100vh',
     heightScaling: 'linear',
     linearScale: 1,
     animation: {
