@@ -31,6 +31,7 @@ import {
   Text,
   RoundedBox,
 } from '@react-three/drei';
+import { defaultFileColorConfig } from '@principal-ai/file-city-builder';
 import * as THREE from 'three';
 import type { ThreeElements } from '@react-three/fiber';
 
@@ -116,28 +117,40 @@ function isCodeFile(extension: string): boolean {
   return CODE_EXTENSIONS.has(extension.toLowerCase());
 }
 
-/**
- * Calculate building height based on file metrics using logarithmic scaling.
- * - Code files: height based on line count (more lines = taller)
- * - Non-code files: height based on file size (more bytes = taller)
- *
- * Logarithmic scaling naturally compresses large values, so no artificial cap needed.
- */
-function calculateBuildingHeight(building: CityBuilding): number {
-  const ext = building.fileExtension || building.path.split('.').pop() || '';
-  const minHeight = 2;
-  const heightScale = 12; // Multiplier for the log value
+/** Height scaling mode for buildings */
+export type HeightScaling = 'logarithmic' | 'linear';
 
-  if (isCodeFile(ext) && building.lineCount !== undefined) {
-    // Code files: logarithmic scale based on line count
-    // log10(10) = 1, log10(100) = 2, log10(1000) = 3, log10(10000) = 4
+/**
+ * Calculate building height based on file metrics.
+ * - logarithmic: Compresses large values (default, good for mixed codebases)
+ * - linear: Direct scaling (1 line = linearScale units of height)
+ */
+function calculateBuildingHeight(
+  building: CityBuilding,
+  scaling: HeightScaling = 'logarithmic',
+  linearScale: number = 0.05
+): number {
+  const minHeight = 2;
+
+  // Use lineCount if available (any text file), otherwise fall back to size
+  if (building.lineCount !== undefined) {
     const lines = Math.max(building.lineCount, 1);
-    return minHeight + Math.log10(lines) * heightScale;
+
+    if (scaling === 'linear') {
+      // Linear: height directly proportional to line count
+      return minHeight + lines * linearScale;
+    }
+    // Logarithmic: log10(10) = 1, log10(100) = 2, log10(1000) = 3
+    return minHeight + Math.log10(lines) * 12;
   } else if (building.size !== undefined) {
-    // Non-code files: logarithmic scale based on size
-    // log10(1KB) = 3, log10(10KB) = 4, log10(100KB) = 5, log10(1MB) = 6
     const bytes = Math.max(building.size, 1);
-    return minHeight + (Math.log10(bytes) - 2) * heightScale; // -2 to start scaling from ~100 bytes
+
+    if (scaling === 'linear') {
+      // Linear: height based on KB
+      return minHeight + (bytes / 1024) * linearScale;
+    }
+    // Logarithmic scale based on size
+    return minHeight + (Math.log10(bytes) - 2) * 12;
   }
 
   // Fallback to dimension height if no metrics available
@@ -222,28 +235,35 @@ const DEFAULT_ANIMATION: AnimationConfig = {
   friction: 14,
 };
 
-// Color palette for file extensions
-const EXTENSION_COLORS: Record<string, string> = {
-  ts: '#3178c6',
-  tsx: '#61dafb',
-  js: '#f7df1e',
-  jsx: '#61dafb',
-  json: '#cbcb41',
-  md: '#083fa1',
-  css: '#264de4',
-  scss: '#cc6699',
-  html: '#e34c26',
-  py: '#3572A5',
-  rs: '#dea584',
-  go: '#00ADD8',
-  java: '#b07219',
-  default: '#6b7280',
-};
+// Type for the file color config
+type SuffixConfig = { primary?: { color?: string } };
+const suffixConfigs = defaultFileColorConfig.suffixConfigs as Record<
+  string,
+  SuffixConfig
+>;
 
+// Get color from file-city-builder config
 function getColorForFile(building: CityBuilding): string {
   if (building.color) return building.color;
-  const ext = building.fileExtension || building.path.split('.').pop() || '';
-  return EXTENSION_COLORS[ext.toLowerCase()] || EXTENSION_COLORS.default;
+
+  const fileName = building.path.split('/').pop() || '';
+  const ext =
+    building.fileExtension || '.' + (building.path.split('.').pop() || '');
+
+  // Try full filename first (e.g., "package-lock.json", "README.md")
+  const fileConfig = suffixConfigs[fileName];
+  if (fileConfig?.primary?.color) {
+    return fileConfig.primary.color;
+  }
+
+  // Try extension (e.g., ".ts", ".tsx")
+  const extConfig = suffixConfigs[ext];
+  if (extConfig?.primary?.color) {
+    return extConfig.primary.color;
+  }
+
+  // Fallback to default
+  return defaultFileColorConfig.defaultConfig?.primary?.color || '#6b7280';
 }
 
 /**
@@ -297,6 +317,9 @@ interface BuildingProps {
   isolationMode: IsolationMode;
   hasActiveHighlights: boolean;
   dimOpacity: number;
+  // Height scaling
+  heightScaling: HeightScaling;
+  linearScale: number;
 }
 
 function Building({
@@ -312,6 +335,8 @@ function Building({
   isolationMode,
   hasActiveHighlights,
   dimOpacity,
+  heightScaling,
+  linearScale,
 }: BuildingProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [width, , depth] = building.dimensions;
@@ -324,7 +349,11 @@ function Building({
   const shouldHide = shouldDim && isolationMode === 'hide';
 
   // Calculate height based on line count (code) or size (non-code)
-  const fullHeight = calculateBuildingHeight(building);
+  const fullHeight = calculateBuildingHeight(
+    building,
+    heightScaling,
+    linearScale
+  );
   const targetHeight = shouldCollapse ? 0.5 : fullHeight; // Collapsed = very short
 
   // Use highlight color if highlighted, otherwise base color
@@ -553,7 +582,8 @@ function InfoPanel({ building }: InfoPanelProps) {
 
   const fileName = building.path.split('/').pop();
   const dirPath = building.path.split('/').slice(0, -1).join('/');
-  const ext = building.fileExtension || building.path.split('.').pop() || '';
+  const rawExt = building.fileExtension || building.path.split('.').pop() || '';
+  const ext = rawExt.replace(/^\./, ''); // Strip leading dot
   const isCode = isCodeFile(ext);
 
   return (
@@ -584,7 +614,7 @@ function InfoPanel({ building }: InfoPanelProps) {
           gap: 12,
         }}
       >
-        {isCode && building.lineCount !== undefined && (
+        {building.lineCount !== undefined && (
           <span>{building.lineCount.toLocaleString()} lines</span>
         )}
         {building.size !== undefined && (
@@ -645,6 +675,9 @@ interface CitySceneProps {
   highlightLayers: HighlightLayer[];
   isolationMode: IsolationMode;
   dimOpacity: number;
+  // Height scaling
+  heightScaling: HeightScaling;
+  linearScale: number;
 }
 
 function CityScene({
@@ -657,6 +690,8 @@ function CityScene({
   highlightLayers,
   isolationMode,
   dimOpacity,
+  heightScaling,
+  linearScale,
 }: CitySceneProps) {
   // Calculate center offset to center the city at origin
   const centerOffset = useMemo(
@@ -750,6 +785,8 @@ function CityScene({
           isolationMode={isolationMode}
           hasActiveHighlights={activeHighlights}
           dimOpacity={dimOpacity}
+          heightScaling={heightScaling}
+          linearScale={linearScale}
         />
       ))}
     </>
@@ -784,6 +821,10 @@ export interface FileCity3DPanelProps {
   loadingMessage?: string;
   /** Message to display when there's no data */
   emptyMessage?: string;
+  /** Height scaling mode: 'logarithmic' (default) or 'linear' */
+  heightScaling?: HeightScaling;
+  /** Scale factor for linear mode (height per line, default 0.05) */
+  linearScale?: number;
 }
 
 /**
@@ -807,6 +848,8 @@ export function FileCity3DPanelContent({
   isLoading = false,
   loadingMessage = 'Loading file city...',
   emptyMessage = 'No file tree data available',
+  heightScaling = 'logarithmic',
+  linearScale = 0.05,
 }: FileCity3DPanelProps) {
   const [hoveredBuilding, setHoveredBuilding] = useState<CityBuilding | null>(
     null
@@ -913,7 +956,13 @@ export function FileCity3DPanelContent({
     >
       <Canvas
         shadows
-        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+        }}
         onCreated={({ gl }) => {
           console.info('[FileCity3D] Canvas created, WebGL renderer:', gl.info);
         }}
@@ -928,6 +977,8 @@ export function FileCity3DPanelContent({
           highlightLayers={highlightLayers}
           isolationMode={isolationMode}
           dimOpacity={dimOpacity}
+          heightScaling={heightScaling}
+          linearScale={linearScale}
         />
       </Canvas>
       <InfoPanel building={hoveredBuilding} />

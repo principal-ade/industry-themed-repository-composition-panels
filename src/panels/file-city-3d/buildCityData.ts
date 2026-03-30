@@ -104,11 +104,10 @@ export function estimateLineCounts(cityData: CityData): CityData {
   return {
     ...cityData,
     buildings: cityData.buildings.map((building) => {
-      const ext = (
-        building.fileExtension ||
-        building.path.split('.').pop() ||
-        ''
-      ).toLowerCase();
+      const rawExt =
+        building.fileExtension || building.path.split('.').pop() || '';
+      // Strip leading dot if present (e.g., ".ts" -> "ts")
+      const ext = rawExt.toLowerCase().replace(/^\./, '');
       const isCode = CODE_EXTENSIONS.has(ext);
 
       if (isCode && building.size && !building.lineCount) {

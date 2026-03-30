@@ -48,6 +48,7 @@
     "test:watch": "bun test --preload ./src/panels/overworld-map/test-setup.ts --watch",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
+    "generate-city": "bun scripts/generate-city-data.ts",
     "prepare": "husky"
   },
   "peerDependencies": {

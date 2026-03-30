@@ -10,6 +10,8 @@ import {
   estimateLineCounts,
   createMockFileTree,
 } from './buildCityData';
+import electronAppCityData from '../../../assets/electron-app-city-data.json';
+import authServerCityData from '../../../assets/auth-server-city-data.json';
 
 const meta: Meta<typeof FileCity3DPanelContent> = {
   title: 'Panels/FileCity3DPanel',
@@ -745,6 +747,77 @@ export const RealFileTreeCollapsed: Story = {
       description: {
         story:
           'Real FileTree with only src directory standing tall, everything else collapsed.',
+      },
+    },
+  },
+};
+
+/**
+ * Electron App - Real repository data
+ * Generated from /Users/griever/Developer/desktop-app/electron-app
+ */
+export const ElectronApp: Story = {
+  args: {
+    cityData: electronAppCityData as CityData,
+    height: 700,
+    animation: {
+      startFlat: true,
+      autoStartDelay: 500,
+      staggerDelay: 3,
+      tension: 120,
+      friction: 14,
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Real repository visualization of electron-app (1063 files, 226 districts).',
+      },
+    },
+  },
+};
+
+/**
+ * Electron App - Static view (no animation)
+ */
+export const ElectronAppStatic: Story = {
+  args: {
+    cityData: electronAppCityData as CityData,
+    height: 700,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Electron app repository in static 3D view.',
+      },
+    },
+  },
+};
+
+/**
+ * Auth Server - Real repository data (linear scaling)
+ * Generated from /Users/griever/Developer/messaging-server/auth-server
+ */
+export const AuthServer: Story = {
+  args: {
+    cityData: authServerCityData as CityData,
+    height: 700,
+    heightScaling: 'linear',
+    linearScale: 1,
+    animation: {
+      startFlat: true,
+      autoStartDelay: 500,
+      staggerDelay: 8,
+      tension: 120,
+      friction: 14,
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Real repository visualization of auth-server with linear height scaling (95 files, 47 districts).',
       },
     },
   },
