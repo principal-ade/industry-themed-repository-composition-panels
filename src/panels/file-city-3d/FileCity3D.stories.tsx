@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { ThemeProvider } from '@principal-ade/industry-theme';
 import {
   FileCity3DPanelContent,
   type CityData,
@@ -16,6 +17,13 @@ import authServerCityData from '../../../assets/auth-server-city-data.json';
 const meta: Meta<typeof FileCity3DPanelContent> = {
   title: 'Panels/FileCity3DPanel',
   component: FileCity3DPanelContent,
+  decorators: [
+    (Story) => (
+      <ThemeProvider>
+        <Story />
+      </ThemeProvider>
+    ),
+  ],
   parameters: {
     layout: 'fullscreen',
   },

@@ -31,7 +31,8 @@ import {
   Text,
   RoundedBox,
 } from '@react-three/drei';
-import { defaultFileColorConfig } from '@principal-ai/file-city-builder';
+import { getFileConfig } from '@principal-ai/file-city-builder';
+import type { FileConfigResult } from '@principal-ai/file-city-builder';
 import * as THREE from 'three';
 import type { ThreeElements } from '@react-three/fiber';
 
@@ -235,35 +236,24 @@ const DEFAULT_ANIMATION: AnimationConfig = {
   friction: 14,
 };
 
-// Type for the file color config
-type SuffixConfig = { primary?: { color?: string } };
-const suffixConfigs = defaultFileColorConfig.suffixConfigs as Record<
-  string,
-  SuffixConfig
->;
+// Get full file config from centralized file-city-builder lookup
+function getConfigForFile(building: CityBuilding): FileConfigResult {
+  if (building.color) {
+    // If building has pre-assigned color, wrap it in a config result
+    return {
+      color: building.color,
+      renderStrategy: 'fill',
+      opacity: 1,
+      matchedPattern: 'preset',
+      matchType: 'filename',
+    };
+  }
+  return getFileConfig(building.path);
+}
 
-// Get color from file-city-builder config
+// Convenience function for just color
 function getColorForFile(building: CityBuilding): string {
-  if (building.color) return building.color;
-
-  const fileName = building.path.split('/').pop() || '';
-  const ext =
-    building.fileExtension || '.' + (building.path.split('.').pop() || '');
-
-  // Try full filename first (e.g., "package-lock.json", "README.md")
-  const fileConfig = suffixConfigs[fileName];
-  if (fileConfig?.primary?.color) {
-    return fileConfig.primary.color;
-  }
-
-  // Try extension (e.g., ".ts", ".tsx")
-  const extConfig = suffixConfigs[ext];
-  if (extConfig?.primary?.color) {
-    return extConfig.primary.color;
-  }
-
-  // Fallback to default
-  return defaultFileColorConfig.defaultConfig?.primary?.color || '#6b7280';
+  return getConfigForFile(building).color;
 }
 
 /**
