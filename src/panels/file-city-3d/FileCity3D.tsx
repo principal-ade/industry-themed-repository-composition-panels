@@ -1023,8 +1023,7 @@ function CityScene({
         intensity={0.3}
       />
 
-      {/* Environment for reflections */}
-      <Environment preset="city" />
+      {/* Environment removed - HDR files don't load in Electron asar bundles */}
 
       {/* Districts (floor plates) */}
       {cityData.districts.map((district) => (
