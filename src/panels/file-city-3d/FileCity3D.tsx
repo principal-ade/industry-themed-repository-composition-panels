@@ -1114,6 +1114,7 @@ export function FileCity3DPanelContent({
   heightScaling = 'logarithmic',
   linearScale = 0.05,
 }: FileCity3DPanelProps) {
+  const { theme } = useTheme();
   const [hoveredBuilding, setHoveredBuilding] = useState<CityBuilding | null>(
     null
   );
@@ -1161,12 +1162,12 @@ export function FileCity3DPanelContent({
           width,
           height,
           position: 'relative',
-          background: '#0f172a',
+          background: theme.colors.background,
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#94a3b8',
+          color: theme.colors.textSecondary,
           fontFamily: 'system-ui, sans-serif',
           fontSize: 14,
           ...style,
@@ -1186,12 +1187,12 @@ export function FileCity3DPanelContent({
           width,
           height,
           position: 'relative',
-          background: '#0f172a',
+          background: theme.colors.background,
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#64748b',
+          color: theme.colors.textSecondary,
           fontFamily: 'system-ui, sans-serif',
           fontSize: 14,
           ...style,
@@ -1209,7 +1210,7 @@ export function FileCity3DPanelContent({
         width,
         height,
         position: 'relative',
-        background: '#0f172a',
+        background: theme.colors.background,
         overflow: 'hidden',
         ...style,
       }}
