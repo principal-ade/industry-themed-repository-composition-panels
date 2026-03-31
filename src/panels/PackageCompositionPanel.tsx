@@ -307,24 +307,6 @@ export const PackageCompositionPanel: React.FC<
   const isLoading = packagesSlice?.loading || false;
   const isGitHubPublic = repositoryEntrySlice?.data?.github?.isPublic;
 
-  // Debug: log what data the panel receives
-  console.log('[PackageCompositionPanel] Received packages:', {
-    packageCount: packages.length,
-    firstPackage: packages[0]
-      ? {
-          name: packages[0].packageData.name,
-          configFileKeys: packages[0].configFiles
-            ? Object.keys(packages[0].configFiles)
-            : [],
-          envConfigs: packages[0].configFiles
-            ? Object.entries(packages[0].configFiles).filter(([k]) =>
-                k.startsWith('env')
-              )
-            : [],
-        }
-      : null,
-  });
-
   // Emit package:hover events when hovering over packages
   const handlePackageHover = (pkg: PackageLayer | null) => {
     events?.emit({
