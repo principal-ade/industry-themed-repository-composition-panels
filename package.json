@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/repository-composition-panels",
-  "version": "0.7.76",
+  "version": "0.7.78",
   "description": "Repository composition panels including Git Changes panel for the panel framework",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -115,7 +115,7 @@
     "@principal-ai/alexandria-core-library": "^0.3.2",
     "@principal-ai/codebase-composition": "^0.2.50",
     "@principal-ai/file-city-builder": "^0.4.5",
-    "@principal-ai/file-city-react": "^0.5.5",
+    "@principal-ai/file-city-react": "^0.5.7",
     "@principal-ai/principal-view-core": "^0.24.10",
     "@principal-ai/principal-view-react": "^0.13.5",
     "@principal-ai/repository-abstraction": "^0.5.7",
