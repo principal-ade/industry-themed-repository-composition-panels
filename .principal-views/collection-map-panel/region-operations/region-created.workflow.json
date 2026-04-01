@@ -4,7 +4,6 @@
   "name": "Region Created",
   "description": "User creates a new region on the collection map",
   "spanPattern": "collection-map.region-created",
-  "mode": "span-tree",
   "scenarios": [
     {
       "id": "region-created",

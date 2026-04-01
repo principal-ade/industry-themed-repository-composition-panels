@@ -4,7 +4,6 @@
   "name": "Region Renamed",
   "description": "User renames an existing region on the collection map",
   "spanPattern": "collection-map.region-renamed",
-  "mode": "span-tree",
   "scenarios": [
     {
       "id": "region-renamed",

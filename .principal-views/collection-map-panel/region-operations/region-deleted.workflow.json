@@ -4,7 +4,6 @@
   "name": "Region Deleted",
   "description": "User deletes a region from the collection map",
   "spanPattern": "collection-map.region-deleted",
-  "mode": "span-tree",
   "scenarios": [
     {
       "id": "region-deleted",

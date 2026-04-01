@@ -4,7 +4,6 @@
   "name": "External Drop",
   "description": "Repository dragged from external panel onto the collection map",
   "spanPattern": "collection-map.project-drop",
-  "mode": "span-tree",
   "scenarios": [
     {
       "id": "external-drop",

@@ -4,7 +4,6 @@
   "name": "Collection Load",
   "description": "Full lifecycle when a collection is selected and loaded as an overworld map",
   "spanPattern": "collection-map.collection-selected",
-  "mode": "span-tree",
   "scenarios": [
     {
       "id": "collection-loaded",

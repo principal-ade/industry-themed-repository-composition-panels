@@ -4,27 +4,15 @@
   "name": "Repository Click",
   "description": "User clicks on a repository sprite to select or deselect",
   "spanPattern": "collection-map.repository-clicked",
-  "mode": "span-tree",
   "scenarios": [
     {
-      "id": "repository-selected",
-      "description": "User clicked on a repository to select it",
+      "id": "repository-click",
+      "description": "User clicked on a repository sprite or empty space to select/deselect",
       "priority": 1,
       "template": {
-        "summary": "Selected repository {{repository.id}} in collection {{collection.id}}",
+        "summary": "{{action}} repository {{repository.id}} in collection {{collection.id}}",
         "events": {
-          "collection-map.repository-clicked": "Action: {{action}} - Clicked on repository {{repository.id}} in collection {{collection.id}}"
-        }
-      }
-    },
-    {
-      "id": "repository-deselected",
-      "description": "User clicked empty space to deselect",
-      "priority": 2,
-      "template": {
-        "summary": "Deselected repository in collection {{collection.id}}",
-        "events": {
-          "collection-map.repository-clicked": "Action: {{action}} - Clicked empty space to deselect in collection {{collection.id}}"
+          "collection-map.repository-clicked": "Action: {{action}} - Clicked on {{repository.id}} in collection {{collection.id}}"
         }
       }
     }

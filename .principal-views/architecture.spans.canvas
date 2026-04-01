@@ -1,0 +1,192 @@
+{
+  "nodes": [
+    {
+      "id": "collection-selected-span",
+      "type": "otel-span-convention",
+      "label": "Collection Selected",
+      "x": 0,
+      "y": 0,
+      "width": 280,
+      "height": 80,
+      "color": "#3b82f6",
+      "pv": {
+        "description": "Root span for loading a collection as an overworld map"
+      },
+      "otel": {
+        "spanPattern": "collection-map.collection-selected",
+        "status": "implemented"
+      }
+    },
+    {
+      "id": "repository-clicked-span",
+      "type": "otel-span-convention",
+      "label": "Repository Clicked",
+      "x": 0,
+      "y": 120,
+      "width": 280,
+      "height": 80,
+      "color": "#8b5cf6",
+      "pv": {
+        "description": "Span for user clicking on a repository sprite"
+      },
+      "otel": {
+        "spanPattern": "collection-map.repository-clicked",
+        "status": "implemented"
+      }
+    },
+    {
+      "id": "project-drop-span",
+      "type": "otel-span-convention",
+      "label": "Project Drop",
+      "x": 0,
+      "y": 240,
+      "width": 280,
+      "height": 80,
+      "color": "#f59e0b",
+      "pv": {
+        "description": "Span for dropping a project from external source onto the map"
+      },
+      "otel": {
+        "spanPattern": "collection-map.project-drop",
+        "status": "implemented"
+      }
+    },
+    {
+      "id": "drawer-drop-span",
+      "type": "otel-span-convention",
+      "label": "Drawer Drop",
+      "x": 0,
+      "y": 360,
+      "width": 280,
+      "height": 80,
+      "color": "#f59e0b",
+      "pv": {
+        "description": "Span for dropping a project from the unplaced drawer onto the map"
+      },
+      "otel": {
+        "spanPattern": "collection-map.drawer-drop",
+        "status": "implemented"
+      }
+    },
+    {
+      "id": "project-moved-span",
+      "type": "otel-span-convention",
+      "label": "Project Moved",
+      "x": 0,
+      "y": 480,
+      "width": 280,
+      "height": 80,
+      "color": "#f59e0b",
+      "pv": {
+        "description": "Span for moving a sprite to a new position on the map"
+      },
+      "otel": {
+        "spanPattern": "collection-map.project-moved",
+        "status": "implemented"
+      }
+    },
+    {
+      "id": "region-created-span",
+      "type": "otel-span-convention",
+      "label": "Region Created",
+      "x": 320,
+      "y": 0,
+      "width": 280,
+      "height": 80,
+      "color": "#ec4899",
+      "pv": {
+        "description": "Span for creating a new region on the map"
+      },
+      "otel": {
+        "spanPattern": "collection-map.region-created",
+        "status": "implemented"
+      }
+    },
+    {
+      "id": "region-renamed-span",
+      "type": "otel-span-convention",
+      "label": "Region Renamed",
+      "x": 320,
+      "y": 120,
+      "width": 280,
+      "height": 80,
+      "color": "#ec4899",
+      "pv": {
+        "description": "Span for renaming an existing region"
+      },
+      "otel": {
+        "spanPattern": "collection-map.region-renamed",
+        "status": "implemented"
+      }
+    },
+    {
+      "id": "region-deleted-span",
+      "type": "otel-span-convention",
+      "label": "Region Deleted",
+      "x": 320,
+      "y": 240,
+      "width": 280,
+      "height": 80,
+      "color": "#ec4899",
+      "pv": {
+        "description": "Span for deleting a region from the map"
+      },
+      "otel": {
+        "spanPattern": "collection-map.region-deleted",
+        "status": "implemented"
+      }
+    },
+    {
+      "id": "metrics-received-span",
+      "type": "otel-span-convention",
+      "label": "Metrics Received",
+      "x": 320,
+      "y": 360,
+      "width": 280,
+      "height": 80,
+      "color": "#06b6d4",
+      "pv": {
+        "description": "Span for processing incoming repository metrics updates"
+      },
+      "otel": {
+        "spanPattern": "collection-map.metrics-received",
+        "status": "implemented"
+      }
+    },
+    {
+      "id": "span-conventions-desc",
+      "type": "text",
+      "text": "# Span Conventions\nDefines the span naming patterns used for tracing collection map operations",
+      "x": 640,
+      "y": 200,
+      "width": 250,
+      "height": 80,
+      "color": "#64748b"
+    }
+  ],
+  "edges": [
+    {
+      "id": "metrics-to-desc",
+      "fromNode": "metrics-received-span",
+      "toNode": "span-conventions-desc",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "describes"
+      }
+    }
+  ],
+  "pv": {
+    "name": "Span Conventions",
+    "version": "1.0.0",
+    "description": "OpenTelemetry span naming conventions for this project",
+    "markdown": ".principal-views/collection-map-panel/collection-map-panel.md",
+    "edgeTypes": {
+      "describes": {
+        "style": "dashed",
+        "color": "#64748b",
+        "width": 1
+      }
+    }
+  }
+}

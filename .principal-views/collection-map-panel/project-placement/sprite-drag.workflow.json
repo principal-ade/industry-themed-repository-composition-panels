@@ -4,7 +4,6 @@
   "name": "Sprite Drag",
   "description": "Existing sprite dragged to a new position within the map",
   "spanPattern": "collection-map.project-moved",
-  "mode": "span-tree",
   "scenarios": [
     {
       "id": "sprite-moved",

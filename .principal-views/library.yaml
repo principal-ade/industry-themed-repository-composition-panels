@@ -3,6 +3,12 @@ version: "1.0.0"
 name: "@industry-theme/repository-composition-panels"
 description: "Repository composition panels including Git Changes panel for the panel framework"
 
+# Scope definitions for owned scopes
+scopes:
+  collection-map-panel:
+    color: "#3b82f6"
+    description: "Collection map panel for visualizing repository collections as an overworld map"
+
 # Service resource registry
 # Define all services in this repository with their OTEL resource attributes
 # Each service configures its own resources at runtime, but declaring them here provides:

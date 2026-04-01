@@ -4,7 +4,6 @@
   "name": "Data Change Reactivity",
   "description": "How incoming data changes flow through React memos and trigger re-renders",
   "spanPattern": "collection-map.metrics-received",
-  "mode": "span-tree",
   "scenarios": [
     {
       "id": "initial-load-without-metrics",

@@ -4,7 +4,6 @@
   "name": "Drawer Drop",
   "description": "Unplaced repository dragged from bottom drawer onto the map",
   "spanPattern": "collection-map.drawer-drop",
-  "mode": "span-tree",
   "scenarios": [
     {
       "id": "drawer-drop",

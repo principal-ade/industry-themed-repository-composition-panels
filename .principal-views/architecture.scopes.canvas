@@ -1,0 +1,56 @@
+{
+  "nodes": [
+    {
+      "id": "collection-map-panel-scope",
+      "type": "otel-scope",
+      "label": "Collection Map Panel",
+      "x": 0,
+      "y": 0,
+      "width": 300,
+      "height": 100,
+      "color": "#3b82f6",
+      "pv": {
+        "description": "Scope for Collection Map Panel - visualizes repository collections as an isometric overworld map"
+      },
+      "otel": {
+        "scope": "collection-map-panel",
+        "status": "implemented"
+      }
+    },
+    {
+      "id": "collection-map-panel-desc",
+      "type": "text",
+      "text": "# Collection Map Panel\nVisualizes repository collections as an isometric overworld map with drag-and-drop organization",
+      "x": 350,
+      "y": 0,
+      "width": 300,
+      "height": 100,
+      "color": "#64748b"
+    }
+  ],
+  "edges": [
+    {
+      "id": "scope-to-desc",
+      "fromNode": "collection-map-panel-scope",
+      "toNode": "collection-map-panel-desc",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "describes"
+      }
+    }
+  ],
+  "pv": {
+    "name": "Instrumentation Scopes",
+    "version": "1.0.0",
+    "description": "OpenTelemetry instrumentation scope definitions for this project",
+    "markdown": ".principal-views/collection-map-panel/collection-map-panel.md",
+    "edgeTypes": {
+      "describes": {
+        "style": "dashed",
+        "color": "#64748b",
+        "width": 1
+      }
+    }
+  }
+}
