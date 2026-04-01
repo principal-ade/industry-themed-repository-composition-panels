@@ -66,7 +66,6 @@ const createMockRepo = (
     stars: 1500,
     license: 'MIT',
     primaryLanguage: 'TypeScript',
-    createdAt: '2019-03-15T00:00:00Z',
     lastUpdated: new Date().toISOString(),
   },
   metrics: {
@@ -92,7 +91,6 @@ export const TypeScriptRepo: Story = {
         stars: 2500,
         license: 'MIT',
         primaryLanguage: 'TypeScript',
-        createdAt: '2020-06-15T00:00:00Z',
         lastUpdated: new Date().toISOString(),
       },
     }),
@@ -116,7 +114,6 @@ export const PythonRepo: Story = {
         stars: 8900,
         license: 'Apache-2.0',
         primaryLanguage: 'Python',
-        createdAt: '2018-09-01T00:00:00Z',
         lastUpdated: new Date().toISOString(),
       },
       metrics: {
@@ -515,7 +512,6 @@ export const CreatedDateShowcase: Story = {
                     stars: 1500,
                     license: 'MIT',
                     primaryLanguage: 'TypeScript',
-                    createdAt: date,
                     lastUpdated: new Date().toISOString(),
                   },
                 })}
