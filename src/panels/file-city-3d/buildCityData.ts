@@ -40,6 +40,7 @@ export function buildCityDataFromFileTree(
     metadata: {
       totalFiles: builderData.metadata.totalFiles,
       totalDirectories: builderData.metadata.totalDirectories,
+      analyzedAt: builderData.metadata.analyzedAt || new Date(),
       rootPath: builderData.metadata.rootPath,
     },
   };

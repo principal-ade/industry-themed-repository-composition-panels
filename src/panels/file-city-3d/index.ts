@@ -1,5 +1,8 @@
 /**
  * FileCity3DPanel exports
+ *
+ * Core component is now in @principal-ai/file-city-react.
+ * This module provides panel framework integration.
  */
 
 // Panel components (framework pattern)
@@ -11,9 +14,10 @@ export {
   FileCity3D,
 } from './FileCity3D';
 
-// Types
+// Types (re-exported from @principal-ai/file-city-react)
 export type {
   FileCity3DPanelProps,
+  FileCity3DProps,
   CityData,
   CityBuilding,
   CityDistrict,
@@ -21,6 +25,7 @@ export type {
   HighlightLayer,
   HighlightItem,
   IsolationMode,
+  HeightScaling,
 } from './FileCity3D';
 
 // Utilities for building city data from file trees

@@ -155,6 +155,7 @@ const sampleCityData: CityData = {
   metadata: {
     totalFiles: 31,
     totalDirectories: 4,
+    analyzedAt: new Date(),
     rootPath: '/project',
   },
 };
@@ -223,6 +224,7 @@ function generateLargeCityData(): CityData {
     metadata: {
       totalFiles: buildings.length,
       totalDirectories: districts.length,
+      analyzedAt: new Date(),
       rootPath: '/large-project',
     },
   };
@@ -282,6 +284,7 @@ function generateMonorepoCityData(): CityData {
     metadata: {
       totalFiles: buildings.length,
       totalDirectories: districts.length,
+      analyzedAt: new Date(),
       rootPath: '/monorepo',
     },
   };
