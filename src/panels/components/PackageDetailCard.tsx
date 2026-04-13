@@ -405,7 +405,9 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
               }}
             >
               {pkg.packageData.path || 'root'}
-              {pkg.packageData.version && ` - v${pkg.packageData.version}`}
+              {pkg.packageData.version &&
+                typeof pkg.packageData.version === 'string' &&
+                ` - v${pkg.packageData.version}`}
               {pkg.packageData.license && (
                 <>
                   {' - '}
@@ -996,7 +998,9 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
             }}
           >
             {pkg.packageData.path || 'root'}
-            {pkg.packageData.version && ` - v${pkg.packageData.version}`}
+            {pkg.packageData.version &&
+              typeof pkg.packageData.version === 'string' &&
+              ` - v${pkg.packageData.version}`}
             {pkg.packageData.license && (
               <>
                 {' - '}

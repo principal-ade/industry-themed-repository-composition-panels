@@ -61,9 +61,6 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
   onClick,
   onHover,
 }) => {
-  console.log('[PackageSummaryCard] pkg:', pkg);
-  console.log('[PackageSummaryCard] pkg.packageData:', pkg?.packageData);
-
   const { theme } = useTheme();
 
   const deps = pkg.packageData.dependencies || {};
@@ -233,7 +230,10 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
           color: theme.colors.textSecondary,
         }}
       >
-        {pkg.packageData.version && <span>v{pkg.packageData.version}</span>}
+        {pkg.packageData.version &&
+          typeof pkg.packageData.version === 'string' && (
+            <span>v{pkg.packageData.version}</span>
+          )}
         {pkg.packageData.license && (
           <span style={{ color: getLicenseColor(pkg.packageData.license) }}>
             {pkg.packageData.license}

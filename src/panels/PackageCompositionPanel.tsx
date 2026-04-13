@@ -88,31 +88,15 @@ export const PackageCompositionPanelContent: React.FC<
     return packages.find((p) => p.id === selectedPackageId) || null;
   }, [selectedPackageId, packages]);
 
-  console.log('[PackageCompositionPanelContent] isLoading:', isLoading);
-  console.log(
-    '[PackageCompositionPanelContent] packages.length:',
-    packages.length
-  );
-  console.log(
-    '[PackageCompositionPanelContent] isGitHubPublic:',
-    isGitHubPublic
-  );
-
   if (isLoading) {
-    console.log('[PackageCompositionPanelContent] Rendering loading state');
     return <PackageLoadingGraph />;
   }
 
   if (packages.length === 0) {
-    console.log('[PackageCompositionPanelContent] Rendering empty state');
     return <EmptyDependencies />;
   }
 
   const isSinglePackage = packages.length === 1;
-  console.log(
-    '[PackageCompositionPanelContent] Rendering main content, isSinglePackage:',
-    isSinglePackage
-  );
 
   return (
     <div
@@ -315,14 +299,6 @@ export const PackageCompositionPanelPreview: React.FC = () => {
 export const PackageCompositionPanel: React.FC<
   PackageCompositionPanelPropsTyped
 > = ({ context, actions, events }) => {
-  // Debug: log context keys to identify rendering issue
-  console.log('[PackageCompositionPanel] context keys:', Object.keys(context));
-  console.log('[PackageCompositionPanel] context.packages:', context.packages);
-  console.log(
-    '[PackageCompositionPanel] context.repositoryEntry:',
-    context.repositoryEntry
-  );
-
   // Get slices from typed context
   const packagesSlice = context.packages;
   const repositoryEntrySlice = context.repositoryEntry;
