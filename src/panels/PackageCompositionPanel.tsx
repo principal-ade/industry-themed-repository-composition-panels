@@ -88,15 +88,31 @@ export const PackageCompositionPanelContent: React.FC<
     return packages.find((p) => p.id === selectedPackageId) || null;
   }, [selectedPackageId, packages]);
 
+  console.log('[PackageCompositionPanelContent] isLoading:', isLoading);
+  console.log(
+    '[PackageCompositionPanelContent] packages.length:',
+    packages.length
+  );
+  console.log(
+    '[PackageCompositionPanelContent] isGitHubPublic:',
+    isGitHubPublic
+  );
+
   if (isLoading) {
+    console.log('[PackageCompositionPanelContent] Rendering loading state');
     return <PackageLoadingGraph />;
   }
 
   if (packages.length === 0) {
+    console.log('[PackageCompositionPanelContent] Rendering empty state');
     return <EmptyDependencies />;
   }
 
   const isSinglePackage = packages.length === 1;
+  console.log(
+    '[PackageCompositionPanelContent] Rendering main content, isSinglePackage:',
+    isSinglePackage
+  );
 
   return (
     <div
