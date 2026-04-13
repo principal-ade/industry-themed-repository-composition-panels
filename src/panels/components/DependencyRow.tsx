@@ -54,7 +54,7 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
     e.preventDefault();
     e.stopPropagation();
     try {
-      const copyText = `${dependency.name}@${dependency.version}`;
+      const copyText = `${dependency.name}@${versionStr}`;
       await navigator.clipboard.writeText(copyText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -62,6 +62,9 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
       console.error('Failed to copy:', err);
     }
   };
+
+  const versionStr =
+    typeof dependency.version === 'string' ? dependency.version : 'workspace';
 
   const actionButtonStyle: React.CSSProperties = {
     padding: `${theme.space[1]}px`,
@@ -183,11 +186,7 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
                 ? theme.colors.success || '#10b981'
                 : theme.colors.textSecondary,
             }}
-            title={
-              copied
-                ? 'Copied!'
-                : `Copy ${dependency.name}@${dependency.version}`
-            }
+            title={copied ? 'Copied!' : `Copy ${dependency.name}@${versionStr}`}
           >
             {copied ? <Check size={12} /> : <Copy size={12} />}
           </button>
@@ -198,7 +197,7 @@ export const DependencyRow: React.FC<DependencyRowProps> = ({ dependency }) => {
               fontFamily: theme.fonts.body,
             }}
           >
-            {dependency.version}
+            {versionStr}
           </span>
         </div>
       </div>
