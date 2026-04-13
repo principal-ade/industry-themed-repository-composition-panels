@@ -61,6 +61,9 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
   onClick,
   onHover,
 }) => {
+  console.log('[PackageSummaryCard] pkg:', pkg);
+  console.log('[PackageSummaryCard] pkg.packageData:', pkg?.packageData);
+
   const { theme } = useTheme();
 
   const deps = pkg.packageData.dependencies || {};
