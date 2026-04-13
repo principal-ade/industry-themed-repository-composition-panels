@@ -299,6 +299,14 @@ export const PackageCompositionPanelPreview: React.FC = () => {
 export const PackageCompositionPanel: React.FC<
   PackageCompositionPanelPropsTyped
 > = ({ context, actions, events }) => {
+  // Debug: log context keys to identify rendering issue
+  console.log('[PackageCompositionPanel] context keys:', Object.keys(context));
+  console.log('[PackageCompositionPanel] context.packages:', context.packages);
+  console.log(
+    '[PackageCompositionPanel] context.repositoryEntry:',
+    context.repositoryEntry
+  );
+
   // Get slices from typed context
   const packagesSlice = context.packages;
   const repositoryEntrySlice = context.repositoryEntry;
