@@ -45,7 +45,7 @@ const strongCopyleftLicenses = new Set([
 export function getLicensePermissiveness(
   license: string | undefined
 ): LicensePermissiveness {
-  if (!license) return 'unknown';
+  if (!license || typeof license !== 'string') return 'unknown';
 
   const normalized = license.trim();
 
