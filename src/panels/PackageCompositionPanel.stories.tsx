@@ -1278,6 +1278,115 @@ export const PrivatePackages: Story = {
 };
 
 /**
+ * Cargo Workspace (Rust)
+ *
+ * Demonstrates handling of Cargo workspace version inheritance.
+ * In Cargo workspaces, packages can use `version = {workspace = true}` which
+ * gets parsed as an object instead of a string. This story reproduces the
+ * issue to ensure proper handling.
+ */
+export const CargoWorkspace: Story = {
+  args: {
+    packages: [
+      createMockPackage({
+        type: 'cargo',
+        packageData: {
+          name: 'firnflow',
+          version: '0.1.0',
+          license: 'MIT',
+          path: '',
+          manifestPath: 'Cargo.toml',
+          packageManager: 'cargo',
+          isMonorepoRoot: true,
+          isWorkspace: true,
+          monorepoMetadata: {
+            orchestrator: 'none',
+            orchestratorConfigPath: 'Cargo.toml',
+            workspacePatterns: ['crates/*'],
+          },
+          dependencies: {},
+          devDependencies: {},
+          peerDependencies: {},
+          availableCommands: [
+            { name: 'build', command: 'cargo build', type: 'script' },
+            { name: 'test', command: 'cargo test', type: 'script' },
+            {
+              name: 'clippy',
+              command: 'cargo clippy',
+              type: 'script',
+              isLensCommand: true,
+              lensId: 'clippy',
+            },
+          ],
+        },
+        configFiles: {},
+      }),
+      createMockPackage({
+        type: 'cargo',
+        packageData: {
+          name: 'firnflow-api',
+          // This is the key test case - version as an object like Cargo workspace
+          version: { workspace: true } as any,
+          license: { workspace: true } as any,
+          path: 'crates/firnflow-api',
+          manifestPath: 'crates/firnflow-api/Cargo.toml',
+          packageManager: 'cargo',
+          isMonorepoRoot: false,
+          isWorkspace: true,
+          dependencies: {
+            'firnflow-core': { workspace: true } as any,
+            tokio: '^1.0',
+            axum: '^0.7',
+          },
+          devDependencies: {},
+          peerDependencies: {},
+          availableCommands: [
+            { name: 'build', command: 'cargo build', type: 'script' },
+            { name: 'test', command: 'cargo test', type: 'script' },
+          ],
+        },
+        configFiles: {},
+      }),
+      createMockPackage({
+        type: 'cargo',
+        packageData: {
+          name: 'firnflow-core',
+          version: { workspace: true } as any,
+          license: { workspace: true } as any,
+          path: 'crates/firnflow-core',
+          manifestPath: 'crates/firnflow-core/Cargo.toml',
+          packageManager: 'cargo',
+          isMonorepoRoot: false,
+          isWorkspace: true,
+          dependencies: {
+            serde: '^1.0',
+            serde_json: '^1.0',
+          },
+          devDependencies: {},
+          peerDependencies: {},
+          availableCommands: [
+            { name: 'build', command: 'cargo build', type: 'script' },
+            { name: 'test', command: 'cargo test', type: 'script' },
+          ],
+        },
+        configFiles: {},
+      }),
+    ],
+    onCommandClick: (_command: PackageCommand, _packagePath: string) => {},
+    onConfigClick: (_config: ConfigFile) => {},
+    onPackageClick: (_packagePath: string) => {},
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Reproduces the Cargo workspace version inheritance issue where version = {workspace: true} is parsed as an object. The panel should handle this gracefully without crashing.',
+      },
+    },
+  },
+};
+
+/**
  * Preview component - shown in panel switcher
  */
 export const Preview: StoryObj<typeof PackageCompositionPanelPreview> = {

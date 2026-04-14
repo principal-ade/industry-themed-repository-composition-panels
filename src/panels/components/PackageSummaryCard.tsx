@@ -247,11 +247,12 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
           typeof pkg.packageData.version === 'string' && (
             <span>v{pkg.packageData.version}</span>
           )}
-        {pkg.packageData.license && (
-          <span style={{ color: getLicenseColor(pkg.packageData.license) }}>
-            {pkg.packageData.license}
-          </span>
-        )}
+        {pkg.packageData.license &&
+          typeof pkg.packageData.license === 'string' && (
+            <span style={{ color: getLicenseColor(pkg.packageData.license) }}>
+              {pkg.packageData.license}
+            </span>
+          )}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <Package size={12} />
           <span>{totalDeps} deps</span>

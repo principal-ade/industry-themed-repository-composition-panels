@@ -408,16 +408,19 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
               {pkg.packageData.version &&
                 typeof pkg.packageData.version === 'string' &&
                 ` - v${pkg.packageData.version}`}
-              {pkg.packageData.license && (
-                <>
-                  {' - '}
-                  <span
-                    style={{ color: getLicenseColor(pkg.packageData.license) }}
-                  >
-                    {pkg.packageData.license}
-                  </span>
-                </>
-              )}
+              {pkg.packageData.license &&
+                typeof pkg.packageData.license === 'string' && (
+                  <>
+                    {' - '}
+                    <span
+                      style={{
+                        color: getLicenseColor(pkg.packageData.license),
+                      }}
+                    >
+                      {pkg.packageData.license}
+                    </span>
+                  </>
+                )}
             </div>
           </div>
           {onClose && (
@@ -1001,16 +1004,17 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
             {pkg.packageData.version &&
               typeof pkg.packageData.version === 'string' &&
               ` - v${pkg.packageData.version}`}
-            {pkg.packageData.license && (
-              <>
-                {' - '}
-                <span
-                  style={{ color: getLicenseColor(pkg.packageData.license) }}
-                >
-                  {pkg.packageData.license}
-                </span>
-              </>
-            )}
+            {pkg.packageData.license &&
+              typeof pkg.packageData.license === 'string' && (
+                <>
+                  {' - '}
+                  <span
+                    style={{ color: getLicenseColor(pkg.packageData.license) }}
+                  >
+                    {pkg.packageData.license}
+                  </span>
+                </>
+              )}
           </div>
         </div>
         {pkg.packageData.path && (
