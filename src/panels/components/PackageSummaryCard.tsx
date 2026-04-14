@@ -61,6 +61,19 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
   onClick,
   onHover,
 }) => {
+  // Debug logging for version
+  if (
+    pkg?.packageData?.version &&
+    typeof pkg.packageData.version !== 'string'
+  ) {
+    console.error('[PackageSummaryCard] NON-STRING VERSION DETECTED:', {
+      pkgName: pkg.packageData.name,
+      version: pkg.packageData.version,
+      versionType: typeof pkg.packageData.version,
+      versionKeys: Object.keys(pkg.packageData.version),
+    });
+  }
+
   const { theme } = useTheme();
 
   const deps = pkg.packageData.dependencies || {};
