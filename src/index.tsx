@@ -5,7 +5,6 @@ import { DependencyGraphPanel } from './panels/dependency-graph';
 import { CollectionMapPanel } from './panels/CollectionMapPanel';
 import { TelemetryCoveragePanel } from './panels/TelemetryCoveragePanel';
 import { LocalProjectGridPanel } from './panels/local-project-grid';
-import { FileCity3DPanel } from './panels/file-city-3d';
 import type { PanelDefinition, PanelContextValue } from './types';
 
 /**
@@ -190,32 +189,6 @@ export const panels: ReadonlyArray<PanelDefinition<any, any>> = [
       console.log('Local Projects Grid Panel unmounting');
     },
   },
-  {
-    metadata: {
-      id: 'industry-theme.file-city-3d',
-      name: 'File City 3D',
-      icon: 'Building2',
-      version: '0.1.0',
-      author: 'Industry Theme',
-      description:
-        'Visualize repository structure as an interactive 3D city landscape',
-      slices: ['fileTree'],
-    },
-    component: FileCity3DPanel,
-
-    onMount: async (context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log('File City 3D Panel mounted');
-
-      // Slice availability is enforced by panel metadata slices declaration
-      await context.refresh('repository', 'fileTree');
-    },
-
-    onUnmount: async (_context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log('File City 3D Panel unmounting');
-    },
-  },
 ];
 
 /**
@@ -370,29 +343,6 @@ export type {
   LocalProjectGridPanelContext,
   LocalProjectCardProps,
 } from './panels/local-project-grid';
-
-// File City 3D Panel
-export {
-  FileCity3DPanel,
-  FileCity3DPanelContent,
-  FileCity3DPanelPreview,
-  FileCity3D, // Legacy alias
-  buildCityDataFromFileTree,
-  enrichWithLineCounts,
-  estimateLineCounts,
-  createMockFileTree,
-} from './panels/file-city-3d';
-export type {
-  FileCity3DPanelProps,
-  CityData,
-  CityBuilding,
-  CityDistrict,
-  AnimationConfig,
-  HighlightLayer,
-  HighlightItem,
-  IsolationMode,
-  LineCountData,
-} from './panels/file-city-3d';
 
 // Re-export types
 export type {

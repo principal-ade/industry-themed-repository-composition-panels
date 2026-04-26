@@ -53,11 +53,6 @@ export default defineConfig(() => ({
         'react/jsx-dev-runtime',
         '@principal-ade/dynamic-file-tree',
         '@principal-ai/principal-view-core/browser',
-        // React Three Fiber and related - must be external to avoid React version conflicts
-        '@react-three/fiber',
-        '@react-three/drei',
-        '@react-spring/three',
-        'three',
       ],
       output: {
         globals: {

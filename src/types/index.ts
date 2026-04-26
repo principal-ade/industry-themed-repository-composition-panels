@@ -195,18 +195,3 @@ export type TelemetryCoveragePanelPropsTyped = CorePanelComponentProps<
   CorePanelActions,
   TelemetryCoveragePanelContext
 >;
-
-/**
- * Typed context for FileCity3DPanel
- */
-export interface FileCity3DPanelContext {
-  fileTree: DataSlice<FileTree | null>;
-}
-
-/**
- * Typed panel props for FileCity3DPanel
- */
-export type FileCity3DPanelPropsTyped = CorePanelComponentProps<
-  CorePanelActions,
-  FileCity3DPanelContext
->;
