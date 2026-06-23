@@ -457,6 +457,157 @@ const samplePackages: PackageLayer[] = [
   }),
 ];
 
+// Generate a large monorepo with many workspace packages
+const createManyPackages = (): PackageLayer[] => {
+  const domains = [
+    'auth',
+    'billing',
+    'catalog',
+    'checkout',
+    'notifications',
+    'search',
+    'analytics',
+    'media',
+    'messaging',
+    'inventory',
+    'shipping',
+    'payments',
+    'reviews',
+    'recommendations',
+    'admin',
+  ];
+  const layers = ['ui', 'api', 'core', 'utils'];
+  const managers: PackageLayer['packageData']['packageManager'][] = [
+    'npm',
+    'pnpm',
+    'yarn',
+    'bun',
+  ];
+
+  const root = createMockPackage({
+    packageData: {
+      name: 'mega-monorepo',
+      version: '1.0.0',
+      license: 'MIT',
+      path: '',
+      manifestPath: 'package.json',
+      packageManager: 'pnpm',
+      isMonorepoRoot: true,
+      isWorkspace: false,
+      isPrivate: true,
+      monorepoMetadata: {
+        orchestrator: 'turbo',
+        orchestratorConfigPath: 'turbo.json',
+        workspacePatterns: ['packages/*', 'apps/*'],
+        definedTasks: [
+          { name: 'build', tool: 'turbo' },
+          { name: 'test', tool: 'turbo' },
+          { name: 'lint', tool: 'turbo' },
+        ],
+      },
+      dependencies: {},
+      devDependencies: {
+        turbo: '^2.0.0',
+        typescript: '^5.0.0',
+        eslint: '^9.0.0',
+        prettier: '^3.0.0',
+      },
+      peerDependencies: {},
+      availableCommands: [
+        { name: 'build', command: 'turbo build', type: 'script' },
+        { name: 'dev', command: 'turbo dev', type: 'script' },
+        {
+          name: 'test',
+          command: 'turbo test',
+          type: 'script',
+          isLensCommand: true,
+          lensId: 'vitest',
+        },
+        {
+          name: 'lint',
+          command: 'turbo lint',
+          type: 'script',
+          isLensCommand: true,
+          lensId: 'eslint',
+        },
+      ],
+    },
+    configFiles: {
+      typescript: { path: 'tsconfig.json', exists: true, type: 'json' },
+      eslint: { path: 'eslint.config.js', exists: true, type: 'js' },
+      prettier: { path: '.prettierrc', exists: true, type: 'json' },
+    },
+  });
+
+  const workspaces = domains.flatMap((domain, dIdx) =>
+    layers.map((layer, lIdx) => {
+      const name = `@mega/${domain}-${layer}`;
+      const path = `packages/${domain}-${layer}`;
+      const idx = dIdx * layers.length + lIdx;
+      return createMockPackage({
+        packageData: {
+          name,
+          version: `0.${dIdx}.${lIdx}`,
+          license: 'MIT',
+          path,
+          manifestPath: `${path}/package.json`,
+          packageManager: managers[idx % managers.length],
+          isMonorepoRoot: false,
+          isWorkspace: true,
+          isPrivate: layer === 'core' || layer === 'utils',
+          dependencies: {
+            ...(layer !== 'utils'
+              ? { [`@mega/${domain}-utils`]: 'workspace:*' }
+              : {}),
+            ...(layer === 'api' ? { express: '^4.18.0' } : {}),
+            ...(layer === 'ui' ? { react: '^19.0.0', clsx: '^2.0.0' } : {}),
+          },
+          devDependencies: {
+            typescript: '^5.0.0',
+            vitest: '^2.0.0',
+          },
+          peerDependencies: {},
+          availableCommands: [
+            { name: 'build', command: 'tsup', type: 'script' },
+            {
+              name: 'test',
+              command: 'vitest',
+              type: 'script',
+              isLensCommand: true,
+              lensId: 'vitest',
+            },
+          ],
+        },
+        configFiles: {
+          typescript: {
+            path: `${path}/tsconfig.json`,
+            exists: true,
+            type: 'json',
+          },
+          eslint: {
+            path: 'eslint.config.js',
+            exists: true,
+            type: 'js',
+            isInherited: true,
+            inheritedFrom: 'root',
+          },
+          prettier: {
+            path: '.prettierrc',
+            exists: true,
+            type: 'json',
+            isInherited: true,
+            inheritedFrom: 'root',
+          },
+        },
+      });
+    })
+  );
+
+  return [root, ...workspaces];
+};
+
+const manyPackages = createManyPackages();
+
 /**
  * Default panel with multiple packages (monorepo structure)
  */
@@ -466,6 +617,32 @@ export const Default: Story = {
     onCommandClick: (_command: PackageCommand, _packagePath: string) => {},
     onConfigClick: (_config: ConfigFile) => {},
     onPackageClick: (_packagePath: string) => {},
+  },
+};
+
+/**
+ * Many packages — a large monorepo with 60+ workspace packages.
+ *
+ * Exercises the panel's scrolling, rendering, and performance with a realistic
+ * large monorepo: one orchestrator root plus a grid of domain × layer packages
+ * (ui / api / core / utils), each with inherited configs and internal
+ * workspace dependencies.
+ */
+export const ManyPackages: Story = {
+  args: {
+    packages: manyPackages,
+    isGitHubPublic: false,
+    onCommandClick: (_command: PackageCommand, _packagePath: string) => {},
+    onConfigClick: (_config: ConfigFile) => {},
+    onPackageClick: (_packagePath: string) => {},
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'A large monorepo with 60+ workspace packages to exercise scrolling and rendering performance.',
+      },
+    },
   },
 };
 

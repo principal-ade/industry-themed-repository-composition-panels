@@ -1868,6 +1868,8 @@ const mockTheme: Theme = {
     highlightBg: '#1f2937',
     highlightBorder: '#374151',
     textOnPrimary: '#ffffff',
+    textOnSecondary: '#ffffff',
+    textOnAccent: '#1a1a2e',
   },
   buttons: {
     primary: {

@@ -34,6 +34,8 @@ export interface PackageCompositionPanelProps {
   foundManifests?: string[];
   /** Whether the GitHub repository is public (undefined if no GitHub info) */
   isGitHubPublic?: boolean;
+  /** Hide the persistent header shown above the package list view */
+  hideHeader?: boolean;
   /** Callback when a command is clicked */
   onCommandClick?: (command: PackageCommand, packagePath: string) => void;
   /** Callback when a config file is clicked */
@@ -59,6 +61,7 @@ export const PackageCompositionPanelContent: React.FC<
   packages,
   isLoading = false,
   isGitHubPublic,
+  hideHeader = true,
   onCommandClick,
   onConfigClick,
   onPackageClick,
@@ -108,47 +111,49 @@ export const PackageCompositionPanelContent: React.FC<
       }}
     >
       {/* Persistent Header */}
-      <div
-        style={{
-          height: '40px',
-          padding: '0 16px',
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderBottom: `1px solid ${theme.colors.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          flexShrink: 0,
-        }}
-      >
-        {isGitHubPublic === false ? (
-          <Lock size={16} color={theme.colors.textSecondary} />
-        ) : isGitHubPublic === true ? (
-          <Globe size={16} color={theme.colors.textSecondary} />
-        ) : (
-          <FileCode size={16} color={theme.colors.primary} />
-        )}
-        <span
+      {!hideHeader && (
+        <div
           style={{
-            fontSize: theme.fontSizes[1],
-            fontFamily: theme.fonts.body,
-            color: theme.colors.textSecondary,
-            flex: 1,
+            height: '40px',
+            padding: '0 16px',
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderBottom: `1px solid ${theme.colors.border}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flexShrink: 0,
           }}
-          title={
-            isGitHubPublic === false
-              ? 'This repository is private on GitHub'
-              : isGitHubPublic === true
-                ? 'This repository is public on GitHub'
-                : undefined
-          }
         >
-          {isGitHubPublic === false
-            ? 'Private Repo'
-            : isGitHubPublic === true
-              ? 'Public Repo'
-              : `${packages.length} packages`}
-        </span>
-      </div>
+          {isGitHubPublic === false ? (
+            <Lock size={16} color={theme.colors.textSecondary} />
+          ) : isGitHubPublic === true ? (
+            <Globe size={16} color={theme.colors.textSecondary} />
+          ) : (
+            <FileCode size={16} color={theme.colors.primary} />
+          )}
+          <span
+            style={{
+              fontSize: theme.fontSizes[1],
+              fontFamily: theme.fonts.body,
+              color: theme.colors.textSecondary,
+              flex: 1,
+            }}
+            title={
+              isGitHubPublic === false
+                ? 'This repository is private on GitHub'
+                : isGitHubPublic === true
+                  ? 'This repository is public on GitHub'
+                  : undefined
+            }
+          >
+            {isGitHubPublic === false
+              ? 'Private Repo'
+              : isGitHubPublic === true
+                ? 'Public Repo'
+                : `${packages.length} packages`}
+          </span>
+        </div>
+      )}
 
       {/* Content Area */}
       <div

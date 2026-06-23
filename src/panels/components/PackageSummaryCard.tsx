@@ -98,7 +98,7 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
         flexDirection: 'column',
         gap: '8px',
         padding: '20px',
-        backgroundColor: theme.colors.backgroundSecondary,
+        backgroundColor: theme.colors.background,
         border: `1px solid ${theme.colors.border}`,
         borderRadius: '0',
         cursor: 'pointer',
@@ -113,8 +113,7 @@ export const PackageSummaryCard: React.FC<PackageSummaryCardProps> = ({
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = theme.colors.border;
-        e.currentTarget.style.backgroundColor =
-          theme.colors.backgroundSecondary;
+        e.currentTarget.style.backgroundColor = theme.colors.background;
         onHover?.(null);
       }}
     >

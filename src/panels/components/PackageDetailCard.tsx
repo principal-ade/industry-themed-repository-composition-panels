@@ -346,7 +346,14 @@ export const PackageDetailCard: React.FC<PackageDetailCardProps> = ({
   // Standalone mode: render content directly without card wrapper
   if (standalone) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          backgroundColor: theme.colors.backgroundSecondary,
+        }}
+      >
         {/* Package Info Header */}
         <div
           style={{
